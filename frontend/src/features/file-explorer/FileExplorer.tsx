@@ -1,0 +1,37 @@
+import { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import FilesTree from './components/FilesTree';
+import { useParams } from 'react-router-dom';
+import { loadHighlights, loadRedactions } from '../toolbar/redux';
+import { useGetTreeQuery } from './api';
+
+const FileTree: React.FC = () => {
+  const tree = useAppSelector(state => state.fileTree.tree);
+
+  const dispatch = useAppDispatch();
+  const { bundleId } = useParams<{ bundleId: string }>();
+  const isDesktop = !!window.api;
+  useGetTreeQuery(bundleId ?? '', { skip: !bundleId || isDesktop });
+
+  useEffect(() => {
+    if (isDesktop) return;
+    if (!bundleId) return;
+    dispatch(loadHighlights({ bundleId: bundleId }));
+    dispatch(loadRedactions({ bundleId: bundleId }));
+  }, [bundleId, dispatch, isDesktop]);
+
+  return (
+    <div className="h-screen w-full  bg-white text-gray-800">
+      <div className="border-gray-300 border-b p-4">
+        <h2 className="font-semibold text-gray-800 text-xs uppercase tracking-wider">
+          Explorer
+        </h2>
+      </div>
+      <div className="py-1 overflow-y-auto">
+        <FilesTree tree={tree} level={0} />
+      </div>
+    </div>
+  );
+};
+
+export default FileTree;

@@ -1,0 +1,24 @@
+{
+  "name": "case-builder-desktop",
+  "author": "Anik Dey",
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "build:electron": "tsc -p electron/tsconfig.json",
+    "start": "npm run build:electron && electron .",
+    "dev:renderer": "npm --prefix frontend run dev",
+    "dev:electron": "wait-on tcp:3000 && npm run build:electron && electron .",
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^41.0.3",
+    "@types/node": "^24.5.2",
+    "typescript": "~5.8.3",
+    "wait-on": "^9.0.4"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "pdf-lib": "^1.17.1",
+    "uuid": "^13.0.0"
+  }
+}

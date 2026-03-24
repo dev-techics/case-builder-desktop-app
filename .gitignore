@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Builds
+dist/
+dist-electron/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment (keep .env.development/.env.production if you commit them)
+.env.local
+.env.*.local
+
+# Electron packaging outputs (common)
+out/
+release/
+
+# Local data
+storage/
+
+# Nested repo metadata (if frontend was copied from another repo)
+frontend/.git/
+
+# OS files
+.DS_Store
+Thumbs.db
