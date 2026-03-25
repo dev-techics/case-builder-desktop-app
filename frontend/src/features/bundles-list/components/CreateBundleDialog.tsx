@@ -9,7 +9,6 @@
  * Author: Anik Dey
  */
 
-import { useAppDispatch } from '@/app/hooks';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,9 +21,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createBundleAsync } from '../redux/bundlesListSlice';
 import { useState, type FormEvent } from 'react';
 import { toast } from 'react-toastify';
+import { useCreateBundleMutation } from '../api';
 
 interface CreateNewBundleDialogProps {
   open: boolean;
@@ -37,7 +36,7 @@ const CreateNewBundleDialog = ({
 }: CreateNewBundleDialogProps) => {
   const [bundleName, setBundleName] = useState('');
   const [caseNumber, setCaseNumber] = useState('');
-  const dispatch = useAppDispatch();
+  const [createBundle] = useCreateBundleMutation();
 
   // Handle new bundle creation
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -52,7 +51,7 @@ const CreateNewBundleDialog = ({
     };
 
     try {
-      await dispatch(createBundleAsync(payload)).unwrap();
+      await createBundle(payload).unwrap();
       toast.success('New bundle created successfully');
       setBundleName('');
       setCaseNumber('');

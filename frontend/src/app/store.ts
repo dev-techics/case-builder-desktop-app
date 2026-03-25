@@ -3,7 +3,6 @@ import editorReducer from '@/features/editor/redux/editorSlice';
 import propertiesPanelReducer from '@/features/properties-panel/redux/propertiesPanelSlice';
 import toolbarReducer from '@/features/toolbar/redux';
 import fileTreeReducer from '../features/file-explorer/redux/fileTreeSlice';
-import bundlesListReducer from '@/features/bundles-list/redux/bundlesListSlice';
 import authReducer from '@/features/auth/redux/authSlice';
 import CoverPageReducer from '@/features/cover-page/redux/coverPageSlice';
 import authApi from '@/features/auth/api';
@@ -12,6 +11,7 @@ import { fileTreeApi } from '@/features/file-explorer/api';
 import { editorApi } from '@/features/editor/api';
 import { dashboardApi } from '@/features/dashboard/api';
 import dashboardReducer from '@/features/dashboard/redux';
+import bundlesListApi from '@/features/bundles-list/api';
 
 const store = configureStore({
   reducer: {
@@ -21,13 +21,13 @@ const store = configureStore({
     [fileTreeApi.reducerPath]: fileTreeApi.reducer,
     [editorApi.reducerPath]: editorApi.reducer,
     [dashboardApi.reducerPath]: dashboardApi.reducer,
+    [bundlesListApi.reducerPath]: bundlesListApi.reducer,
     /*----------- state slices ------------ */
     auth: authReducer,
     fileTree: fileTreeReducer,
     editor: editorReducer,
     propertiesPanel: propertiesPanelReducer,
     toolbar: toolbarReducer,
-    bundleList: bundlesListReducer,
     coverPage: CoverPageReducer,
     dashboard: dashboardReducer,
   },
@@ -37,7 +37,8 @@ const store = configureStore({
       coverPageApi.middleware,
       fileTreeApi.middleware,
       editorApi.middleware,
-      dashboardApi.middleware
+      dashboardApi.middleware,
+      bundlesListApi.middleware
     ),
 });
 

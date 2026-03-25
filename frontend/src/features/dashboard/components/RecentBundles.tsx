@@ -1,24 +1,15 @@
 // dashboard/components/RecentBundles.tsx
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { File02Icon, Share05Icon } from '@hugeicons/core-free-icons';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { fetchBundles } from '@/features/bundles-list/redux/bundlesListSlice';
 import { formatRelativeTime, getSortTimestamp } from '../utils';
 import { useNavigate } from 'react-router-dom';
+import { useGetBundlesQuery } from '@/features/bundles-list/api';
 
 export const RecentBundles = () => {
-  const dispatch = useAppDispatch();
-  const { bundles, isLoading, error } = useAppSelector(
-    state => state.bundleList
-  );
+  const { data: bundles = [], isLoading } = useGetBundlesQuery();
   const navigate = useNavigate();
-  useEffect(() => {
-    if (!isLoading && !error && bundles.length === 0) {
-      dispatch(fetchBundles());
-    }
-  }, [dispatch, isLoading, error, bundles.length]);
 
   const recentBundles = useMemo(
     () =>

@@ -7,7 +7,7 @@
  *
  * Author: Anik Dey
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import BundlesHeader from './components/BundlesHeader';
 import BundlesFilterBar from './components/BundlesFilterbar';
@@ -17,13 +17,9 @@ import { FileStack, Plus } from 'lucide-react';
 import type { Bundle, SortOption, ViewMode } from './types/types';
 import { useNavigate } from 'react-router-dom';
 import CreateNewBundleDialog from './components/CreateBundleDialog';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import {
-  createDuplicate,
-  deleteBundleAsync,
-  fetchBundles,
-} from './redux/bundlesListSlice';
+import { useAppDispatch } from '@/app/hooks';
 import { toast } from 'react-toastify';
+import { bundlesListApi, useDeleteBundleMutation, useGetBundlesQuery } from './api';
 
 const BundleList = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -31,12 +27,9 @@ const BundleList = () => {
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [openNewBundleDialog, setOpenNewBundleDialog] = useState(false);
   const navigate = useNavigate();
-  const bundles = useAppSelector(state => state.bundleList.bundles);
   const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    dispatch(fetchBundles());
-  }, [dispatch]);
+  const { data: bundles = [], isLoading } = useGetBundlesQuery();
+  const [deleteBundle] = useDeleteBundleMutation();
 
   // Handle new bundle creation
   const handleCreateNew = () => {
@@ -49,15 +42,34 @@ const BundleList = () => {
   // Handle bundle delete
   const handleBundleDelete = async (id: string | number) => {
     try {
-      await dispatch(deleteBundleAsync(id)).unwrap();
+      await deleteBundle(id).unwrap();
       toast.success('Bundle Deleted Successfully');
     } catch (err) {
       toast.error('Failed to delete bundle');
     }
   };
   const handleBundleDuplicate = (bundle: Bundle) => {
-    console.log('hello world');
-    dispatch(createDuplicate(bundle));
+    dispatch(
+      bundlesListApi.util.updateQueryData('getBundles', undefined, draft => {
+        const originalIndex = draft.findIndex(item => item.id === bundle.id);
+        const now = new Date().toISOString();
+        const duplicatedBundle: Bundle = {
+          ...bundle,
+          id: crypto.randomUUID(),
+          name: `${bundle.name} (Copy)`,
+          createdAt: now,
+          updatedAt: now,
+          status: 'In Progress',
+          documentCount: 0,
+        };
+
+        if (originalIndex === -1) {
+          draft.unshift(duplicatedBundle);
+        } else {
+          draft.splice(originalIndex + 1, 0, duplicatedBundle);
+        }
+      })
+    );
     toast.success('Bundle Duplicated Successfully');
   };
 
@@ -128,7 +140,11 @@ const BundleList = () => {
           </div>
         )}
 
-        {filteredBundles.length === 0 && (
+        {isLoading && bundles.length === 0 && (
+          <div className="text-center py-12 text-gray-500">Loading bundles…</div>
+        )}
+
+        {!isLoading && filteredBundles.length === 0 && (
           <div className="text-center py-12">
             <FileStack className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
