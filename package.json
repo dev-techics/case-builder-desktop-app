@@ -1,15 +1,27 @@
 {
   "name": "case-builder-desktop",
-  "author": "Anik Dey",
+  "version": "0.1.0",
+  "author": {
+    "name":"Anik Dey", 
+    "email": "contact@anikdey.com"
+  },
+  "description": "Case Builder desktop application",
   "main": "dist/electron/main.js",
   "scripts": {
+    "build:renderer": "npm --prefix frontend run build",
     "build:electron": "tsc -p electron/tsconfig.json",
+    "build": "npm run build:renderer && npm run build:electron",
     "start": "npm run build:electron && electron .",
     "dev:renderer": "npm --prefix frontend run dev",
     "dev:electron": "wait-on tcp:3000 && npm run build:electron && electron .",
-    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\""
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "dist:mac": "npm run build && electron-builder --mac dmg",
+    "dist:linux": "npm run build && electron-builder --linux deb"
   },
   "devDependencies": {
+    "electron-builder": "^24.13.3",
     "concurrently": "^9.2.1",
     "electron": "^41.0.3",
     "@types/node": "^24.5.2",
@@ -20,5 +32,37 @@
     "better-sqlite3": "^12.8.0",
     "pdf-lib": "^1.17.1",
     "uuid": "^13.0.0"
+  },
+  "build": {
+    "appId": "com.casebuilder.desktop",
+    "productName": "CaseBuilder",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "frontend/dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "category": "Utility"
+    }
   }
 }

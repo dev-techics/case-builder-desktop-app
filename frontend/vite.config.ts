@@ -4,7 +4,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? './' : '/',
   plugins: [react(), tailwindcss()],
   optimizeDeps: {
     include: ['pdfjs-dist'],
@@ -29,4 +30,4 @@ export default defineConfig({
     setupFiles: './vitest.setup.ts',
     css: true,
   },
-});
+}));
