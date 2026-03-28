@@ -1,5 +1,5 @@
-import type { Bundle } from "../../domain/bundle"
-import type { BundleRepository } from "../ports/bundleRepository"
+import type { Bundle } from "../../domain/bundle.js"
+import type { BundleRepository } from "../ports/bundleRepository.js"
 
 export class ListBundlesUseCase {
   constructor(private readonly bundleRepository: BundleRepository) {}

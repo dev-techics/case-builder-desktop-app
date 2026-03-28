@@ -1,9 +1,9 @@
 import { ipcMain } from "electron"
 
-import type { BundleRepository } from "../../backend/application/ports/bundleRepository"
-import { CreateBundleUseCase } from "../../backend/application/useCases/createBundle"
-import { DeleteBundleUseCase } from "../../backend/application/useCases/deleteBundle"
-import { ListBundlesUseCase } from "../../backend/application/useCases/listBundles"
+import type { BundleRepository } from "../../backend/application/ports/bundleRepository.js"
+import { CreateBundleUseCase } from "../../backend/application/useCases/createBundle.js"
+import { DeleteBundleUseCase } from "../../backend/application/useCases/deleteBundle.js"
+import { ListBundlesUseCase } from "../../backend/application/useCases/listBundles.js"
 
 export function registerBundleIpc(deps: { bundleRepository: BundleRepository }) {
   const createBundle = new CreateBundleUseCase(deps.bundleRepository)

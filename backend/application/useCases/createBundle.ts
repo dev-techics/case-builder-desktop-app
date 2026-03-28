@@ -3,9 +3,9 @@ import {
   normalizeBundleName,
   normalizeCaseNumber,
   type Bundle,
-} from "../../domain/bundle"
-import { ValidationError } from "../../domain/errors"
-import type { BundleRepository } from "../ports/bundleRepository"
+} from "../../domain/bundle.js"
+import { ValidationError } from "../../domain/errors.js"
+import type { BundleRepository } from "../ports/bundleRepository.js"
 
 export interface CreateBundleInput {
   name: string

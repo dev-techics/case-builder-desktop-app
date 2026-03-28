@@ -1,0 +1,7 @@
+node_modules
+dist-electron
+dist-react
+.git
+release
+storage
+frontend

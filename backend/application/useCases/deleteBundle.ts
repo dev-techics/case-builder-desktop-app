@@ -1,5 +1,5 @@
-import { ValidationError } from "../../domain/errors"
-import type { BundleRepository } from "../ports/bundleRepository"
+import { ValidationError } from "../../domain/errors.js"
+import type { BundleRepository } from "../ports/bundleRepository.js"
 
 export class DeleteBundleUseCase {
   constructor(private readonly bundleRepository: BundleRepository) {}

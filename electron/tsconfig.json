@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",
-    "moduleResolution": "Node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "strict": true,
     "rootDir": "..",
-    "outDir": "../dist",
+    "outDir": "../dist-electron",
     "esModuleInterop": true
   },
-  "include": ["./**/*.ts", "../backend/**/*.ts"]
+  "include": ["./**/*.ts", "../backend/**/*.ts", "preload.ts"]
 }

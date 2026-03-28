@@ -4,6 +4,7 @@ frontend/node_modules/
 
 # Builds
 dist/
+dist-react/
 dist-electron/
 frontend/dist/
 frontend/.vite/

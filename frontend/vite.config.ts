@@ -3,7 +3,6 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
-// https://vite.dev/config/
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? './' : '/',
   plugins: [react(), tailwindcss()],
@@ -23,11 +22,6 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       external: [],
     },
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './vitest.setup.ts',
-    css: true,
+    outDir: "../dist-react"
   },
 }));
