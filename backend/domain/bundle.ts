@@ -1,23 +1,21 @@
-export type BundleStatus = "In Progress" | "Complete" | "Review" | "Archived"
-export type BundleColor = "blue" | "green" | "purple" | "orange" | "red" | "yellow"
+export type BundleStatus = 'In Progress' | 'Complete' | 'Review' | 'Archived';
 
 export interface Bundle {
-  id: string
-  name: string
-  caseNumber: string
-  documentCount: number
-  status: BundleStatus
-  color: BundleColor
-  createdAt: string
-  updatedAt: string
-  description?: string
-  tags?: string[]
+  id: string;
+  name: string;
+  caseNumber: string;
+  documentCount: number;
+  status: BundleStatus;
+  createdAt: string;
+  updatedAt: string;
+  description?: string;
+  tags?: string[];
 }
 
 export function normalizeBundleName(name: string): string {
-  return name.trim().replace(/\s+/g, " ")
+  return name.trim().replace(/\s+/g, ' ');
 }
 
 export function normalizeCaseNumber(caseNumber: string): string {
-  return caseNumber.trim().replace(/\s+/g, " ")
+  return caseNumber.trim().replace(/\s+/g, ' ');
 }

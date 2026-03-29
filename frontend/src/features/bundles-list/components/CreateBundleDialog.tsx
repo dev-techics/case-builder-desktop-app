@@ -22,8 +22,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, type FormEvent } from 'react';
-import { toast } from 'react-toastify';
-import { useCreateBundleMutation } from '../api';
+import { Textarea } from '@/components/ui/textarea';
+import { useCreateBundle } from '../hooks';
+import type { CreateBundleFormData } from '../hooks';
 
 interface CreateNewBundleDialogProps {
   open: boolean;
@@ -34,31 +35,18 @@ const CreateNewBundleDialog = ({
   open,
   onOpenChange,
 }: CreateNewBundleDialogProps) => {
-  const [bundleName, setBundleName] = useState('');
-  const [caseNumber, setCaseNumber] = useState('');
-  const [createBundle] = useCreateBundleMutation();
+  const [formData, setFormData] = useState<CreateBundleFormData>({
+    bundleName: '',
+    caseNumber: '',
+    description: '',
+  });
+
+  const { createBundle } = useCreateBundle();
 
   // Handle new bundle creation
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-
-    if (!bundleName.trim() || !caseNumber.trim()) {
-      return;
-    }
-    const payload = {
-      name: bundleName.trim(),
-      case_number: caseNumber.trim(),
-    };
-
-    try {
-      await createBundle(payload).unwrap();
-      toast.success('New bundle created successfully');
-      setBundleName('');
-      setCaseNumber('');
-      onOpenChange(false);
-    } catch (error) {
-      toast.error('Failed to create bundle');
-    }
+    await createBundle(formData);
   };
 
   return (
@@ -74,23 +62,39 @@ const CreateNewBundleDialog = ({
         <form onSubmit={e => handleSubmit(e)}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-3">
-              <Label htmlFor="bundle-name">Bundle Name</Label>
+              <Label htmlFor="bundle-name">Bundle Name *</Label>
               <Input
                 id="bundle-name"
                 name="bundleName"
-                value={bundleName}
-                onChange={e => setBundleName(e.target.value)}
+                value={formData.bundleName}
+                onChange={e =>
+                  setFormData({ ...formData, bundleName: e.target.value })
+                }
                 placeholder="e.g., Smith v. Johnson - Discovery"
               />
             </div>
             <div className="grid gap-3">
-              <Label htmlFor="case-number">Case Number</Label>
+              <Label htmlFor="case-number">Case Number *</Label>
               <Input
                 id="case-number"
                 name="caseNumber"
-                value={caseNumber}
-                onChange={e => setCaseNumber(e.target.value)}
+                value={formData.caseNumber}
+                onChange={e =>
+                  setFormData({ ...formData, caseNumber: e.target.value })
+                }
                 placeholder="e.g., CV-2024-001234"
+              />
+            </div>
+            <div className="grid gap-3">
+              <Label htmlFor="case-number">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={e =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                placeholder="Optional description for the bundle"
               />
             </div>
           </div>

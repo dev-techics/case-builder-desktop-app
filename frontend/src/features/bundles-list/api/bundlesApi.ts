@@ -2,10 +2,9 @@ import axiosInstance from '@/api/axiosInstance';
 import type { Bundle } from '../types/types';
 
 export interface CreateBundleDto {
-  name: string;
-  case_number: string;
+  bundleName: string;
+  caseNumber: string;
   status?: 'In Progress' | 'Complete' | 'Review' | 'Archived';
-  color?: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'yellow';
   description?: string;
   tags?: string[];
 }

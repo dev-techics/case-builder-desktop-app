@@ -4,12 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { registerBundleIpc } from './ipc/bundle.controller.js';
 import { createSqliteDatabase } from '../backend/infrastructure/database/sqlite.js';
 import { SqliteBundleRepository } from '../backend/infrastructure/repositories/sqliteBundleRepository.js';
-import { cwd } from 'node:process';
+import { getDatabasePath } from './utils/index.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 
+/*----------------------
+  Register IPC Handlers
+------------------------*/
 const registerIpc = async () => {
   const bundlesPath = path.join(
     app.getPath('userData'),
@@ -24,20 +27,8 @@ const registerIpc = async () => {
 };
 
 /*-------------------
-  Get Database Path
+  Create Window
 ---------------------*/
-const getDatabasePath = () => {
-  if (app.isPackaged) {
-    return path.join(
-      app.getPath('userData'),
-      'case-builder',
-      'case-builder.db'
-    );
-  }
-  console.log(`Current directory: ${cwd()}`);
-  return path.join(process.cwd(), 'storage', 'case-builder.db');
-};
-
 const createWindow = () => {
   const win = new BrowserWindow({
     width: 1400,
@@ -47,6 +38,7 @@ const createWindow = () => {
       preload: path.join(appDir, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
     },
   });
 
@@ -58,15 +50,25 @@ const createWindow = () => {
   }
 };
 
+// App Lifecycle
 app.whenReady().then(async () => {
   await registerIpc();
   createWindow();
 });
 
+/*-------------------------------------------------------------------------
+ Quit when all windows are closed, except on macOS. There, it's common
+ for applications and their menu bar to stay active until the user quits
+ explicitly with Cmd + Q. 
+ --------------------------------------------------------------------------*/
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+/*-------------------------------------------------------------------------
+ On macOS, re-create a window in the app when the dock icon is clicked and 
+ there are no other windows open.
+ --------------------------------------------------------------------------*/
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });

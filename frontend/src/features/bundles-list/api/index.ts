@@ -146,8 +146,9 @@ export const bundlesListApi = createApi({
 
         try {
           const createdBundle = await window.api.createBundle({
-            name: bundleData.name,
-            caseNumber: bundleData.case_number,
+            name: bundleData.bundleName,
+            caseNumber: bundleData.caseNumber,
+            description: bundleData.description,
           });
           return { data: normalizeBundle(createdBundle) };
         } catch (error) {
