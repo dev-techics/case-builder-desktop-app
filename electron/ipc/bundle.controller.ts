@@ -23,8 +23,17 @@ export function registerBundleIpc(deps: {
 
     const name = input?.name;
     const caseNumber = input?.caseNumber ?? input?.case_number ?? 'N/A';
-    const description = input?.description ?? 'No description provided';
-    return createBundle.execute({ name, caseNumber, description });
+    const status = input?.status;
+    const description = input?.description;
+    const tags = input?.tags;
+
+    return createBundle.execute({
+      name,
+      caseNumber,
+      status,
+      description,
+      tags,
+    });
   });
 
   /*--------------------------

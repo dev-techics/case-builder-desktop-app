@@ -5,7 +5,15 @@ declare global {
     api?: {
       isDesktop?: boolean;
       createBundle: (
-        input: { name: string; caseNumber?: string; description?: string } | string
+        input:
+          | {
+              name: string;
+              caseNumber?: string;
+              status?: string;
+              description?: string;
+              tags?: string[];
+            }
+          | string
       ) => Promise<unknown>;
       getBundles: () => Promise<unknown[]>;
       deleteBundle?: (id: string | number) => Promise<void>;

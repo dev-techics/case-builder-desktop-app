@@ -13,12 +13,7 @@ const appDir = path.dirname(fileURLToPath(import.meta.url));
 /*----------------------
   Register IPC Handlers
 ------------------------*/
-const registerIpc = async () => {
-  const bundlesPath = path.join(
-    app.getPath('userData'),
-    'case-builder',
-    'bundles.json'
-  );
+const registerIpc = () => {
   const databasePath = getDatabasePath();
   const db = createSqliteDatabase(databasePath);
   const bundleRepository = new SqliteBundleRepository(db);
@@ -52,7 +47,7 @@ const createWindow = () => {
 
 // App Lifecycle
 app.whenReady().then(async () => {
-  await registerIpc();
+  registerIpc();
   createWindow();
 });
 

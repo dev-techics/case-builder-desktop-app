@@ -9,6 +9,14 @@ import {
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
+const getDesktopApi = () =>
+  typeof window !== 'undefined' && window.api?.isDesktop ? window.api : undefined;
+
+const toIpcError = (error: unknown) => ({
+  status: 'CUSTOM_ERROR' as const,
+  error: error instanceof Error ? error.message : 'IPC request failed',
+});
+
 type RenameBundleRequest = {
   bundleId: string | number;
   name: string;
@@ -51,8 +59,26 @@ export const bundleListApi = createApi({
         Fetch all bundles
     ------------------------*/
     getBundles: build.query<Bundle[], void>({
-      query: () => '/api/bundles',
-      transformResponse: normalizeBundleListResponse,
+      queryFn: async (_arg, _api, _extraOptions, fetchWithBQ) => {
+        const desktopApi = getDesktopApi();
+
+        if (desktopApi?.getBundles) {
+          try {
+            const bundles = await desktopApi.getBundles();
+            return { data: normalizeBundleListResponse(bundles) };
+          } catch (error) {
+            return { error: toIpcError(error) };
+          }
+        }
+
+        // const result = await fetchWithBQ('/api/bundles');
+
+        // if (result.error) {
+        //   return { error: result.error };
+        // }
+
+        // return { data: normalizeBundleListResponse(result.data) };
+      },
       providesTags: result =>
         result
           ? [
@@ -80,12 +106,37 @@ export const bundleListApi = createApi({
         Create a new bundle
     ----------------------------*/
     createBundle: build.mutation<Bundle, CreateBundleDto>({
-      query: bundleData => ({
-        url: '/api/bundles',
-        method: 'POST',
-        body: toCreateBundlePayload(bundleData),
-      }),
-      transformResponse: normalizeBundleResponse,
+      queryFn: async (bundleData, _api, _extraOptions, fetchWithBQ) => {
+        const desktopApi = getDesktopApi();
+
+        if (desktopApi?.createBundle) {
+          try {
+            const bundle = await desktopApi.createBundle({
+              name: bundleData.name,
+              caseNumber: bundleData.caseNumber,
+              status: bundleData.status,
+              description: bundleData.description,
+              tags: bundleData.tags,
+            });
+
+            return { data: normalizeBundleResponse(bundle) };
+          } catch (error) {
+            return { error: toIpcError(error) };
+          }
+        }
+
+        const result = await fetchWithBQ({
+          url: '/api/bundles',
+          method: 'POST',
+          body: toCreateBundlePayload(bundleData),
+        });
+
+        if (result.error) {
+          return { error: result.error };
+        }
+
+        return { data: normalizeBundleResponse(result.data) };
+      },
       invalidatesTags: [{ type: 'Bundle', id: 'LIST' }],
     }),
 
@@ -146,10 +197,29 @@ export const bundleListApi = createApi({
         Delete an existing bundle
     ----------------------------*/
     deleteBundle: build.mutation<void, string | number>({
-      query: bundleId => ({
-        url: `/api/bundles/${bundleId}`,
-        method: 'DELETE',
-      }),
+      queryFn: async (bundleId, _api, _extraOptions, fetchWithBQ) => {
+        const desktopApi = getDesktopApi();
+
+        if (desktopApi?.deleteBundle) {
+          try {
+            await desktopApi.deleteBundle(bundleId);
+            return { data: undefined };
+          } catch (error) {
+            return { error: toIpcError(error) };
+          }
+        }
+
+        const result = await fetchWithBQ({
+          url: `/api/bundles/${bundleId}`,
+          method: 'DELETE',
+        });
+
+        if (result.error) {
+          return { error: result.error };
+        }
+
+        return { data: undefined };
+      },
       invalidatesTags: (_result, _error, bundleId) => [
         { type: 'Bundle', id: bundleId },
         { type: 'Bundle', id: 'LIST' },
