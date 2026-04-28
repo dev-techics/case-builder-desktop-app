@@ -1,80 +1,58 @@
-import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { Bundle } from '../types/types';
-import type { CreateBundleDto } from './bundlesApi';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import type { Bundle, BundleStatus } from '../types';
+import type { CreateBundleDto } from '../types';
+import { toCreateBundlePayload } from '../types';
+import {
+  normalizeBundleListResponse,
+  normalizeBundleResponse,
+} from '../utils/normalizers';
 
-const normalizeBundle = (bundle: any): Bundle => {
-  const documentCount =
-    bundle?.documentCount ??
-    bundle?.documentsCount ??
-    bundle?.document_count ??
-    bundle?.documents_count ??
-    0;
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 
-  const updatedAt =
-    bundle?.updatedAt ??
-    bundle?.lastModified ??
-    bundle?.last_modified ??
-    bundle?.updated_at ??
-    bundle?.createdAt ??
-    bundle?.created_at ??
-    undefined;
-
-  return {
-    id: bundle?.id,
-    name: bundle?.name,
-    caseNumber: bundle?.caseNumber ?? bundle?.case_number ?? '',
-    documentCount,
-    status: bundle?.status ?? 'In Progress',
-    color: bundle?.color ?? 'blue',
-    createdAt: bundle?.createdAt ?? bundle?.created_at,
-    updatedAt,
-    updatedBy: bundle?.updatedBy ?? bundle?.updated_by,
-    description: bundle?.description,
-    tags: bundle?.tags,
-    userId: bundle?.userId ?? bundle?.user_id,
-  };
+type RenameBundleRequest = {
+  bundleId: string | number;
+  name: string;
 };
 
-type IpcError = {
-  status: number | 'IPC_ERROR';
-  data: unknown;
+type UpdateBundleStatusRequest = {
+  bundleId: string | number;
+  status: BundleStatus;
 };
 
-export const bundlesListApi = createApi({
-  reducerPath: 'bundlesListApi',
-  baseQuery: fakeBaseQuery<IpcError>(),
+const patchBundle = (
+  draft: Bundle[],
+  bundleId: string | number,
+  updates: Partial<Pick<Bundle, 'name' | 'status'>>
+) => {
+  const bundle = draft.find(item => item.id === bundleId);
+
+  if (bundle) {
+    Object.assign(bundle, updates);
+  }
+};
+
+export const bundleListApi = createApi({
+  reducerPath: 'bundleListApi',
+  baseQuery: fetchBaseQuery({
+    baseUrl: BASE_URL,
+    credentials: 'include',
+    prepareHeaders: headers => {
+      headers.set('accept', 'application/json');
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
   tagTypes: ['Bundle'],
   endpoints: build => ({
-    /*-------------------------
-        Get bundles query
-    ---------------------------*/
+    /*----------------------
+        Fetch all bundles
+    ------------------------*/
     getBundles: build.query<Bundle[], void>({
-      async queryFn() {
-        if (!window.api?.getBundles) {
-          return {
-            error: {
-              status: 'IPC_ERROR',
-              data: 'window.api.getBundles is not available. The renderer must run inside Electron.',
-            },
-          };
-        }
-
-        try {
-          const payload = await window.api.getBundles();
-          const bundles = Array.isArray(payload) ? payload : [];
-          return { data: bundles.map(normalizeBundle) };
-        } catch (error) {
-          return {
-            error: {
-              status: 'IPC_ERROR',
-              data:
-                error instanceof Error
-                  ? error.message
-                  : 'Failed to fetch bundles via IPC',
-            },
-          };
-        }
-      },
+      query: () => '/api/bundles',
+      transformResponse: normalizeBundleListResponse,
       providesTags: result =>
         result
           ? [
@@ -87,123 +65,94 @@ export const bundlesListApi = createApi({
           : [{ type: 'Bundle', id: 'LIST' }],
     }),
 
-    /*-------------------------
-        Get bundle Id query
-    ---------------------------*/
+    /*--------------------------
+        Fetch a single bundle
+    ----------------------------*/
     getBundleById: build.query<Bundle, string | number>({
-      async queryFn(bundleId) {
-        if (!window.api?.getBundles) {
-          return {
-            error: {
-              status: 'IPC_ERROR',
-              data: 'window.api.getBundles is not available. The renderer must run inside Electron.',
-            },
-          };
-        }
-
-        try {
-          const payload = await window.api.getBundles();
-          const bundles = Array.isArray(payload) ? payload : [];
-          const found = bundles.find(
-            (bundle: any) => String(bundle?.id) === String(bundleId)
-          );
-
-          if (!found) {
-            return {
-              error: { status: 404, data: 'Bundle not found' },
-            };
-          }
-
-          return { data: normalizeBundle(found) };
-        } catch (error) {
-          return {
-            error: {
-              status: 'IPC_ERROR',
-              data:
-                error instanceof Error
-                  ? error.message
-                  : 'Failed to fetch bundle via IPC',
-            },
-          };
-        }
-      },
-      providesTags: (_result, _error, id) => [{ type: 'Bundle', id }],
+      query: bundleId => `/api/bundles/${bundleId}`,
+      transformResponse: normalizeBundleResponse,
+      providesTags: (_result, _error, bundleId) => [
+        { type: 'Bundle', id: bundleId },
+      ],
     }),
 
-    /*---------------------------
-        Create bundle mutation
-    -----------------------------*/
+    /*--------------------------
+        Create a new bundle
+    ----------------------------*/
     createBundle: build.mutation<Bundle, CreateBundleDto>({
-      async queryFn(bundleData) {
-        if (!window.api?.createBundle) {
-          return {
-            error: {
-              status: 'IPC_ERROR',
-              data: 'window.api.createBundle is not available. The renderer must run inside Electron.',
-            },
-          };
-        }
-
-        try {
-          const createdBundle = await window.api.createBundle({
-            name: bundleData.bundleName,
-            caseNumber: bundleData.caseNumber,
-            description: bundleData.description,
-          });
-          return { data: normalizeBundle(createdBundle) };
-        } catch (error) {
-          return {
-            error: {
-              status: 'IPC_ERROR',
-              data:
-                error instanceof Error
-                  ? error.message
-                  : 'Failed to create bundle via IPC',
-            },
-          };
-        }
-      },
-      invalidatesTags: result =>
-        result
-          ? [
-              { type: 'Bundle', id: 'LIST' },
-              { type: 'Bundle', id: result.id },
-            ]
-          : [{ type: 'Bundle', id: 'LIST' }],
+      query: bundleData => ({
+        url: '/api/bundles',
+        method: 'POST',
+        body: toCreateBundlePayload(bundleData),
+      }),
+      transformResponse: normalizeBundleResponse,
+      invalidatesTags: [{ type: 'Bundle', id: 'LIST' }],
     }),
 
-    /*----------------------------
-        Delete bundle mutation
-    ------------------------------*/
-    deleteBundle: build.mutation<string | number, string | number>({
-      async queryFn(bundleId) {
-        if (!window.api?.deleteBundle) {
-          return {
-            error: {
-              status: 'IPC_ERROR',
-              data: 'window.api.deleteBundle is not available. The renderer must run inside Electron.',
-            },
-          };
-        }
+    /*--------------------------
+        Rename an existing bundle
+    ----------------------------*/
+    renameBundle: build.mutation<void, RenameBundleRequest>({
+      query: ({ bundleId, name }) => ({
+        url: `/api/bundles/${bundleId}`,
+        method: 'PATCH',
+        body: { name },
+      }),
+      async onQueryStarted({ bundleId, name }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          bundleListApi.util.updateQueryData('getBundles', undefined, draft => {
+            patchBundle(draft, bundleId, { name });
+          })
+        );
 
         try {
-          await window.api.deleteBundle(bundleId);
-          return { data: bundleId };
-        } catch (error) {
-          return {
-            error: {
-              status: 'IPC_ERROR',
-              data:
-                error instanceof Error
-                  ? error.message
-                  : 'Failed to delete bundle via IPC',
-            },
-          };
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
         }
       },
-      invalidatesTags: (_result, _error, id) => [
+      invalidatesTags: [{ type: 'Bundle', id: 'LIST' }],
+    }),
+
+    /*------------------------------
+        Update an existing status
+    --------------------------------*/
+    updateBundleStatus: build.mutation<void, UpdateBundleStatusRequest>({
+      query: ({ bundleId, status }) => ({
+        url: `/api/bundles/${bundleId}`,
+        method: 'PATCH',
+        body: { status },
+      }),
+      async onQueryStarted({ bundleId, status }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          bundleListApi.util.updateQueryData('getBundles', undefined, draft => {
+            patchBundle(draft, bundleId, { status });
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
+      invalidatesTags: (_result, _error, { bundleId }) => [
+        { type: 'Bundle', id: bundleId },
         { type: 'Bundle', id: 'LIST' },
-        { type: 'Bundle', id },
+      ],
+    }),
+
+    /*--------------------------
+        Delete an existing bundle
+    ----------------------------*/
+    deleteBundle: build.mutation<void, string | number>({
+      query: bundleId => ({
+        url: `/api/bundles/${bundleId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, bundleId) => [
+        { type: 'Bundle', id: bundleId },
+        { type: 'Bundle', id: 'LIST' },
       ],
     }),
   }),
@@ -212,8 +161,11 @@ export const bundlesListApi = createApi({
 export const {
   useGetBundlesQuery,
   useGetBundleByIdQuery,
+  useLazyGetBundleByIdQuery,
   useCreateBundleMutation,
+  useRenameBundleMutation,
+  useUpdateBundleStatusMutation,
   useDeleteBundleMutation,
-} = bundlesListApi;
+} = bundleListApi;
 
-export default bundlesListApi;
+export default bundleListApi;
