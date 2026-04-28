@@ -1,14 +1,13 @@
-// dashboard/components/RecentBundles.tsx
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { File02Icon, Share05Icon } from '@hugeicons/core-free-icons';
+import { Folder02Icon, Share05Icon } from '@hugeicons/core-free-icons';
+import { useGetBundlesQuery } from '@/features/bundles-list/api';
 import { formatRelativeTime, getSortTimestamp } from '../utils';
 import { useNavigate } from 'react-router-dom';
-import { useGetBundlesQuery } from '@/features/bundles-list/api';
 
 export const RecentBundles = () => {
-  const { data: bundles = [], isLoading } = useGetBundlesQuery();
+  const { data: bundles = [], isLoading, error } = useGetBundlesQuery();
   const navigate = useNavigate();
 
   const recentBundles = useMemo(
@@ -29,6 +28,14 @@ export const RecentBundles = () => {
     );
   }
 
+  if (error && bundles.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Failed to load recent bundles.
+      </p>
+    );
+  }
+
   if (recentBundles.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">No recent bundles yet.</p>
@@ -44,7 +51,8 @@ export const RecentBundles = () => {
         >
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-sm bg-emerald-500 text-emerald-50 dark:bg-emerald-500/20 dark:text-emerald-300">
-              <HugeiconsIcon size={20} strokeWidth={2} icon={File02Icon} />
+              {/* <HugeiconsIcon size={20} strokeWidth={2} icon={File02Icon} /> */}
+              <HugeiconsIcon size={20} strokeWidth={2} icon={Folder02Icon} />
             </div>
             <div>
               <p className="text-sm font-medium">{bundle.name}</p>

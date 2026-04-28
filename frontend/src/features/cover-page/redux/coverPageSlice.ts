@@ -1,14 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Template } from '../types';
-
-type CoverPageType = 'front' | 'back';
-type CoverPageSide = 'Front' | 'Back' | 'front' | 'back';
-
-interface CoverPageState {
-  frontCoverPage: Template | null;
-  backCoverPage: Template | null;
-  currentBundleId: string | null;
-}
+import type {
+  CoverPageState,
+  CoverPageTemplate,
+  CoverPageType,
+} from '../types';
+import { isPersistedBundleId } from '../utils';
 
 const initialState: CoverPageState = {
   frontCoverPage: null,
@@ -16,40 +12,39 @@ const initialState: CoverPageState = {
   currentBundleId: null,
 };
 
-const normalizeSide = (side: CoverPageSide): CoverPageType =>
-  side.toLowerCase() as CoverPageType;
+const getCoverPageTarget = (state: CoverPageState, type: CoverPageType) =>
+  type === 'front' ? state.frontCoverPage : state.backCoverPage;
+
+const setCoverPageTarget = (
+  state: CoverPageState,
+  template: CoverPageTemplate
+) => {
+  if (template.type === 'front') {
+    state.frontCoverPage = template;
+    return;
+  }
+
+  state.backCoverPage = template;
+};
 
 const coverPageSlice = createSlice({
   name: 'coverPage',
   initialState,
   reducers: {
-    /*---------------------------------------
-      Set selected cover page to redux state
-    -----------------------------------------*/
-    setTemplate: (state, action: PayloadAction<{ template: Template }>) => {
-      const { template } = action.payload;
-
-      if (template.type === 'front') {
-        state.frontCoverPage = template;
-      } else {
-        state.backCoverPage = template;
-      }
+    setCoverPageTemplate: (
+      state,
+      action: PayloadAction<{ template: CoverPageTemplate }>
+    ) => {
+      setCoverPageTarget(state, action.payload.template);
     },
-    /*---------------------------------------
-      Deselect Cover page from export option
-    -----------------------------------------*/
-    deSelectCoverPage: (state, action: PayloadAction<CoverPageSide>) => {
-      const type = normalizeSide(action.payload);
-
+    clearCoverPageTemplate: (state, action: PayloadAction<CoverPageType>) => {
+      const type = action.payload;
       if (type === 'front') {
         state.frontCoverPage = null;
       } else {
         state.backCoverPage = null;
       }
     },
-    /*--------------------------------------------
-      Keep editor changes in the selected template
-    ---------------------------------------------*/
     setCoverPageHtml: (
       state,
       action: PayloadAction<{
@@ -58,25 +53,25 @@ const coverPageSlice = createSlice({
       }>
     ) => {
       const { type, html } = action.payload;
-      const target = type === 'front' ? state.frontCoverPage : state.backCoverPage;
+      const target = getCoverPageTarget(state, type);
 
       if (target) {
         target.html = html;
       }
     },
 
-    setCoverPageLexicalJson: (
+    setCoverPageBuilderState: (
       state,
       action: PayloadAction<{
         type: CoverPageType;
-        lexicalJson: string | null;
+        builderState: string | null;
       }>
     ) => {
-      const { type, lexicalJson } = action.payload;
-      const target = type === 'front' ? state.frontCoverPage : state.backCoverPage;
+      const { type, builderState } = action.payload;
+      const target = getCoverPageTarget(state, type);
 
       if (target) {
-        target.lexicalJson = lexicalJson;
+        target.builderState = builderState;
       }
     },
 
@@ -85,26 +80,28 @@ const coverPageSlice = createSlice({
       action: PayloadAction<{ type: CoverPageType; name: string }>
     ) => {
       const { type, name } = action.payload;
-      const target = type === 'front' ? state.frontCoverPage : state.backCoverPage;
+      const target = getCoverPageTarget(state, type);
 
       if (target) {
         target.name = name;
       }
     },
 
-    setBundleId: (state, action: PayloadAction<string>) => {
-      state.currentBundleId = action.payload;
+    setBundleId: (state, action: PayloadAction<string | null>) => {
+      state.currentBundleId = isPersistedBundleId(action.payload)
+        ? action.payload
+        : null;
     },
   },
 });
 
 export const {
-  setTemplate,
+  setCoverPageTemplate,
   setCoverPageHtml,
-  setCoverPageLexicalJson,
+  setCoverPageBuilderState,
   setCoverPageName,
   setBundleId,
-  deSelectCoverPage,
+  clearCoverPageTemplate,
 } = coverPageSlice.actions;
 
 export default coverPageSlice.reducer;

@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import editorReducer from '@/features/editor/redux/editorSlice';
+import editorReducer from '@/features/editor/states/editorSlice';
 import propertiesPanelReducer from '@/features/properties-panel/redux/propertiesPanelSlice';
 import toolbarReducer from '@/features/toolbar/redux';
 import fileTreeReducer from '../features/file-explorer/redux/fileTreeSlice';
@@ -11,7 +11,8 @@ import { fileTreeApi } from '@/features/file-explorer/api';
 import { editorApi } from '@/features/editor/api';
 import { dashboardApi } from '@/features/dashboard/api';
 import dashboardReducer from '@/features/dashboard/redux';
-import bundlesListApi from '@/features/bundles-list/api';
+import { propertiesPanelApi } from '@/features/properties-panel/api';
+import bundleListApi from '@/features/bundles-list/api';
 
 const store = configureStore({
   reducer: {
@@ -21,7 +22,8 @@ const store = configureStore({
     [fileTreeApi.reducerPath]: fileTreeApi.reducer,
     [editorApi.reducerPath]: editorApi.reducer,
     [dashboardApi.reducerPath]: dashboardApi.reducer,
-    [bundlesListApi.reducerPath]: bundlesListApi.reducer,
+    [propertiesPanelApi.reducerPath]: propertiesPanelApi.reducer,
+    [bundleListApi.reducerPath]: bundleListApi.reducer,
     /*----------- state slices ------------ */
     auth: authReducer,
     fileTree: fileTreeReducer,
@@ -38,7 +40,8 @@ const store = configureStore({
       fileTreeApi.middleware,
       editorApi.middleware,
       dashboardApi.middleware,
-      bundlesListApi.middleware
+      propertiesPanelApi.middleware,
+      bundleListApi.middleware
     ),
 });
 

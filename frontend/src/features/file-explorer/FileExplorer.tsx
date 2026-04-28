@@ -1,24 +1,28 @@
 import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { useAppDispatch } from '../../app/hooks';
 import FilesTree from './components/FilesTree';
 import { useParams } from 'react-router-dom';
 import { loadHighlights, loadRedactions } from '../toolbar/redux';
 import { useGetTreeQuery } from './api';
+import { normalizeBundleId } from '@/lib/bundleId';
 
 const FileTree: React.FC = () => {
-  const tree = useAppSelector(state => state.fileTree.tree);
-
   const dispatch = useAppDispatch();
-  const { bundleId } = useParams<{ bundleId: string }>();
-  const isDesktop = !!window.api;
-  useGetTreeQuery(bundleId ?? '', { skip: !bundleId || isDesktop });
+  const { bundleId: routeBundleId } = useParams<{ bundleId: string }>();
+  const bundleId = normalizeBundleId(routeBundleId);
+
+  // Trigger loading the tree via RTK Query.
+  // The slice listens to `getTree` via matchers and normalizes the server response.
+  useGetTreeQuery(bundleId ?? '', {
+    skip: !bundleId,
+    refetchOnMountOrArgChange: true,
+  });
 
   useEffect(() => {
-    if (isDesktop) return;
     if (!bundleId) return;
     dispatch(loadHighlights({ bundleId: bundleId }));
     dispatch(loadRedactions({ bundleId: bundleId }));
-  }, [bundleId, dispatch, isDesktop]);
+  }, [bundleId, dispatch]);
 
   return (
     <div className="h-screen w-full  bg-white text-gray-800">
@@ -28,7 +32,7 @@ const FileTree: React.FC = () => {
         </h2>
       </div>
       <div className="py-1 overflow-y-auto">
-        <FilesTree tree={tree} level={0} />
+        <FilesTree level={0} />
       </div>
     </div>
   );

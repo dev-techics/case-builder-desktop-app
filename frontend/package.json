@@ -20,14 +20,6 @@
     "@headless-tree/react": "^1.5.0",
     "@hugeicons/core-free-icons": "^2.0.0",
     "@hugeicons/react": "^1.1.1",
-    "@lexical/code": "^0.40.0",
-    "@lexical/html": "^0.40.0",
-    "@lexical/link": "^0.40.0",
-    "@lexical/list": "^0.40.0",
-    "@lexical/markdown": "^0.40.0",
-    "@lexical/react": "^0.40.0",
-    "@lexical/rich-text": "^0.40.0",
-    "@lexical/utils": "^0.40.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
@@ -41,6 +33,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@reduxjs/toolkit": "^2.9.0",
     "@tailwindcss/vite": "^4.1.13",
+    "@case-builder/ui": "github:dev-techics/case-builder-ui",
     "axios": "^1.13.2",
     "camelcase-keys": "^10.0.2",
     "class-variance-authority": "^0.7.1",
@@ -58,7 +51,9 @@
     "react-router-dom": "^7.9.3",
     "react-toastify": "^11.0.5",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.13"
+    "tailwindcss": "^4.1.13",
+    "grapesjs": "^0.22.14"
+
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.0",

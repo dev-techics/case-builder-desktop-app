@@ -1,6 +1,6 @@
 // src/features/editor/Editor.tsx
 import { FileText, ArrowUp } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -9,24 +9,18 @@ import { DocumentApiService } from '@/api/axiosInstance';
 import { useParams } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import Fallback from '@/components/Fallback';
-import IndexPreview from './components/IndexPreview';
+import IndexPreview from '@/features/index-preview';
 import PdfHeader from './components/PdfHeader';
 import AnnotationToolbar from '@/features/toolbar/AnnotationToolbar';
 import LazyPDFRenderer from './components/LazyPDFRenderer';
-import {
-  setMaxScale,
-  setScale,
-  zoomIn,
-  zoomOut,
-} from './redux/editorSlice';
+import { setMaxScale, setScale } from './states/editorSlice';
 import {
   useBundleMetadata,
   useFileRotations,
   useInfinitePdfFiles,
   usePdfSizing,
 } from '@/features/editor/hooks';
-
-const ROTATION_STEP_DEGREES = 90;
+import { resolveBundleId } from '@/lib/bundleId';
 
 const PDFViewer = () => {
   const dispatch = useAppDispatch();
@@ -35,25 +29,30 @@ const PDFViewer = () => {
   const fileSelectionVersion = useAppSelector(
     state => state.fileTree.fileSelectionVersion
   );
-  const bundleId = useParams().bundleId;
-  const resolvedBundleId =
-    bundleId || (tree.id.startsWith('bundle-') ? tree.id.split('-')[1] : '');
+  const { bundleId: routeBundleId } = useParams<{ bundleId?: string }>();
+  const resolvedBundleId = resolveBundleId({
+    routeBundleId,
+    treeId: tree.id,
+  });
   const scale = useAppSelector(state => state.editor.scale);
-  const maxScale = useAppSelector(state => state.editor.maxScale);
 
   // Refs for the scroll container and content sizing
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Used to bust PDF stream cache on bundle change
-  const streamSessionKeyRef = useRef<number>(Date.now());
+  // Used to bust PDF stream cache when the active bundle changes.
+  const streamSessionKey = resolvedBundleId ?? tree.id;
 
   // Bundle-scoped side effects (metadata + comments)
-  useBundleMetadata({ bundleId, treeId: tree.id });
+  useBundleMetadata({
+    bundleId: resolvedBundleId ?? undefined,
+    treeId: tree.id,
+  });
 
   // Rotation state and mutation wiring
-  const { fileRotations, handleRotateFile, resetRotations } =
-    useFileRotations({ bundleId: resolvedBundleId });
+  const { fileRotations, fileUrlOverrides, resetRotations } = useFileRotations({
+    bundleId: resolvedBundleId ?? '',
+  });
 
   // Size calculations, max scale, and page metrics tracking
   const { contentStyle, computedMaxScale, handlePageMetrics, resetSizing } =
@@ -74,7 +73,7 @@ const PDFViewer = () => {
     hasPreviousFiles,
     hasNextFiles,
   } = useInfinitePdfFiles({
-    treeChildren: tree.children,
+    tree,
     selectedFile,
     fileSelectionVersion,
     containerRef,
@@ -84,9 +83,8 @@ const PDFViewer = () => {
   useEffect(() => {
     resetSizing();
     resetRotations();
-    streamSessionKeyRef.current = Date.now();
     dispatch(setScale(1));
-  }, [bundleId, dispatch, resetRotations, resetSizing]);
+  }, [dispatch, resetRotations, resetSizing, resolvedBundleId]);
 
   useEffect(() => {
     if (!Number.isFinite(computedMaxScale)) {
@@ -95,29 +93,17 @@ const PDFViewer = () => {
     dispatch(setMaxScale(computedMaxScale));
   }, [computedMaxScale, dispatch]);
 
-  const canZoomIn = scale < maxScale - 0.01;
-  const canZoomOut = scale > 0.5 + 0.01;
-  const canResetZoom = Math.abs(scale - 1) > 0.01;
-
-  const handleZoomIn = useCallback(() => {
-    dispatch(zoomIn());
-  }, [dispatch]);
-
-  const handleZoomOut = useCallback(() => {
-    dispatch(zoomOut());
-  }, [dispatch]);
-
-  const handleResetZoom = useCallback(() => {
-    dispatch(setScale(1));
-  }, [dispatch]);
-  // Build streaming URLs for the currently visible files
+  // Prefer backend-provided document URLs and fall back to the legacy stream path.
   const filesWithUrls = useMemo(
     () =>
       visibleFiles.map(file => ({
         ...file,
-        url: `${DocumentApiService.getDocumentStreamUrl(file.id)}?original=true&cb=${streamSessionKeyRef.current}`,
+        url:
+          fileUrlOverrides[file.id] ??
+          file.url ??
+          `${DocumentApiService.getDocumentStreamUrl(file.id)}?original=true&cb=${streamSessionKey}`,
       })),
-    [visibleFiles]
+    [fileUrlOverrides, streamSessionKey, visibleFiles]
   );
 
   // Derived UI state
@@ -205,24 +191,12 @@ const PDFViewer = () => {
                 <PdfHeader
                   file={fileWithUrl}
                   rotation={fileRotations[fileWithUrl.id] ?? 0}
-                  scale={scale}
-                  canZoomIn={canZoomIn}
-                  canZoomOut={canZoomOut}
-                  canResetZoom={canResetZoom}
-                  onZoomIn={handleZoomIn}
-                  onZoomOut={handleZoomOut}
-                  onResetZoom={handleResetZoom}
-                  onRotateLeft={() =>
-                    handleRotateFile(fileWithUrl.id, -ROTATION_STEP_DEGREES)
-                  }
-                  onRotateRight={() =>
-                    handleRotateFile(fileWithUrl.id, ROTATION_STEP_DEGREES)
-                  }
                 />
               </ErrorBoundary>
 
               {/* PDF Content Area - LAZY LOADED */}
               <LazyPDFRenderer
+                bundleId={resolvedBundleId ?? undefined}
                 file={fileWithUrl}
                 rotation={fileRotations[fileWithUrl.id] ?? 0}
                 onPageMetrics={handlePageMetrics}
@@ -251,14 +225,14 @@ const PDFViewer = () => {
           {/* End of files indicator */}
           {visibleFiles.length === allFiles.length &&
             visibleFiles.length > 1 && (
-            <div className="flex items-center justify-center py-8">
-              <div className="rounded-full bg-gray-200 px-4 py-2">
-                <p className="text-gray-600 text-sm font-medium">
-                  All files loaded ({visibleFiles.length} files)
-                </p>
+              <div className="flex items-center justify-center py-8">
+                <div className="rounded-full bg-gray-200 px-4 py-2">
+                  <p className="text-gray-600 text-sm font-medium">
+                    All files loaded ({visibleFiles.length} files)
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
 

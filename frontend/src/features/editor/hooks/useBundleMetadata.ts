@@ -3,9 +3,11 @@ import { useAppDispatch } from '@/app/hooks';
 import { loadComments } from '@/features/toolbar/redux';
 import {
   clearDocumentInfo,
-  loadMetadataFromBackend,
   setCurrentBundleId,
+  syncMetadataFromBackend,
 } from '@/features/properties-panel/redux/propertiesPanelSlice';
+import { useGetMetaDataQuery } from '@/features/properties-panel/api';
+import { resolveBundleId } from '@/lib/bundleId';
 
 type UseBundleMetadataOptions = {
   bundleId?: string;
@@ -17,28 +19,42 @@ export const useBundleMetadata = ({
   treeId,
 }: UseBundleMetadataOptions) => {
   const dispatch = useAppDispatch();
-  const isDesktop = !!window.api;
-
-  useEffect(() => {
-    if (isDesktop) return;
-    if (bundleId) {
-      dispatch(loadComments({ bundleId }));
+  const resolvedBundleId = resolveBundleId({
+    routeBundleId: bundleId,
+    treeId,
+  });
+  const { data: metadata } = useGetMetaDataQuery(
+    { bundleId: resolvedBundleId ?? '' },
+    {
+      skip: !resolvedBundleId,
+      refetchOnMountOrArgChange: true,
     }
-  }, [dispatch, bundleId, isDesktop]);
+  );
 
   useEffect(() => {
-    if (isDesktop) return;
-    if (bundleId) {
+    if (resolvedBundleId) {
+      dispatch(loadComments({ bundleId: resolvedBundleId }));
+    }
+  }, [dispatch, resolvedBundleId]);
+
+  useEffect(() => {
+    if (resolvedBundleId) {
       dispatch(clearDocumentInfo());
     }
-  }, [bundleId, dispatch, isDesktop]);
+  }, [dispatch, resolvedBundleId]);
 
   useEffect(() => {
-    if (isDesktop) return;
-    const resolvedBundleId = treeId.split('-')[1];
-    if (resolvedBundleId) {
-      dispatch(setCurrentBundleId(resolvedBundleId));
-      dispatch(loadMetadataFromBackend(resolvedBundleId));
+    dispatch(setCurrentBundleId(resolvedBundleId));
+  }, [dispatch, resolvedBundleId]);
+
+  useEffect(() => {
+    if (resolvedBundleId && metadata) {
+      dispatch(
+        syncMetadataFromBackend({
+          bundleId: resolvedBundleId,
+          metadata,
+        })
+      );
     }
-  }, [dispatch, treeId, isDesktop]);
+  }, [dispatch, metadata, resolvedBundleId]);
 };

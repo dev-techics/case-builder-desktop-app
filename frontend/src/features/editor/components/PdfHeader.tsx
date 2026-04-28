@@ -1,40 +1,16 @@
 import DeleteAlertDialog from '@/features/file-explorer/components/DeleteAlertDialog';
-import {
-  Check,
-  FileText,
-  Pencil,
-  Trash2,
-  RotateCcw,
-  RotateCw,
-  X,
-} from 'lucide-react';
+import { Check, FileText, Pencil, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
-import { useAppSelector } from '@/app/hooks';
-import { selectIsRotating } from '@/features/file-explorer/redux/fileTreeSlice';
 import { useDeleteDocument, useRename } from '@/features/editor/hooks';
+import type { FileTreeFileNode } from '@/features/file-explorer/types/fileTree';
 
 type PdfHeaderProps = {
-  file: any;
+  file: FileTreeFileNode;
   rotation: number;
-  scale: number;
-  canZoomIn: boolean;
-  canZoomOut: boolean;
-  canResetZoom: boolean;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onResetZoom: () => void;
-  onRotateLeft: () => void;
-  onRotateRight: () => void;
 };
 
-const PdfHeader = ({
-  file,
-  rotation,
-  onRotateLeft,
-  onRotateRight,
-}: PdfHeaderProps) => {
+const PdfHeader = ({ file }: PdfHeaderProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
-  const isRotating = useAppSelector(state => selectIsRotating(state, file.id));
 
   // delete document hook
   const { deleteStatus, deleteMessage, handleDelete, resetDeleteState } =
@@ -49,7 +25,7 @@ const PdfHeader = ({
     renameValue,
     setRenameValue,
     renameInputRef,
-    isRenaming,
+    // isRenaming,
     startRename,
     handleRenameCancel,
     handleRenameSubmit,
@@ -73,16 +49,18 @@ const PdfHeader = ({
 
   return (
     <>
-      <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
+      <div className="flex items-center justify-between border-b bg-gray-50 px-4 py-3 gap-2">
         {/* --------- File icon & Name ------------- */}
-        <div className="flex items-center gap-2 min-w-0">
-          <FileText className="h-5 w-5 text-red-500" />
+        <div className="flex w-full items-center gap-2 min-w-0">
+          <div>
+            <FileText className="h-5 w-5 text-red-500" />
+          </div>
 
           {/*----------------------- 
               Rename input field
           --------------------------*/}
           {isRenamingLocal ? (
-            <div className="flex items-center gap-1 min-w-0">
+            <div className="flex w-full items-center gap-1 min-w-0">
               <input
                 ref={renameInputRef}
                 type="text"
@@ -90,12 +68,12 @@ const PdfHeader = ({
                 onChange={e => setRenameValue(e.target.value)}
                 onKeyDown={handleRenameKeyDown}
                 onBlur={handleRenameSubmit}
-                className="h-7 min-w-[180px] rounded border border-blue-500 bg-white px-2 text-sm text-gray-800 outline-none"
+                className="h-7 w-full min-w-[180px] rounded border border-blue-500 bg-white px-2 text-sm text-gray-800 outline-none"
               />
               <button
                 aria-label="Save file name"
                 className="rounded p-1 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
-                disabled={isRenaming}
+                // disabled={isRenaming}
                 onClick={handleRenameSubmit}
                 type="button"
               >
@@ -113,7 +91,7 @@ const PdfHeader = ({
           ) : (
             /* ----------- Edit button ----------*/
             <button
-              className="group inline-flex items-center gap-1 rounded px-1 py-0.5 text-left hover:bg-gray-200"
+              className="group inline-flex items-center gap-1 rounded px-1 py-0.5 text-left hover:bg-gray-200 overflow-hidden"
               onClick={startRename}
               type="button"
             >
@@ -127,30 +105,8 @@ const PdfHeader = ({
             </button>
           )}
         </div>
+        {/* ---------- Rotate & delete button ---------*/}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-md border bg-white px-2 py-1">
-            <button
-              aria-label="Rotate left"
-              className="rounded p-1 text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={isRotating}
-              onClick={onRotateLeft}
-              type="button"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
-            <span className="min-w-[44px] text-center text-gray-600 text-xs font-medium">
-              {rotation}deg
-            </span>
-            <button
-              aria-label="Rotate right"
-              className="rounded p-1 text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={isRotating}
-              onClick={onRotateRight}
-              type="button"
-            >
-              <RotateCw className="h-4 w-4" />
-            </button>
-          </div>
           {/*--------------------- 
                 Delete Button
             ----------------------*/}

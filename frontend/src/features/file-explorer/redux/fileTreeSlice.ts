@@ -1,59 +1,61 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { FileNode } from '../types/types';
 import { fileTreeApi } from '../api';
+import type {
+  FileTree,
+  FileTreeNodeId,
+  ServerFileTreeNode,
+} from '../types/fileTree';
+import {
+  dedupeOrdered,
+  insertNodeIntoTree,
+  isDescendant,
+  mergeFileTree,
+  normalizeServerNode,
+  normalizeTreeParentId,
+  removeNodeAndDescendantsFromTree,
+} from './fileTreeModel';
 
-export interface Children {
-  id: string;
-  parentId: string | null;
-  name: string;
-  type: 'file' | 'folder';
-  url?: string;
-  children?: Children[];
-}
-
-export interface Tree {
-  id: string;
-  projectName: string;
-  type: 'folder';
-  children: Children[];
-  indexUrl?: string;
-}
+export type Tree = FileTree;
+export type Children = FileTree['nodes'][FileTreeNodeId];
 
 interface FileTreeState {
-  tree: Tree;
-  expandedFolders: string[];
+  tree: FileTree;
+  expanded: Record<string, boolean>;
   isCreatingNewFolder: boolean;
   selectedFile: string | null;
+  selectedFileIds: string[];
+  selectionAnchorId: string | null;
   fileSelectionVersion: number;
   selectedFolderId: string | null;
   scrollToFileId: string | null;
   loading: boolean;
   error: string | null;
-  // Track operations in progress
   operationsInProgress: {
     deleting: string[];
     renaming: string[];
     rotating: string[];
+    merging: boolean;
     uploading: boolean;
   };
 }
 
-type NodeLocation = {
-  parentId: string | null;
-  siblings: Children[];
-  index: number;
+const initialTree: FileTree = {
+  id: 'bundle-loading',
+  name: 'Bundle',
+  projectName: 'Bundle',
+  type: 'folder',
+  nodes: {},
+  children: {},
+  rootIds: [],
 };
 
 const initialState: FileTreeState = {
-  tree: {
-    id: 'root',
-    projectName: 'Project name',
-    type: 'folder',
-    children: [],
-  },
-  expandedFolders: [],
+  tree: initialTree,
+  expanded: { [initialTree.id]: true },
   isCreatingNewFolder: false,
   selectedFile: null,
+  selectedFileIds: [],
+  selectionAnchorId: null,
   fileSelectionVersion: 0,
   selectedFolderId: null,
   scrollToFileId: null,
@@ -63,173 +65,9 @@ const initialState: FileTreeState = {
     deleting: [],
     renaming: [],
     rotating: [],
+    merging: false,
     uploading: false,
   },
-};
-
-// Helper function to find and update a node in the tree
-const findAndUpdateNode = (
-  children: Children[],
-  id: string,
-  updateFn: (node: Children) => void
-): boolean => {
-  for (const child of children) {
-    if (child.id === id) {
-      updateFn(child);
-      return true;
-    }
-    if (child.type === 'folder' && child.children) {
-      if (findAndUpdateNode(child.children, id, updateFn)) {
-        return true;
-      }
-    }
-  }
-  return false;
-};
-
-// Helper function to find and remove a node from the tree
-const findAndRemoveNode = (children: Children[], id: string): boolean => {
-  const index = children.findIndex(child => child.id === id);
-  if (index !== -1) {
-    children.splice(index, 1);
-    return true;
-  }
-
-  for (const child of children) {
-    if (child.type === 'folder' && child.children) {
-      if (findAndRemoveNode(child.children, id)) {
-        return true;
-      }
-    }
-  }
-  return false;
-};
-
-// Helper function to find a node by ID
-const findNodeById = (children: Children[], id: string): Children | null => {
-  for (const child of children) {
-    if (child.id === id) {
-      return child;
-    }
-    if (child.type === 'folder' && child.children) {
-      const found = findNodeById(child.children, id);
-      if (found) return found;
-    }
-  }
-  return null;
-};
-
-const findNodeLocation = (
-  children: Children[],
-  id: string,
-  parentId: string | null
-): NodeLocation | null => {
-  for (let index = 0; index < children.length; index++) {
-    const child = children[index];
-    if (child.id === id) {
-      return { parentId, siblings: children, index };
-    }
-    if (child.type === 'folder' && child.children) {
-      const found = findNodeLocation(child.children, id, child.id);
-      if (found) {
-        return found;
-      }
-    }
-  }
-  return null;
-};
-
-const insertUploadedFiles = (state: FileTreeState, files: FileNode[]) => {
-  if (files.length === 0) {
-    return;
-  }
-
-  const uploadParentId = files[0]?.parentId ?? null;
-
-  if (state.selectedFile) {
-    const selectedLocation = findNodeLocation(
-      state.tree.children,
-      state.selectedFile,
-      null
-    );
-
-    if (
-      selectedLocation &&
-      selectedLocation.parentId === uploadParentId
-    ) {
-      selectedLocation.siblings.splice(selectedLocation.index + 1, 0, ...files);
-      return;
-    }
-  }
-
-  if (!uploadParentId) {
-    state.tree.children = [...state.tree.children, ...files];
-    return;
-  }
-
-  const addToParent = (children: Children[]): boolean => {
-    for (const child of children) {
-      if (child.id === uploadParentId && child.type === 'folder') {
-        child.children = [...(child.children || []), ...files];
-        return true;
-      }
-      if (child.type === 'folder' && child.children) {
-        if (addToParent(child.children)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-
-  if (!addToParent(state.tree.children)) {
-    state.tree.children = [...state.tree.children, ...files];
-  }
-};
-
-const insertCreatedFolder = (state: FileTreeState, folder: Children) => {
-  const folderParentId = folder.parentId ?? null;
-  const selectedTargetId = state.selectedFile ?? state.selectedFolderId;
-
-  if (selectedTargetId) {
-    const selectedLocation = findNodeLocation(
-      state.tree.children,
-      selectedTargetId,
-      null
-    );
-
-    if (
-      selectedLocation &&
-      selectedLocation.parentId === folderParentId
-    ) {
-      selectedLocation.siblings.splice(selectedLocation.index + 1, 0, folder);
-      return;
-    }
-  }
-
-  if (!folderParentId) {
-    state.tree.children = [...state.tree.children, folder];
-    return;
-  }
-
-  const addToParent = (children: Children[]): boolean => {
-    for (const child of children) {
-      if (child.id === folderParentId && child.type === 'folder') {
-        child.children = [...(child.children || []), folder];
-        return true;
-      }
-      if (child.type === 'folder' && child.children) {
-        if (addToParent(child.children)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-
-  if (!addToParent(state.tree.children)) {
-    state.tree.children = [...state.tree.children, folder];
-  }
 };
 
 const resolveErrorMessage = (
@@ -261,6 +99,25 @@ const resolveErrorMessage = (
   return error?.message || fallback;
 };
 
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
+const isSelectableFileNode = (state: FileTreeState, nodeId: string) =>
+  state.tree.nodes[nodeId]?.type === 'file';
+
+const pruneMultiFileSelection = (state: FileTreeState) => {
+  state.selectedFileIds = state.selectedFileIds.filter(nodeId =>
+    isSelectableFileNode(state, nodeId)
+  );
+
+  if (
+    state.selectionAnchorId &&
+    !isSelectableFileNode(state, state.selectionAnchorId)
+  ) {
+    state.selectionAnchorId = null;
+  }
+};
+
 /*=============================================
 =            Redux Slice                      =
 =============================================*/
@@ -271,17 +128,50 @@ const fileTreeSlice = createSlice({
   reducers: {
     toggleFolder: (state, action: PayloadAction<string>) => {
       const folderId = action.payload;
-      if (state.expandedFolders.includes(folderId)) {
-        state.expandedFolders = state.expandedFolders.filter(
-          id => id !== folderId
-        );
-      } else {
-        state.expandedFolders.push(folderId);
-      }
+      state.expanded[folderId] = !state.expanded[folderId];
     },
     // New reducer to set folder creation state
     setIsCreatingNewFolder: (state, action: PayloadAction<boolean>) => {
       state.isCreatingNewFolder = action.payload;
+    },
+
+    setFileSelection: (
+      state,
+      action: PayloadAction<{
+        selectedFileIds: string[];
+        selectionAnchorId?: string | null;
+        selectedFileId?: string | null;
+      }>
+    ) => {
+      const nextSelectedFileIds = dedupeOrdered(
+        action.payload.selectedFileIds.map(String)
+      ).filter(nodeId => isSelectableFileNode(state, nodeId));
+
+      state.selectedFileIds = nextSelectedFileIds;
+      state.selectionAnchorId =
+        action.payload.selectionAnchorId !== undefined
+          ? action.payload.selectionAnchorId
+          : state.selectionAnchorId;
+
+      if (
+        state.selectionAnchorId &&
+        !isSelectableFileNode(state, state.selectionAnchorId)
+      ) {
+        state.selectionAnchorId = null;
+      }
+
+      if (action.payload.selectedFileId !== undefined) {
+        state.selectedFile = action.payload.selectedFileId;
+        state.fileSelectionVersion += 1;
+        if (action.payload.selectedFileId) {
+          state.selectedFolderId = null;
+        }
+      }
+    },
+
+    clearMultiFileSelection: state => {
+      state.selectedFileIds = [];
+      state.selectionAnchorId = null;
     },
 
     selectFile: (state, action: PayloadAction<string | null>) => {
@@ -300,57 +190,153 @@ const fileTreeSlice = createSlice({
       state.scrollToFileId = action.payload;
     },
 
-    // Local-only actions (optimistic updates)
-    addFiles: (state, action: PayloadAction<FileNode[]>) => {
-      insertUploadedFiles(state, action.payload);
+    setTree: (state, action: PayloadAction<Tree>) => {
+      state.tree = mergeFileTree(state.tree, action.payload);
+      state.expanded[state.tree.id] ??= true;
     },
-    removeFile: (state, action: PayloadAction<string>) => {
-      const rootIndex = state.tree.children.findIndex(
-        f => f.id === action.payload
+
+    reorderChildren: (
+      state,
+      action: PayloadAction<{
+        parentId: FileTreeNodeId | null;
+        orderedIds: string[];
+      }>
+    ) => {
+      const { parentId, orderedIds } = action.payload;
+
+      const existing =
+        parentId === null
+          ? state.tree.rootIds
+          : (state.tree.children[parentId] ?? []);
+      const existingSet = new Set(existing);
+
+      const nextOrder = dedupeOrdered(orderedIds.map(String)).filter(id =>
+        existingSet.has(id)
+      );
+      const missing = existing.filter(id => !nextOrder.includes(id));
+      const next = [...nextOrder, ...missing];
+
+      if (parentId === null) {
+        state.tree.rootIds = next;
+        return;
+      }
+
+      if (next.length === 0) {
+        delete state.tree.children[parentId];
+        return;
+      }
+
+      state.tree.children[parentId] = next;
+    },
+
+    moveNodes: (
+      state,
+      action: PayloadAction<{
+        nodeIds: string[];
+        newParentId: FileTreeNodeId | null;
+        index?: number;
+      }>
+    ) => {
+      const { nodeIds, newParentId, index } = action.payload;
+
+      const orderedUniqueIds = dedupeOrdered(nodeIds.map(String)).filter(
+        id => id in state.tree.nodes
+      );
+      if (orderedUniqueIds.length === 0) {
+        return;
+      }
+
+      const movedSet = new Set(orderedUniqueIds);
+
+      const destinationParentId =
+        newParentId && state.tree.nodes[newParentId]?.type === 'folder'
+          ? newParentId
+          : null;
+
+      if (destinationParentId) {
+        for (const id of orderedUniqueIds) {
+          const node = state.tree.nodes[id];
+          if (
+            node?.type === 'folder' &&
+            isDescendant(state.tree, id, destinationParentId)
+          ) {
+            return;
+          }
+        }
+      }
+
+      const removeFromRoot = new Set<string>();
+      const removeByParent = new Map<string, Set<string>>();
+
+      for (const id of orderedUniqueIds) {
+        const node = state.tree.nodes[id];
+        if (!node) continue;
+
+        const oldParentId = node.parentId;
+        if (oldParentId === null) {
+          removeFromRoot.add(id);
+        } else {
+          const set = removeByParent.get(oldParentId) ?? new Set<string>();
+          set.add(id);
+          removeByParent.set(oldParentId, set);
+        }
+      }
+
+      if (removeFromRoot.size > 0) {
+        state.tree.rootIds = state.tree.rootIds.filter(
+          id => !removeFromRoot.has(id)
+        );
+      }
+
+      for (const [parentId, idsToRemove] of removeByParent) {
+        const list = state.tree.children[parentId];
+        if (!list) continue;
+        const next = list.filter(id => !idsToRemove.has(id));
+        if (next.length === 0) {
+          delete state.tree.children[parentId];
+        } else {
+          state.tree.children[parentId] = next;
+        }
+      }
+
+      for (const id of orderedUniqueIds) {
+        const node = state.tree.nodes[id];
+        if (node) {
+          node.parentId = destinationParentId;
+        }
+      }
+
+      const destinationList =
+        destinationParentId === null
+          ? state.tree.rootIds
+          : (state.tree.children[destinationParentId] ?? []);
+
+      const filteredDestination = destinationList.filter(
+        id => !movedSet.has(id)
+      );
+      const insertAt = clamp(
+        typeof index === 'number' ? index : filteredDestination.length,
+        0,
+        filteredDestination.length
       );
 
-      if (rootIndex !== -1) {
-        state.tree.children.splice(rootIndex, 1);
-      } else {
-        findAndRemoveNode(state.tree.children, action.payload);
+      const nextDestination = [
+        ...filteredDestination.slice(0, insertAt),
+        ...orderedUniqueIds,
+        ...filteredDestination.slice(insertAt),
+      ];
+
+      if (destinationParentId === null) {
+        state.tree.rootIds = nextDestination;
+        return;
       }
 
-      if (state.selectedFile === action.payload) {
-        state.selectedFile = null;
+      if (nextDestination.length === 0) {
+        delete state.tree.children[destinationParentId];
+        return;
       }
-      if (state.selectedFolderId === action.payload) {
-        state.selectedFolderId = null;
-      }
-    },
-    // Rename file locally
-    renameFile: (
-      state,
-      action: PayloadAction<{ id: string; newName: string }>
-    ) => {
-      const { id, newName } = action.payload;
-      const file = state.tree.children.find(f => f.id === id);
 
-      if (file) {
-        file.name = newName;
-      } else {
-        findAndUpdateNode(state.tree.children, id, node => {
-          node.name = newName;
-        });
-      }
-    },
-
-    // reorderFiles: (
-    //   action: PayloadAction<{ oldIndex: number; newIndex: number }>
-    // ) => {
-    //   const { oldIndex, newIndex } = action.payload;
-    //   // state.tree.children = arrayMove(state.tree.children, oldIndex, newIndex);
-    //   // This is just for optimistic UI update
-    //   // The real order comes from the backend
-    //   console.log('🔄 Optimistic reorder:', { oldIndex, newIndex });
-    // },
-
-    setTree: (state, action: PayloadAction<Tree>) => {
-      state.tree = action.payload;
+      state.tree.children[destinationParentId] = nextDestination;
     },
 
     clearError: state => {
@@ -367,123 +353,248 @@ const fileTreeSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addMatcher(fileTreeApi.endpoints.getTree.matchFulfilled, (state, action) => {
-        state.loading = false;
-        state.tree = action.payload;
-        state.expandedFolders = [action.payload.id, ...state.expandedFolders];
-      })
-      .addMatcher(fileTreeApi.endpoints.getTree.matchRejected, (state, action) => {
-        state.loading = false;
-        state.error = resolveErrorMessage(
-          action.payload,
-          'Failed to load tree',
-          action.error
-        );
-      });
+      .addMatcher(
+        fileTreeApi.endpoints.getTree.matchFulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.error = null;
+          const nextTree = action.payload;
+          const isNewRoot = state.tree.id !== nextTree.id;
+          state.tree = mergeFileTree(state.tree, nextTree);
+
+          // Switching bundles should reset local UI state that is tied to a specific tree.
+          if (isNewRoot) {
+            state.expanded = { [nextTree.id]: true };
+            state.selectedFile = null;
+            state.selectedFileIds = [];
+            state.selectionAnchorId = null;
+            state.selectedFolderId = null;
+            state.scrollToFileId = null;
+          } else {
+            state.expanded[nextTree.id] ??= true;
+          }
+
+          // Prune UI state that references nodes no longer in the tree.
+          if (state.selectedFile && !(state.selectedFile in state.tree.nodes)) {
+            state.selectedFile = null;
+          }
+          if (
+            state.selectedFolderId &&
+            !(state.selectedFolderId in state.tree.nodes)
+          ) {
+            state.selectedFolderId = null;
+          }
+          if (
+            state.scrollToFileId &&
+            !(state.scrollToFileId in state.tree.nodes)
+          ) {
+            state.scrollToFileId = null;
+          }
+
+          pruneMultiFileSelection(state);
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.getTree.matchRejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to load tree',
+            action.error
+          );
+        }
+      );
 
     /*-------------------
       Delete Document
     -------------------*/
     builder
-      .addMatcher(fileTreeApi.endpoints.deleteDocument.matchPending, (state, action) => {
-        const documentId = action.meta.arg.originalArgs.documentId;
-        state.operationsInProgress.deleting.push(documentId);
-        state.error = null;
-      })
-      .addMatcher(fileTreeApi.endpoints.deleteDocument.matchFulfilled, (state, action) => {
-        const documentId = action.meta.arg.originalArgs.documentId;
-
-        // Remove from tree
-        findAndRemoveNode(state.tree.children, documentId);
-
-        // Clear selection if deleted
-        if (state.selectedFile === documentId) {
-          state.selectedFile = null;
+      .addMatcher(
+        fileTreeApi.endpoints.deleteDocument.matchPending,
+        (state, action) => {
+          const documentId = action.meta.arg.originalArgs.documentId;
+          state.operationsInProgress.deleting.push(documentId);
+          state.error = null;
         }
-        if (state.selectedFolderId === documentId) {
-          state.selectedFolderId = null;
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.deleteDocument.matchFulfilled,
+        (state, action) => {
+          const documentId = action.meta.arg.originalArgs.documentId;
+
+          const removedIds = removeNodeAndDescendantsFromTree(
+            state.tree,
+            documentId
+          );
+
+          for (const id of removedIds) {
+            delete state.expanded[id];
+          }
+
+          // Clear selection if deleted (including descendants)
+          if (state.selectedFile && removedIds.has(state.selectedFile)) {
+            state.selectedFile = null;
+          }
+          if (
+            state.selectedFolderId &&
+            removedIds.has(state.selectedFolderId)
+          ) {
+            state.selectedFolderId = null;
+          }
+          if (state.scrollToFileId && removedIds.has(state.scrollToFileId)) {
+            state.scrollToFileId = null;
+          }
+
+          state.selectedFileIds = state.selectedFileIds.filter(
+            nodeId => !removedIds.has(nodeId)
+          );
+          if (
+            state.selectionAnchorId &&
+            removedIds.has(state.selectionAnchorId)
+          ) {
+            state.selectionAnchorId = null;
+          }
+
+          // Remove from operations
+          state.operationsInProgress.deleting =
+            state.operationsInProgress.deleting.filter(id => id !== documentId);
         }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.deleteDocument.matchRejected,
+        (state, action) => {
+          const documentId = action.meta.arg.originalArgs.documentId;
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to delete document',
+            action.error
+          );
 
-        // Remove from operations
-        state.operationsInProgress.deleting =
-          state.operationsInProgress.deleting.filter(id => id !== documentId);
-      })
-      .addMatcher(fileTreeApi.endpoints.deleteDocument.matchRejected, (state, action) => {
-        const documentId = action.meta.arg.originalArgs.documentId;
-        state.error = resolveErrorMessage(
-          action.payload,
-          'Failed to delete document',
-          action.error
-        );
-
-        // Remove from operations
-        state.operationsInProgress.deleting =
-          state.operationsInProgress.deleting.filter(id => id !== documentId);
-      });
+          // Remove from operations
+          state.operationsInProgress.deleting =
+            state.operationsInProgress.deleting.filter(id => id !== documentId);
+        }
+      );
 
     /*-------------------
       Rename Document
     -------------------*/
     builder
-      .addMatcher(fileTreeApi.endpoints.renameDocument.matchPending, (state, action) => {
-        const documentId = action.meta.arg.originalArgs.documentId;
-        state.operationsInProgress.renaming.push(documentId);
-        state.error = null;
-      })
-      .addMatcher(fileTreeApi.endpoints.renameDocument.matchFulfilled, (state, action) => {
-        const { documentId, newName } = action.meta.arg.originalArgs;
-
-        // Update in tree
-        const file = state.tree.children.find(f => f.id === documentId);
-        if (file) {
-          file.name = newName;
-        } else {
-          findAndUpdateNode(state.tree.children, documentId, node => {
-            node.name = newName;
-          });
+      .addMatcher(
+        fileTreeApi.endpoints.renameDocument.matchPending,
+        (state, action) => {
+          const documentId = action.meta.arg.originalArgs.documentId;
+          state.operationsInProgress.renaming.push(documentId);
+          state.error = null;
         }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.renameDocument.matchFulfilled,
+        (state, action) => {
+          const { documentId, newName } = action.meta.arg.originalArgs;
+          const node = state.tree.nodes[documentId];
+          if (node) node.name = newName;
 
-        // Remove from operations
-        state.operationsInProgress.renaming =
-          state.operationsInProgress.renaming.filter(id => id !== documentId);
-      })
-      .addMatcher(fileTreeApi.endpoints.renameDocument.matchRejected, (state, action) => {
-        const documentId = action.meta.arg.originalArgs.documentId;
-        state.error = resolveErrorMessage(
-          action.payload,
-          'Failed to rename document',
-          action.error
-        );
+          state.operationsInProgress.renaming =
+            state.operationsInProgress.renaming.filter(id => id !== documentId);
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.renameDocument.matchRejected,
+        (state, action) => {
+          const documentId = action.meta.arg.originalArgs.documentId;
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to rename document',
+            action.error
+          );
 
-        // Remove from operations
-        state.operationsInProgress.renaming =
-          state.operationsInProgress.renaming.filter(id => id !== documentId);
-      });
+          // Remove from operations
+          state.operationsInProgress.renaming =
+            state.operationsInProgress.renaming.filter(id => id !== documentId);
+        }
+      );
 
     /*-------------------
       Rotate Document
     -------------------*/
     builder
-      .addMatcher(fileTreeApi.endpoints.rotateDocument.matchPending, (state, action) => {
-        const documentId = action.meta.arg.originalArgs.documentId;
-        state.operationsInProgress.rotating.push(documentId);
+      .addMatcher(
+        fileTreeApi.endpoints.rotateDocument.matchPending,
+        (state, action) => {
+          const documentId = action.meta.arg.originalArgs.documentId;
+          state.operationsInProgress.rotating.push(documentId);
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.rotateDocument.matchFulfilled,
+        (state, action) => {
+          const documentId = action.meta.arg.originalArgs.documentId;
+          state.operationsInProgress.rotating =
+            state.operationsInProgress.rotating.filter(id => id !== documentId);
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.rotateDocument.matchRejected,
+        (state, action) => {
+          const documentId = action.meta.arg.originalArgs.documentId;
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to rotate document',
+            action.error
+          );
+          state.operationsInProgress.rotating =
+            state.operationsInProgress.rotating.filter(id => id !== documentId);
+        }
+      );
+
+    /*-------------------
+      Merge Documents
+    -------------------*/
+    builder
+      .addMatcher(fileTreeApi.endpoints.mergeDocuments.matchPending, state => {
+        state.operationsInProgress.merging = true;
         state.error = null;
       })
-      .addMatcher(fileTreeApi.endpoints.rotateDocument.matchFulfilled, (state, action) => {
-        const documentId = action.meta.arg.originalArgs.documentId;
-        state.operationsInProgress.rotating =
-          state.operationsInProgress.rotating.filter(id => id !== documentId);
-      })
-      .addMatcher(fileTreeApi.endpoints.rotateDocument.matchRejected, (state, action) => {
-        const documentId = action.meta.arg.originalArgs.documentId;
-        state.error = resolveErrorMessage(
-          action.payload,
-          'Failed to rotate document',
-          action.error
-        );
-        state.operationsInProgress.rotating =
-          state.operationsInProgress.rotating.filter(id => id !== documentId);
-      });
+      .addMatcher(
+        fileTreeApi.endpoints.mergeDocuments.matchFulfilled,
+        (state, action) => {
+          state.operationsInProgress.merging = false;
+          state.error = null;
+          state.tree = mergeFileTree(state.tree, action.payload.tree);
+
+          if (state.selectedFile && !(state.selectedFile in state.tree.nodes)) {
+            state.selectedFile = null;
+          }
+          if (
+            state.selectedFolderId &&
+            !(state.selectedFolderId in state.tree.nodes)
+          ) {
+            state.selectedFolderId = null;
+          }
+          if (
+            state.scrollToFileId &&
+            !(state.scrollToFileId in state.tree.nodes)
+          ) {
+            state.scrollToFileId = null;
+          }
+
+          pruneMultiFileSelection(state);
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.mergeDocuments.matchRejected,
+        (state, action) => {
+          state.operationsInProgress.merging = false;
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to merge documents',
+            action.error
+          );
+        }
+      );
 
     /*-------------------
       Upload Files
@@ -493,66 +604,170 @@ const fileTreeSlice = createSlice({
         state.operationsInProgress.uploading = true;
         state.error = null;
       })
-      .addMatcher(fileTreeApi.endpoints.uploadFiles.matchFulfilled, (state, action) => {
-        const payload = action.payload;
-        if (
-          payload &&
-          typeof payload === 'object' &&
-          'documents' in payload &&
-          Array.isArray((payload as { documents?: unknown }).documents)
-        ) {
-          insertUploadedFiles(
-            state,
-            (payload as { documents: FileNode[] }).documents
+      .addMatcher(
+        fileTreeApi.endpoints.uploadFiles.matchFulfilled,
+        (state, action) => {
+          const payload = action.payload;
+          const requestedParentEntry =
+            action.meta.arg.originalArgs.formData.get('parent_id');
+          const requestedParentIdRaw =
+            typeof requestedParentEntry === 'string'
+              ? requestedParentEntry
+              : null;
+          let requestedParentId = normalizeTreeParentId(
+            requestedParentIdRaw,
+            state.tree.id
           );
+
+          // Uploading to a missing/invalid parent should fall back to root.
+          if (
+            requestedParentId &&
+            state.tree.nodes[requestedParentId]?.type !== 'folder'
+          ) {
+            requestedParentId = null;
+          }
+
+          if (
+            payload &&
+            typeof payload === 'object' &&
+            'documents' in payload &&
+            Array.isArray((payload as { documents?: unknown }).documents)
+          ) {
+            const documents = (
+              payload as {
+                documents: Array<{
+                  id: string | number;
+                  name: string;
+                  type: string;
+                  url: string;
+                }>;
+              }
+            ).documents;
+
+            const baseList =
+              requestedParentId === null
+                ? state.tree.rootIds
+                : (state.tree.children[requestedParentId] ?? []);
+
+            // Insert right after the currently selected file (when it belongs to the upload target folder).
+            let insertIndex = baseList.length;
+            if (state.selectedFile) {
+              const selectedNode = state.tree.nodes[state.selectedFile];
+              const selectedParentId = selectedNode?.parentId ?? null;
+              if (
+                selectedNode?.type === 'file' &&
+                selectedParentId === requestedParentId
+              ) {
+                const selectedIndex = baseList.indexOf(selectedNode.id);
+                if (selectedIndex !== -1) {
+                  insertIndex = selectedIndex + 1;
+                }
+              }
+            }
+
+            const nextList = [...baseList];
+
+            for (const doc of documents) {
+              if (doc.type !== 'file') continue;
+              const id = String(doc.id);
+              if (state.tree.nodes[id]) {
+                continue;
+              }
+
+              state.tree.nodes[id] = {
+                id,
+                parentId: requestedParentId,
+                name: doc.name,
+                type: 'file',
+                url: doc.url,
+              };
+
+              const at = clamp(insertIndex, 0, nextList.length);
+              nextList.splice(at, 0, id);
+              insertIndex += 1;
+            }
+
+            if (requestedParentId === null) {
+              state.tree.rootIds = nextList;
+            } else {
+              state.tree.children[requestedParentId] = nextList;
+            }
+          }
+
+          state.operationsInProgress.uploading = false;
         }
-        state.operationsInProgress.uploading = false;
-      })
-      .addMatcher(fileTreeApi.endpoints.uploadFiles.matchRejected, (state, action) => {
-        state.error = resolveErrorMessage(
-          action.payload,
-          'Failed to upload files',
-          action.error
-        );
-        state.operationsInProgress.uploading = false;
-      });
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.uploadFiles.matchRejected,
+        (state, action) => {
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to upload files',
+            action.error
+          );
+          state.operationsInProgress.uploading = false;
+        }
+      );
 
     /*-------------------
       Create Folder
     -------------------*/
     builder
-      .addMatcher(fileTreeApi.endpoints.createFolder.matchFulfilled, (state, action) => {
-        insertCreatedFolder(state, action.payload);
-      })
-      .addMatcher(fileTreeApi.endpoints.createFolder.matchRejected, (state, action) => {
-        state.error = resolveErrorMessage(
-          action.payload,
-          'Failed to create folder',
-          action.error
-        );
-      });
+      .addMatcher(
+        fileTreeApi.endpoints.createFolder.matchFulfilled,
+        (state, action) => {
+          const node = action.payload as ServerFileTreeNode | undefined;
+          if (!node || node.type !== 'folder') {
+            return;
+          }
+          insertNodeIntoTree(
+            state.tree,
+            normalizeServerNode(node, state.tree.id)
+          );
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.createFolder.matchRejected,
+        (state, action) => {
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to create folder',
+            action.error
+          );
+        }
+      );
 
     /*-------------------
       Reorder Documents
     -------------------*/
     builder
-      .addMatcher(fileTreeApi.endpoints.reorderDocuments.matchPending, state => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addMatcher(fileTreeApi.endpoints.reorderDocuments.matchFulfilled, (state, action) => {
-        state.loading = false;
-        state.tree = action.payload.tree;
-        state.error = null;
-      })
-      .addMatcher(fileTreeApi.endpoints.reorderDocuments.matchRejected, (state, action) => {
-        state.loading = false;
-        state.error = resolveErrorMessage(
-          action.payload,
-          'Failed to reorder documents',
-          action.error
-        );
-      });
+      .addMatcher(
+        fileTreeApi.endpoints.reorderDocuments.matchPending,
+        state => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.reorderDocuments.matchFulfilled,
+        (state, action) => {
+          state.loading = false;
+          const nextTree = action.payload.tree;
+          state.tree = mergeFileTree(state.tree, nextTree);
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.reorderDocuments.matchRejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to reorder documents',
+            action.error
+          );
+        }
+      );
 
     /*-------------------
       Move Documents
@@ -562,96 +777,70 @@ const fileTreeSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addMatcher(fileTreeApi.endpoints.moveDocument.matchFulfilled, (state, action) => {
-        state.loading = false;
-        if (action.payload.tree) {
-          state.tree = action.payload.tree;
+      .addMatcher(
+        fileTreeApi.endpoints.moveDocument.matchFulfilled,
+        (state, action) => {
+          state.loading = false;
+          if (!action.payload.tree) return;
+          const nextTree = action.payload.tree;
+          state.tree = mergeFileTree(state.tree, nextTree);
         }
-      })
-      .addMatcher(fileTreeApi.endpoints.moveDocument.matchRejected, (state, action) => {
-        state.loading = false;
-        state.error = resolveErrorMessage(
-          action.payload,
-          'Failed to move document',
-          action.error
-        );
-      })
-      .addMatcher(fileTreeApi.endpoints.moveDocumentsBatch.matchPending, state => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addMatcher(fileTreeApi.endpoints.moveDocumentsBatch.matchFulfilled, (state, action) => {
-        state.loading = false;
-        if (!action.payload.skipApplyTree && action.payload.tree) {
-          state.tree = action.payload.tree;
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.moveDocument.matchRejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to move document',
+            action.error
+          );
         }
-      })
-      .addMatcher(fileTreeApi.endpoints.moveDocumentsBatch.matchRejected, (state, action) => {
-        state.loading = false;
-        state.error = resolveErrorMessage(
-          action.payload,
-          'Failed to move documents',
-          action.error
-        );
-      });
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.moveDocumentsBatch.matchPending,
+        state => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.moveDocumentsBatch.matchFulfilled,
+        (state, action) => {
+          state.loading = false;
+          if (action.payload.skipApplyTree || !action.payload.tree) {
+            return;
+          }
+          const nextTree = action.payload.tree;
+          state.tree = mergeFileTree(state.tree, nextTree);
+        }
+      )
+      .addMatcher(
+        fileTreeApi.endpoints.moveDocumentsBatch.matchRejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = resolveErrorMessage(
+            action.payload,
+            'Failed to move documents',
+            action.error
+          );
+        }
+      );
   },
 });
 
 export const {
   toggleFolder,
   setIsCreatingNewFolder,
+  setFileSelection,
+  clearMultiFileSelection,
   selectFile,
   selectFolder,
   setScrollToFile,
-  addFiles,
-  removeFile,
-  renameFile,
-  // reorderFiles,
   setTree,
+  reorderChildren,
+  moveNodes,
   clearError,
 } = fileTreeSlice.actions;
 
 export default fileTreeSlice.reducer;
-
-/*=============================================
-=            Selectors                        =
-=============================================*/
-
-// Helper to find a file by ID in the tree
-export const selectFileById = (
-  state: { fileTree: FileTreeState },
-  fileId: string
-): Children | null => {
-  return findNodeById(state.fileTree.tree.children, fileId);
-};
-
-// Check if a document is being deleted
-export const selectIsDeleting = (
-  state: { fileTree: FileTreeState },
-  documentId: string
-): boolean => {
-  return state.fileTree.operationsInProgress.deleting.includes(documentId);
-};
-
-// Check if a document is being renamed
-export const selectIsRenaming = (
-  state: { fileTree: FileTreeState },
-  documentId: string
-): boolean => {
-  return state.fileTree.operationsInProgress.renaming.includes(documentId);
-};
-
-// Check if a document is being rotated
-export const selectIsRotating = (
-  state: { fileTree: FileTreeState },
-  documentId: string
-): boolean => {
-  return state.fileTree.operationsInProgress.rotating.includes(documentId);
-};
-
-// Check if files are being uploaded
-export const selectIsUploading = (state: {
-  fileTree: FileTreeState;
-}): boolean => {
-  return state.fileTree.operationsInProgress.uploading;
-};

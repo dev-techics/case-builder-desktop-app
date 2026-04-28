@@ -1,4 +1,3 @@
-// dashboard/Dashboard.tsx
 import { FilePlus, Upload, Download, Bell, Database } from 'lucide-react';
 import {
   Clock01Icon,
@@ -6,6 +5,7 @@ import {
   File02Icon,
   FolderLibraryIcon,
 } from '@hugeicons/core-free-icons';
+import { useNavigate } from 'react-router-dom';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,32 @@ import { StatsCard } from './components/StatsCard';
 import { RecentBundles } from './components/RecentBundles';
 import { StorageWidget } from './components/StorageWidget';
 import { selectDashboardStats } from './redux';
+import { useCreateBundleMutation } from '@/features/bundles-list/api';
+import { CreateBundleDialog } from '@case-builder/ui';
+import { useCreateBundleDialog } from '@/features/bundles-list/hooks';
 
-export default function Dashboard() {
-  const isDesktop = !!window.api;
-  useGetStatsQuery(undefined, { skip: isDesktop });
+const Dashboard = () => {
+  useGetStatsQuery();
   const stats = useAppSelector(selectDashboardStats);
+  const navigate = useNavigate();
+  const [createBundle] = useCreateBundleMutation();
+  const {
+    bundleName,
+    canSubmit,
+    caseNumber,
+    description,
+    handleBundleNameChange,
+    handleCaseNumberChange,
+    handleDescriptionChange,
+    handleOpenChange,
+    handleSubmit,
+    isDialogOpen,
+    isSubmitting,
+    openCreateDialog,
+  } = useCreateBundleDialog({
+    createBundle: payload => createBundle(payload).unwrap(),
+    onCreated: bundle => navigate(`/dashboard/editor/${bundle.id}`),
+  });
 
   return (
     <div className="p-8 max-w-8xl mx-auto space-y-8">
@@ -27,15 +48,20 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Control Center</h1>
           <p className="text-muted-foreground">
-            Welcome back. Here is what's happening with your bundles.
+            Welcome back. Here is what&apos;s happening with your bundles.
           </p>
         </div>
-        <Button className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400">
+        <Button
+          onClick={openCreateDialog}
+          className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+        >
           <FilePlus size={18} /> New Bundle
         </Button>
       </header>
 
-      {/* 1. Quick Stats */}
+      {/*-------------------------
+         1. Quick Stats 
+      ---------------------------*/}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Bundles"
@@ -52,15 +78,13 @@ export default function Dashboard() {
           value={stats.totalDocuments}
           icon={File02Icon}
         />
-        <StatsCard
-          title="Recent Exports"
-          value={5}
-          icon={Download01Icon}
-        />
+        <StatsCard title="Recent Exports" value={5} icon={Download01Icon} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-7">
-        {/* 2. & 6. Recent Bundles / Continue Working */}
+        {/*------------------------------------------ 
+          2. & 6. Recent Bundles / Continue Working 
+        ---------------------------------------------*/}
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Continue Working</CardTitle>
@@ -70,7 +94,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* 3. & 5. Quick Actions & Storage */}
+        {/*----------------------------------- 
+          3. & 5. Quick Actions & Storage 
+        --------------------------------------*/}
         <div className="col-span-3 space-y-6">
           <Card>
             <CardHeader>
@@ -118,25 +144,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 7. Notifications & Drafts */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">System Notifications</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-4">
-            <div className="flex gap-3 border-l-2 border-emerald-500 pl-3 py-1">
-              <p>
-                Export of <strong>Bundle #402</strong> finished successfully.
-              </p>
-            </div>
-            <div className="flex gap-3 border-l-2 border-emerald-400 pl-3 py-1">
-              <p>
-                New comment on <strong>Court Case X</strong> by Senior Partner.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      {/*--------------------------- 
+        7. Draft Bundles
+      ------------------------------*/}
+      <div className="grid gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Draft Bundles</CardTitle>
@@ -154,6 +165,22 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <CreateBundleDialog
+        bundleName={bundleName}
+        canSubmit={canSubmit}
+        caseNumber={caseNumber}
+        description={description}
+        isSubmitting={isSubmitting}
+        open={isDialogOpen}
+        onBundleNameChange={handleBundleNameChange}
+        onCaseNumberChange={handleCaseNumberChange}
+        onDescriptionChange={handleDescriptionChange}
+        onOpenChange={handleOpenChange}
+        onSubmit={handleSubmit}
+      />
     </div>
   );
-}
+};
+
+export default Dashboard;
