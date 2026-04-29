@@ -4,6 +4,7 @@ import type { BundleRepository } from '../../backend/application/ports/bundleRep
 import { CreateBundleUseCase } from '../../backend/application/useCases/createBundle.js';
 import { DeleteBundleUseCase } from '../../backend/application/useCases/deleteBundle.js';
 import { ListBundlesUseCase } from '../../backend/application/useCases/listBundles.js';
+import { UpdateBundleUseCase } from '../../backend/application/useCases/updateBundle.js';
 
 export function registerBundleIpc(deps: {
   bundleRepository: BundleRepository;
@@ -11,6 +12,7 @@ export function registerBundleIpc(deps: {
   const createBundle = new CreateBundleUseCase(deps.bundleRepository);
   const deleteBundle = new DeleteBundleUseCase(deps.bundleRepository);
   const listBundles = new ListBundlesUseCase(deps.bundleRepository);
+  const updateBundle = new UpdateBundleUseCase(deps.bundleRepository);
 
   /*--------------------------
     createBundle IPC Handler:
@@ -42,7 +44,24 @@ export function registerBundleIpc(deps: {
   ipcMain.handle('bundle:getAll', async () => {
     return listBundles.execute();
   });
+  /*---------------------------
+     update bundle ipc handler
+  -----------------------------*/
+  ipcMain.handle('bundle:update', async (_, updateInput) => {
+    const input =
+      typeof updateInput === 'object' && updateInput !== null
+        ? updateInput
+        : {};
+    const bundleId = input?.id ?? input?.bundleId ?? '';
+    const name = input?.name;
+    const status = input?.status;
 
+    return updateBundle.execute({
+      id: typeof bundleId === 'string' ? bundleId : String(bundleId ?? ''),
+      name,
+      status,
+    });
+  });
   /*--------------------------
     deleteBundle IPC Handler:
   ----------------------------*/

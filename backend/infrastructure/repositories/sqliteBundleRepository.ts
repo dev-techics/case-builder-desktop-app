@@ -1,4 +1,7 @@
-import type { BundleRepository } from '../../application/ports/bundleRepository.js';
+import type {
+  BundleRepository,
+  BundleUpdates,
+} from '../../application/ports/bundleRepository.js';
 import type { Bundle } from '../../domain/bundle.js';
 import type { SqliteDatabase } from '../database/sqlite.js';
 
@@ -84,6 +87,65 @@ export class SqliteBundleRepository implements BundleRepository {
       .all() as BundleRow[];
 
     return rows.map(mapBundleRow);
+  }
+
+  async update(id: string, updates: BundleUpdates): Promise<Bundle> {
+    const setClauses: string[] = [];
+    const values: string[] = [];
+
+    if (updates.name !== undefined) {
+      setClauses.push('name = ?');
+      values.push(updates.name);
+    }
+
+    if (updates.status !== undefined) {
+      setClauses.push('status = ?');
+      values.push(updates.status);
+    }
+
+    const updatedAt = new Date().toISOString();
+    setClauses.push('updated_at = ?');
+    values.push(updatedAt, id);
+
+    const result = this.db
+      .prepare(
+        `
+          UPDATE bundles
+          SET ${setClauses.join(', ')}
+          WHERE id = ?
+        `
+      )
+      .run(...values);
+
+    if (result.changes === 0) {
+      throw new Error('Bundle not found.');
+    }
+
+    const row = this.db
+      .prepare(
+        `
+          SELECT
+            id,
+            name,
+            case_number,
+            document_count,
+            status,
+            created_at,
+            updated_at,
+            description,
+            tags
+          FROM bundles
+          WHERE id = ?
+          LIMIT 1
+        `
+      )
+      .get(id) as BundleRow | undefined;
+
+    if (!row) {
+      throw new Error('Failed to load updated bundle.');
+    }
+
+    return mapBundleRow(row);
   }
 }
 

@@ -1,4 +1,11 @@
-export type BundleStatus = 'In Progress' | 'Complete' | 'Review' | 'Archived';
+export const bundleStatuses = [
+  'In Progress',
+  'Complete',
+  'Review',
+  'Archived',
+] as const;
+
+export type BundleStatus = (typeof bundleStatuses)[number];
 
 export interface Bundle {
   id: string;
@@ -18,4 +25,11 @@ export function normalizeBundleName(name: string): string {
 
 export function normalizeCaseNumber(caseNumber: string): string {
   return caseNumber.trim().replace(/\s+/g, ' ');
+}
+
+export function isBundleStatus(value: unknown): value is BundleStatus {
+  return (
+    typeof value === 'string' &&
+    bundleStatuses.includes(value as BundleStatus)
+  );
 }

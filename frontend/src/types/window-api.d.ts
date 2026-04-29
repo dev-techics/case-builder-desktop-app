@@ -1,3 +1,5 @@
+import type { BundleStatus } from "@case-builder/ui";
+
 export {};
 
 declare global {
@@ -16,7 +18,12 @@ declare global {
           | string
       ) => Promise<unknown>;
       getBundles: () => Promise<unknown[]>;
-      deleteBundle?: (id: string | number) => Promise<void>;
+      deleteBundle: (id: string | number) => Promise<void>;
+      updateBundle: (input: {
+        id: string | number;
+        name?: string;
+        status?: BundleStatus;
+      }) => Promise<unknown>;
     };
   }
 }

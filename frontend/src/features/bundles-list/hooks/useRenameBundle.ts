@@ -6,7 +6,7 @@ import type { Bundle } from '../types';
 
 export const useRenameBundle = () => {
   const [bundleToRename, setBundleToRename] = useState<Bundle | null>(null);
-  const [renameBundle, { isLoading: isRenaming }] = useRenameBundleMutation();
+  const [updatedBundle, { isLoading: isRenaming }] = useRenameBundleMutation();
 
   const openRenameDialog = useCallback((bundle: Bundle) => {
     setBundleToRename(bundle);
@@ -30,17 +30,18 @@ export const useRenameBundle = () => {
       }
 
       try {
-        await renameBundle({
+        await updatedBundle({
           bundleId: bundleToRename.id,
           name: trimmedName,
         }).unwrap();
         toast.success('Bundle renamed successfully');
         closeRenameDialog();
-      } catch {
+      } catch(err) {
+        console.log(err);
         toast.error('Failed to rename bundle');
       }
     },
-    [bundleToRename, closeRenameDialog, renameBundle]
+    [bundleToRename, closeRenameDialog, updatedBundle]
   );
 
   return {
