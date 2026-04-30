@@ -5,7 +5,7 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import UploadFile from './components/UploadFile';
-import { DocumentApiService } from '@/api/axiosInstance';
+import { getDocumentStreamUrl } from '@/api/axiosInstance';
 import { useParams } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import Fallback from '@/components/Fallback';
@@ -101,7 +101,7 @@ const PDFViewer = () => {
         url:
           fileUrlOverrides[file.id] ??
           file.url ??
-          `${DocumentApiService.getDocumentStreamUrl(file.id)}?original=true&cb=${streamSessionKey}`,
+          `${getDocumentStreamUrl(file.id)}?original=true&cb=${streamSessionKey}`,
       })),
     [fileUrlOverrides, streamSessionKey, visibleFiles]
   );

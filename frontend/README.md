@@ -412,8 +412,6 @@ type PendingComment = {
 - React 18+
 - Redux Toolkit
 - react-pdf library
-- pdf-lib
-- ultracite (code formater)
 
 ### Installation
 
