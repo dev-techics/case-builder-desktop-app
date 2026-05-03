@@ -1,4 +1,5 @@
 import type { BundleStatus } from "@case-builder/ui";
+import type { FileTree } from "@/features/file-explorer/types/fileTree";
 
 export {};
 
@@ -24,6 +25,26 @@ declare global {
         name?: string;
         status?: BundleStatus;
       }) => Promise<unknown>;
+      getDocumentsTree: (bundleId: string | number) => Promise<FileTree>;
+      importDocuments: (input: {
+        bundleId: string | number;
+        parentId?: string | null;
+        files: Array<{
+          name: string;
+          path: string;
+          mimeType?: string | null;
+        }>;
+      }) => Promise<{
+        documents: Array<{
+          id: string | number;
+          parentId: string | null;
+          name: string;
+          type: string;
+          url: string;
+        }>;
+        conversionStatuses?: unknown[];
+      }>;
+      getPathForFile: (file: File) => string;
     };
   }
 }

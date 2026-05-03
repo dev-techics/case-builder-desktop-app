@@ -3,6 +3,30 @@ import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 const BaseQuery = import.meta.env.VITE_BASE_URL;
+const getDesktopApi = () =>
+  typeof window !== 'undefined' && window.api?.isDesktop ? window.api : undefined;
+
+const toIpcError = (error: unknown) => ({
+  status: 'CUSTOM_ERROR' as const,
+  error: error instanceof Error ? error.message : 'IPC request failed',
+});
+
+type DesktopFileInput = {
+  name: string;
+  path: string;
+  mimeType?: string | null;
+};
+
+type UploadFilesResponse = {
+  documents: Array<{
+    id: string | number;
+    parentId: string | null;
+    name: string;
+    type: string;
+    url: string;
+  }>;
+  conversionStatuses?: unknown[];
+};
 
 type RotateDocumentApiResponse = {
   document?: {
@@ -116,7 +140,26 @@ export const fileTreeApi = createApi({
         Get file tree
     ----------------------------*/
     getTree: build.query<FileTree, string | number>({
-      query: bundleId => `/api/bundles/${bundleId}/documents`,
+      async queryFn(bundleId, _api, _extraOptions, baseQuery) {
+        const desktopApi = getDesktopApi();
+
+        if (desktopApi?.getDocumentsTree) {
+          try {
+            const tree = await desktopApi.getDocumentsTree(bundleId);
+            return { data: tree };
+          } catch (error) {
+            return { error: toIpcError(error) };
+          }
+        }
+
+        const result = await baseQuery(`/api/bundles/${bundleId}/documents`);
+
+        if ('error' in result) {
+          return { error: result.error as FetchBaseQueryError };
+        }
+
+        return { data: result.data as FileTree };
+      },
     }),
 
     /*--------------------------
@@ -198,33 +241,69 @@ export const fileTreeApi = createApi({
         Upload files mutation
     ----------------------------*/
     uploadFiles: build.mutation<
-      | {
-          documents: Array<{
-            id: string | number;
-            parentId: string | null;
-            name: string;
-            type: string;
-            url: string;
-          }>;
-          conversionStatuses?: unknown[];
-        }
-      | string,
+      UploadFilesResponse | string,
       {
         bundleId: string;
         formData: FormData;
       }
     >({
-      query: ({ bundleId, formData }) => ({
-        url: `/api/bundles/${bundleId}/documents/upload`,
-        method: 'POST',
-        body: formData,
-        responseHandler: 'text',
-      }),
-      transformResponse: (response: string) => {
+      async queryFn({ bundleId, formData }, _api, _extraOptions, baseQuery) {
+        const desktopApi = getDesktopApi();
+
+        if (!desktopApi?.importDocuments) {
+          const result = await baseQuery({
+            url: `/api/bundles/${bundleId}/documents/upload`,
+            method: 'POST',
+            body: formData,
+            responseHandler: 'text',
+          });
+
+          if ('error' in result) {
+            return { error: result.error as FetchBaseQueryError };
+          }
+
+          return { data: parseTextResponse(result.data) as UploadFilesResponse | string };
+        }
+
+        const fileEntries = formData
+          .getAll('files[]')
+          .filter((entry): entry is File => entry instanceof File);
+        const desktopFiles: DesktopFileInput[] = [];
+
+        for (const entry of fileEntries) {
+          const filePath = desktopApi.getPathForFile(entry)?.trim();
+          if (!filePath) {
+            return {
+              error: toIpcError(
+                new Error(
+                  'Selected files are missing local paths. Please retry the import from the desktop app.'
+                )
+              ),
+            };
+          }
+
+          desktopFiles.push({
+            name: entry.name,
+            path: filePath,
+            mimeType: entry.type || null,
+          });
+        }
+
+        const parentIdEntry = formData.get('parent_id');
+        const parentId =
+          typeof parentIdEntry === 'string' && parentIdEntry.trim()
+            ? parentIdEntry
+            : null;
+
         try {
-          return JSON.parse(response);
-        } catch {
-          return response;
+          const result = await desktopApi.importDocuments({
+            bundleId,
+            parentId,
+            files: desktopFiles,
+          });
+          return { data: result };
+        } catch (error) {
+          return { error: toIpcError(error) };
         }
       },
     }),

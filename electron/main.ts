@@ -2,9 +2,17 @@ import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerBundleIpc } from './ipc/bundle.controller.js';
+import { registerDocumentIpc } from './ipc/document.controller.js';
+import { registerDocumentProtocol } from './document.protocol.js';
 import { createSqliteDatabase } from '../backend/infrastructure/database/sqlite.js';
 import { SqliteBundleRepository } from '../backend/infrastructure/repositories/sqliteBundleRepository.js';
-import { getDatabasePath } from './utils/index.js';
+import { SqliteDocumentRepository } from '../backend/infrastructure/repositories/sqliteDocumentRepository.js';
+import { LocalDocumentStorage } from '../backend/infrastructure/files/localDocumentStorage.js';
+import {
+  buildDocumentUrl,
+  getDatabasePath,
+  getDocumentsStoragePath,
+} from './utils/index.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
@@ -15,10 +23,22 @@ const appDir = path.dirname(fileURLToPath(import.meta.url));
 ------------------------*/
 const registerIpc = () => {
   const databasePath = getDatabasePath();
+  const documentsStoragePath = getDocumentsStoragePath();
   const db = createSqliteDatabase(databasePath);
   const bundleRepository = new SqliteBundleRepository(db);
+  const documentRepository = new SqliteDocumentRepository(db);
+  const documentStorage = new LocalDocumentStorage(documentsStoragePath);
 
   registerBundleIpc({ bundleRepository });
+  registerDocumentIpc({
+    documentRepository,
+    documentStorage,
+    buildDocumentUrl,
+  });
+  registerDocumentProtocol({
+    documentRepository,
+    documentsStorageRoot: documentsStoragePath,
+  });
 };
 
 /*-------------------

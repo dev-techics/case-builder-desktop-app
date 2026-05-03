@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 contextBridge.exposeInMainWorld('api', {
   isDesktop: true,
@@ -34,4 +34,19 @@ contextBridge.exposeInMainWorld('api', {
   ----------------------*/
   deleteBundle: (id: string | number) =>
     ipcRenderer.invoke('bundle:delete', id),
+
+  getDocumentsTree: (bundleId: string | number) =>
+    ipcRenderer.invoke('document:getTree', bundleId),
+
+  importDocuments: (input: {
+    bundleId: string | number;
+    parentId?: string | null;
+    files: Array<{
+      name: string;
+      path: string;
+      mimeType?: string | null;
+    }>;
+  }) => ipcRenderer.invoke('document:import', input),
+
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
 });

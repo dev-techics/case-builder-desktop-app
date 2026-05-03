@@ -40,9 +40,8 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
   return (
     <>
       <label
-        className={`block rounded-lg p-2 text-sm hover:bg-gray-200 ${
-          isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-        }`}
+        className={`block rounded-lg p-2 text-sm hover:bg-gray-200 ${isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+          }`}
         onClick={e => e.stopPropagation()}
         title="Import Document"
       >
@@ -57,7 +56,6 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
 
         <input
           accept={ALL_SUPPORTED_FORMATS}
-          // accept="*"
           className="hidden"
           multiple
           onChange={handleFileUpload}
@@ -106,13 +104,12 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
                     {conversionStatuses.map((status, index) => (
                       <div
                         key={index}
-                        className={`flex items-start gap-2 p-2 rounded text-xs ${
-                          status.status === 'success'
-                            ? 'bg-green-50 text-green-800'
-                            : status.status === 'failed'
-                              ? 'bg-red-50 text-red-800'
-                              : 'bg-blue-50 text-blue-800'
-                        }`}
+                        className={`flex items-start gap-2 p-2 rounded text-xs ${status.status === 'success'
+                          ? 'bg-green-50 text-green-800'
+                          : status.status === 'failed'
+                            ? 'bg-red-50 text-red-800'
+                            : 'bg-blue-50 text-blue-800'
+                          }`}
                       >
                         {status.status === 'success' ? (
                           <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />

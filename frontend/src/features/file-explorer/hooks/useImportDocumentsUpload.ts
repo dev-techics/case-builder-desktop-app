@@ -30,6 +30,8 @@ export const useImportDocumentsUpload = ({
   bundleId,
   parentId = null,
 }: UseImportDocumentsUploadArgs) => {
+
+  // Local state for managin file upload
   const [uploadFiles] = useUploadFilesMutation();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
