@@ -35,9 +35,15 @@ contextBridge.exposeInMainWorld('api', {
   deleteBundle: (id: string | number) =>
     ipcRenderer.invoke('bundle:delete', id),
 
+  /*-----------------------
+    Fetch document tree
+  -------------------------*/
   getDocumentsTree: (bundleId: string | number) =>
     ipcRenderer.invoke('document:getTree', bundleId),
 
+  /*---------------------------------
+    Import/Upload documents channel
+  -----------------------------------*/
   importDocuments: (input: {
     bundleId: string | number;
     parentId?: string | null;
@@ -48,5 +54,8 @@ contextBridge.exposeInMainWorld('api', {
     }>;
   }) => ipcRenderer.invoke('document:import', input),
 
+  /*-------------------------
+    Get imported file path
+  ---------------------------*/
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 });

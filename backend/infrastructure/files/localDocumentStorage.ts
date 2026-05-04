@@ -11,11 +11,13 @@ export class LocalDocumentStorage implements DocumentStorage {
     sourcePath: string;
     originalName: string;
   }) {
+    // make bundle directory for storing documents
     const bundleDirectory = path.join(this.storageRoot, input.bundleId);
     await fs.mkdir(bundleDirectory, { recursive: true });
 
     const originalExtension =
-      path.extname(input.originalName || input.sourcePath).toLowerCase() || '.pdf';
+      path.extname(input.originalName || input.sourcePath).toLowerCase() ||
+      '.pdf';
     const fileName = `${input.documentId}${originalExtension}`;
     const destinationPath = path.join(bundleDirectory, fileName);
 
@@ -31,4 +33,3 @@ export class LocalDocumentStorage implements DocumentStorage {
     await fs.rm(absolutePath, { force: true });
   }
 }
-

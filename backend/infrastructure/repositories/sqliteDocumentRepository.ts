@@ -14,7 +14,6 @@ type DocumentRow = {
   metadata: string | null;
   created_at: string | null;
   updated_at: string | null;
-  deleted_at: string | null;
 };
 
 export class SqliteDocumentRepository implements DocumentRepository {
@@ -37,8 +36,7 @@ export class SqliteDocumentRepository implements DocumentRepository {
         "order",
         metadata,
         created_at,
-        updated_at,
-        deleted_at
+        updated_at
       )
       VALUES (
         @id,
@@ -51,8 +49,7 @@ export class SqliteDocumentRepository implements DocumentRepository {
         @order,
         @metadata,
         @created_at,
-        @updated_at,
-        @deleted_at
+        @updated_at
       )
     `);
 
@@ -64,7 +61,6 @@ export class SqliteDocumentRepository implements DocumentRepository {
           FROM documents
           WHERE bundle_id = @bundle_id
             AND type = 'file'
-            AND deleted_at IS NULL
         ),
         updated_at = @updated_at
       WHERE id = @bundle_id
@@ -86,7 +82,6 @@ export class SqliteDocumentRepository implements DocumentRepository {
           metadata: document.metadata,
           created_at: document.createdAt,
           updated_at: document.updatedAt,
-          deleted_at: document.deletedAt,
         });
         bundleIds.add(document.bundleId);
       }
@@ -125,11 +120,9 @@ export class SqliteDocumentRepository implements DocumentRepository {
             "order" AS order_value,
             metadata,
             created_at,
-            updated_at,
-            deleted_at
+            updated_at
           FROM documents
           WHERE id = ?
-            AND deleted_at IS NULL
           LIMIT 1
         `
       )
@@ -148,7 +141,6 @@ export class SqliteDocumentRepository implements DocumentRepository {
           SELECT COALESCE(MAX("order"), -1) + 1 AS next_order
           FROM documents
           WHERE bundle_id = @bundle_id
-            AND deleted_at IS NULL
             AND (
               (@parent_id IS NULL AND parent_id IS NULL)
               OR parent_id = @parent_id
@@ -178,11 +170,9 @@ export class SqliteDocumentRepository implements DocumentRepository {
             "order" AS order_value,
             metadata,
             created_at,
-            updated_at,
-            deleted_at
+            updated_at
           FROM documents
           WHERE bundle_id = ?
-            AND deleted_at IS NULL
           ORDER BY
             CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END,
             parent_id ASC,
@@ -210,7 +200,5 @@ function mapDocumentRow(row: DocumentRow): StoredDocument {
     metadata: row.metadata,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    deletedAt: row.deleted_at,
   };
 }
-

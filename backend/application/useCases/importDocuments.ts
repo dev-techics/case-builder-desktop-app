@@ -153,7 +153,6 @@ export class ImportDocumentsUseCase {
           metadata: null,
           createdAt: now,
           updatedAt: now,
-          deletedAt: null,
         });
       }
 
@@ -179,4 +178,3 @@ export class ImportDocumentsUseCase {
     };
   }
 }
-

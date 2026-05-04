@@ -247,23 +247,8 @@ export const fileTreeApi = createApi({
         formData: FormData;
       }
     >({
-      async queryFn({ bundleId, formData }, _api, _extraOptions, baseQuery) {
-        const desktopApi = getDesktopApi();
-
-        if (!desktopApi?.importDocuments) {
-          const result = await baseQuery({
-            url: `/api/bundles/${bundleId}/documents/upload`,
-            method: 'POST',
-            body: formData,
-            responseHandler: 'text',
-          });
-
-          if ('error' in result) {
-            return { error: result.error as FetchBaseQueryError };
-          }
-
-          return { data: parseTextResponse(result.data) as UploadFilesResponse | string };
-        }
+      async queryFn({ bundleId, formData }) {
+        const desktopApi = window.api!;
 
         const fileEntries = formData
           .getAll('files[]')

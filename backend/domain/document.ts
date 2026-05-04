@@ -14,13 +14,10 @@ export interface StoredDocument {
   metadata: string | null;
   createdAt: string | null;
   updatedAt: string | null;
-  deletedAt: string | null;
 }
 
 export function isDocumentType(value: unknown): value is DocumentType {
   return (
-    typeof value === 'string' &&
-    documentTypes.includes(value as DocumentType)
+    typeof value === 'string' && documentTypes.includes(value as DocumentType)
   );
 }
-
