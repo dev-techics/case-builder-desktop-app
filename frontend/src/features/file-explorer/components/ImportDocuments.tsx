@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type React from 'react';
 import { FileImportIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -15,6 +16,7 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
   bundleId,
   parentId = null,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     conversionStatuses,
     handleClose,
@@ -36,14 +38,34 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
   };
 
   const ALL_SUPPORTED_FORMATS = Object.values(SUPPORTED_FORMATS).join(',');
+  const getConversionStatusClasses = (
+    status: (typeof conversionStatuses)[number]['status']
+  ) => {
+    switch (status) {
+      case 'success':
+        return 'bg-green-50 text-green-800';
+      case 'failed':
+        return 'bg-red-50 text-red-800';
+      default:
+        return 'bg-blue-50 text-blue-800';
+    }
+  };
 
   return (
     <>
-      <label
+      <button
+        type="button"
         className={`block rounded-lg p-2 text-sm hover:bg-gray-200 ${isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
           }`}
-        onClick={e => e.stopPropagation()}
+        onClick={e => {
+          e.stopPropagation();
+          if (!isUploading) {
+            fileInputRef.current?.click();
+          }
+        }}
         title="Import Document"
+        aria-label="Import Document"
+        disabled={isUploading}
       >
         {parentId ? (
           <HugeiconsIcon
@@ -53,16 +75,17 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
         ) : (
           <HugeiconsIcon icon={FileImportIcon} size={18} />
         )}
+      </button>
 
-        <input
-          accept={ALL_SUPPORTED_FORMATS}
-          className="hidden"
-          multiple
-          onChange={handleFileUpload}
-          type="file"
-          disabled={isUploading}
-        />
-      </label>
+      <input
+        ref={fileInputRef}
+        accept={ALL_SUPPORTED_FORMATS}
+        className="hidden"
+        multiple
+        onChange={handleFileUpload}
+        type="file"
+        disabled={isUploading}
+      />
 
       {isUploading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -81,7 +104,7 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
                       </h3>
                       <p className="text-sm text-gray-600">
                         Successfully processed {uploadedCount} file
-                        {uploadedCount !== 1 ? 's' : ''}
+                        {uploadedCount === 1 ? '' : 's'}
                       </p>
                     </div>
                   </div>
@@ -101,21 +124,19 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
                     <p className="text-xs font-semibold text-gray-700 mb-2">
                       Conversion Results:
                     </p>
-                    {conversionStatuses.map((status, index) => (
+                    {conversionStatuses.map(status => (
                       <div
-                        key={index}
-                        className={`flex items-start gap-2 p-2 rounded text-xs ${status.status === 'success'
-                          ? 'bg-green-50 text-green-800'
-                          : status.status === 'failed'
-                            ? 'bg-red-50 text-red-800'
-                            : 'bg-blue-50 text-blue-800'
-                          }`}
+                        key={status.id}
+                        className={`flex items-start gap-2 p-2 rounded text-xs ${getConversionStatusClasses(
+                          status.status
+                        )}`}
                       >
-                        {status.status === 'success' ? (
+                        {status.status === 'success' && (
                           <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                        ) : status.status === 'failed' ? (
+                        )}
+                        {status.status === 'failed' && (
                           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                        ) : null}
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">
                             {status.fileName}

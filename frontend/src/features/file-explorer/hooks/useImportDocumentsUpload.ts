@@ -4,10 +4,14 @@ import { useParams } from 'react-router-dom';
 
 import { useUploadFilesMutation } from '../api';
 
-type ConversionStatus = {
+type ConversionStatusPayload = {
   fileName: string;
   status: 'converting' | 'success' | 'failed';
   message?: string;
+};
+
+type ConversionStatus = ConversionStatusPayload & {
+  id: string;
 };
 
 type UploadResponse = {
@@ -18,7 +22,7 @@ type UploadResponse = {
     type: string;
     url: string;
   }>;
-  conversionStatuses?: ConversionStatus[];
+  conversionStatuses?: ConversionStatusPayload[];
 };
 
 type UseImportDocumentsUploadArgs = {
@@ -26,11 +30,59 @@ type UseImportDocumentsUploadArgs = {
   parentId?: string | null;
 };
 
+/**
+ * This function adds a id to the conversion status payload
+ * to use that a key when rendering to the ui.
+ * @param statuses - Conversion status returned after uploading files
+ * @returns An array of objects with id, filename & status
+ */
+const buildConversionStatuses = (
+  statuses: ConversionStatusPayload[]
+): ConversionStatus[] => {
+  return statuses.map(status => {
+    return {
+      ...status,
+      id: crypto.randomUUID(),
+    };
+  });
+};
+
+/**
+ * Returns a user-friendly message for an upload failure 
+ * @param error - The error thrown while uploading files.
+ * @returns A message safe to display in the UI.
+ */
+const getUploadErrorMessage = (error: unknown) => {
+  if (typeof error === 'object' && error !== null && 'data' in error) {
+    const { data } = error as {
+      data?: unknown;
+    };
+
+    if (typeof data === 'string') {
+      return data;
+    }
+
+    if (
+      typeof data === 'object' &&
+      data !== null &&
+      'message' in data &&
+      typeof data.message === 'string'
+    ) {
+      return data.message;
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Failed to upload files';
+};
+
 export const useImportDocumentsUpload = ({
   bundleId,
   parentId = null,
 }: UseImportDocumentsUploadArgs) => {
-
   // Local state for managin file upload
   const [uploadFiles] = useUploadFilesMutation();
   const [isUploading, setIsUploading] = useState(false);
@@ -109,7 +161,9 @@ export const useImportDocumentsUpload = ({
 
       // Extract conversion statuses if any
       if (response?.conversionStatuses) {
-        setConversionStatuses(response.conversionStatuses);
+        setConversionStatuses(
+          buildConversionStatuses(response.conversionStatuses)
+        );
       }
 
       const uploadedCountValue = response.documents?.length ?? 0;
@@ -117,16 +171,11 @@ export const useImportDocumentsUpload = ({
       setUploadedCount(uploadedCountValue);
       setUploadProgress(100);
       setUploadComplete(true);
+
     } catch (error: unknown) {
+
       console.error('❌ Upload failed:', error);
-      const errorMessage =
-        typeof error === 'object' && error !== null && 'data' in error
-          ? typeof (error as { data?: unknown }).data === 'string'
-            ? (error as { data: string }).data
-            : (error as { data?: { message?: string } }).data?.message
-          : error instanceof Error
-            ? error.message
-            : 'Failed to upload files';
+      const errorMessage = getUploadErrorMessage(error);
       alert(`Upload failed: ${errorMessage}`);
       handleClose();
     } finally {

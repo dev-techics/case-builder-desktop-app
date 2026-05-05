@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 
 import type { BundleRepository } from '../../backend/application/ports/bundleRepository.js';
+import type { DocumentStorage } from '../../backend/application/ports/documentStorage.js';
 import { CreateBundleUseCase } from '../../backend/application/useCases/createBundle.js';
 import { DeleteBundleUseCase } from '../../backend/application/useCases/deleteBundle.js';
 import { ListBundlesUseCase } from '../../backend/application/useCases/listBundles.js';
@@ -8,9 +9,13 @@ import { UpdateBundleUseCase } from '../../backend/application/useCases/updateBu
 
 export function registerBundleIpc(deps: {
   bundleRepository: BundleRepository;
+  documentStorage: DocumentStorage;
 }) {
   const createBundle = new CreateBundleUseCase(deps.bundleRepository);
-  const deleteBundle = new DeleteBundleUseCase(deps.bundleRepository);
+  const deleteBundle = new DeleteBundleUseCase(
+    deps.bundleRepository,
+    deps.documentStorage
+  );
   const listBundles = new ListBundlesUseCase(deps.bundleRepository);
   const updateBundle = new UpdateBundleUseCase(deps.bundleRepository);
 

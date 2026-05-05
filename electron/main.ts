@@ -29,7 +29,7 @@ const registerIpc = () => {
   const documentRepository = new SqliteDocumentRepository(db);
   const documentStorage = new LocalDocumentStorage(documentsStoragePath);
 
-  registerBundleIpc({ bundleRepository });
+  registerBundleIpc({ bundleRepository, documentStorage });
   registerDocumentIpc({
     documentRepository,
     documentStorage,

@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import path from 'path';
+import path from 'node:path';
 
 export const DOCUMENT_PROTOCOL = 'case-builder-document';
 
@@ -22,10 +22,10 @@ export const getDatabasePath = () => {
 ----------------------------*/
 export const getDocumentsStoragePath = () => {
   if (app.isPackaged) {
-    return path.join(app.getPath('userData'), 'case-builder', 'documents');
+    return path.join(app.getPath('userData'), 'case-builder', 'bundles');
   }
 
-  return path.join(process.cwd(), 'storage', 'documents');
+  return path.join(process.cwd(), 'storage', 'bundles');
 };
 
 export const buildDocumentUrl = (documentId: string) =>

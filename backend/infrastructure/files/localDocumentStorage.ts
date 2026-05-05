@@ -32,4 +32,9 @@ export class LocalDocumentStorage implements DocumentStorage {
     const absolutePath = path.join(this.storageRoot, storagePath);
     await fs.rm(absolutePath, { force: true });
   }
+
+  async deleteBundleStorage(bundleId: string): Promise<void> {
+    const bundleDirectory = path.join(this.storageRoot, bundleId);
+    await fs.rm(bundleDirectory, { recursive: true, force: true });
+  }
 }
