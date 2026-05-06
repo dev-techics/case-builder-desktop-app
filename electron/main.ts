@@ -8,6 +8,8 @@ import { createSqliteDatabase } from '../backend/infrastructure/database/sqlite.
 import { SqliteBundleRepository } from '../backend/infrastructure/repositories/sqliteBundleRepository.js';
 import { SqliteDocumentRepository } from '../backend/infrastructure/repositories/sqliteDocumentRepository.js';
 import { LocalDocumentStorage } from '../backend/infrastructure/files/localDocumentStorage.js';
+import { ElectronDocumentImportPreprocessor } from './services/documentImportPreprocessor.js';
+import { GhostscriptManager } from './services/ghostscriptManager.js';
 import {
   buildDocumentUrl,
   getDatabasePath,
@@ -28,11 +30,23 @@ const registerIpc = () => {
   const bundleRepository = new SqliteBundleRepository(db);
   const documentRepository = new SqliteDocumentRepository(db);
   const documentStorage = new LocalDocumentStorage(documentsStoragePath);
+  const requireGhostscript =
+    process.env.CASE_BUILDER_REQUIRE_GHOSTSCRIPT === 'true';
+  const ghostscriptManager = new GhostscriptManager({
+    requireGhostscript,
+  });
+  const documentImportPreprocessor = new ElectronDocumentImportPreprocessor({
+    ghostscriptManager,
+    requireGhostscript,
+    officeConverterCommand:
+      process.env.CASE_BUILDER_PDF_CONVERTER_PATH?.trim() || null,
+  });
 
   registerBundleIpc({ bundleRepository, documentStorage });
   registerDocumentIpc({
     documentRepository,
     documentStorage,
+    documentImportPreprocessor,
     buildDocumentUrl,
   });
   registerDocumentProtocol({

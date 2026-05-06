@@ -21,7 +21,7 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
     conversionStatuses,
     handleClose,
     handleFileUpload,
-    hasConversions,
+    hasProcessing,
     isUploading,
     uploadComplete,
     uploadProgress,
@@ -55,8 +55,9 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
     <>
       <button
         type="button"
-        className={`block rounded-lg p-2 text-sm hover:bg-gray-200 ${isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-          }`}
+        className={`block rounded-lg p-2 text-sm hover:bg-gray-200 ${
+          isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+        }`}
         onClick={e => {
           e.stopPropagation();
           if (!isUploading) {
@@ -122,7 +123,7 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
                 {conversionStatuses.length > 0 && (
                   <div className="mb-4 space-y-2 max-h-60 overflow-y-auto">
                     <p className="text-xs font-semibold text-gray-700 mb-2">
-                      Conversion Results:
+                      Processing Results:
                     </p>
                     {conversionStatuses.map(status => (
                       <div
@@ -161,8 +162,8 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900">
-                    {hasConversions
-                      ? 'Converting and uploading...'
+                    {hasProcessing
+                      ? 'Processing and uploading...'
                       : 'Uploading files...'}
                   </h3>
                   <span className="text-sm font-medium text-gray-600">
@@ -171,8 +172,8 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
                 <p className="text-xs text-gray-500 mt-2">
-                  {hasConversions
-                    ? 'Converting files to PDF format...'
+                  {hasProcessing
+                    ? 'Preparing files before storing them in the bundle...'
                     : "Please don't close this window"}
                 </p>
               </div>

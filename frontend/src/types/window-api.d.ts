@@ -3,6 +3,12 @@ import type { FileTree } from "@/features/file-explorer/types/fileTree";
 
 export {};
 
+type DocumentImportStatus = {
+  fileName: string;
+  status: 'success' | 'failed';
+  message?: string;
+};
+
 declare global {
   interface Window {
     api?: {
@@ -42,7 +48,7 @@ declare global {
           type: string;
           url: string;
         }>;
-        conversionStatuses?: unknown[];
+        conversionStatuses?: DocumentImportStatus[];
       }>;
       getPathForFile: (file: File) => string;
     };

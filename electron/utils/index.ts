@@ -30,3 +30,10 @@ export const getDocumentsStoragePath = () => {
 
 export const buildDocumentUrl = (documentId: string) =>
   `${DOCUMENT_PROTOCOL}://document/${encodeURIComponent(documentId)}`;
+
+/**------------------------------
+ * Get gs install directory
+ --------------------------------*/
+export function getGSInstallDir() {
+  return path.join(app.getPath('userData'), 'bin', 'ghostscript');
+}

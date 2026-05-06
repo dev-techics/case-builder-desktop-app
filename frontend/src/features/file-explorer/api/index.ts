@@ -17,6 +17,12 @@ type DesktopFileInput = {
   mimeType?: string | null;
 };
 
+type DocumentImportStatus = {
+  fileName: string;
+  status: 'success' | 'failed';
+  message?: string;
+};
+
 type UploadFilesResponse = {
   documents: Array<{
     id: string | number;
@@ -25,7 +31,7 @@ type UploadFilesResponse = {
     type: string;
     url: string;
   }>;
-  conversionStatuses?: unknown[];
+  conversionStatuses?: DocumentImportStatus[];
 };
 
 type RotateDocumentApiResponse = {

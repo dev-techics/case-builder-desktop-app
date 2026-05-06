@@ -3,6 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { ValidationError } from '../../domain/errors.js';
 import type { StoredDocument } from '../../domain/document.js';
 import type { DocumentRepository } from '../ports/documentRepository.js';
+import type {
+  DocumentImportPreprocessor,
+  DocumentImportStatus,
+  PreparedImportDocument,
+} from '../ports/documentImportPreprocessor.js';
 import type { DocumentStorage } from '../ports/documentStorage.js';
 
 export interface ImportableDocumentFile {
@@ -15,12 +20,6 @@ export interface ImportDocumentsInput {
   bundleId: string;
   parentId?: string | null;
   files: ImportableDocumentFile[];
-}
-
-export interface DocumentImportStatus {
-  fileName: string;
-  status: 'success' | 'failed';
-  message?: string;
 }
 
 export interface ImportedDocumentResult {
@@ -56,10 +55,12 @@ const isPdfFile = (file: ImportableDocumentFile) => {
 export class ImportDocumentsUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
-    private readonly documentStorage: DocumentStorage
+    private readonly documentStorage: DocumentStorage,
+    private readonly documentImportPreprocessor?: DocumentImportPreprocessor
   ) {}
 
   async execute(input: ImportDocumentsInput): Promise<ImportDocumentsResult> {
+    /* ------------ Validate inputs ---------------- */
     const bundleId = input.bundleId?.trim();
     if (!bundleId) {
       throw new ValidationError('Bundle id is required.');
@@ -81,55 +82,80 @@ export class ImportDocumentsUseCase {
       }
     }
 
-    const acceptedFiles: ImportableDocumentFile[] = [];
+    /* ------------ Validate inputs ends ---------------- */
+
+    const acceptedFiles: PreparedImportDocument[] = [];
     const conversionStatuses: DocumentImportStatus[] = [];
-
-    for (const file of files) {
-      const fileName = typeof file?.name === 'string' ? file.name.trim() : '';
-      const filePath = typeof file?.path === 'string' ? file.path.trim() : '';
-
-      if (!fileName || !filePath) {
-        conversionStatuses.push({
-          fileName: fileName || 'Unknown file',
-          status: 'failed',
-          message: 'Invalid file payload.',
-        });
-        continue;
-      }
-
-      if (!isPdfFile(file)) {
-        conversionStatuses.push({
-          fileName,
-          status: 'failed',
-          message: 'Desktop import currently supports PDF files only.',
-        });
-        continue;
-      }
-
-      acceptedFiles.push({
-        name: fileName,
-        path: filePath,
-        mimeType: file.mimeType ?? 'application/pdf',
-      });
-    }
-
-    if (acceptedFiles.length === 0) {
-      return {
-        documents: [],
-        conversionStatuses:
-          conversionStatuses.length > 0 ? conversionStatuses : undefined,
-      };
-    }
-
-    const now = new Date().toISOString();
-    const nextOrder = await this.documentRepository.getNextOrder(
-      bundleId,
-      parentId
-    );
+    const preparedFilesToCleanup: PreparedImportDocument[] = [];
     const copiedStoragePaths: string[] = [];
-    const documentsToCreate: StoredDocument[] = [];
 
     try {
+      for (const file of files) {
+        const fileName = typeof file?.name === 'string' ? file.name.trim() : '';
+        const filePath = typeof file?.path === 'string' ? file.path.trim() : '';
+
+        if (!fileName || !filePath) {
+          conversionStatuses.push({
+            fileName: fileName || 'Unknown file',
+            status: 'failed',
+            message: 'Invalid file payload.',
+          });
+          continue;
+        }
+
+        if (this.documentImportPreprocessor) {
+          const preparedResult =
+            await this.documentImportPreprocessor.preprocess({
+              name: fileName,
+              path: filePath,
+              mimeType: file.mimeType ?? null,
+            });
+
+          if (preparedResult.status) {
+            conversionStatuses.push(preparedResult.status);
+          }
+
+          if (!preparedResult.document) {
+            continue;
+          }
+
+          acceptedFiles.push(preparedResult.document);
+          preparedFilesToCleanup.push(preparedResult.document);
+          continue;
+        }
+
+        if (!isPdfFile(file)) {
+          conversionStatuses.push({
+            fileName,
+            status: 'failed',
+            message: 'Desktop import currently supports PDF files only.',
+          });
+          continue;
+        }
+
+        acceptedFiles.push({
+          name: fileName,
+          path: filePath,
+          mimeType: file.mimeType ?? 'application/pdf',
+          cleanup: async () => {},
+        });
+      }
+
+      if (acceptedFiles.length === 0) {
+        return {
+          documents: [],
+          conversionStatuses:
+            conversionStatuses.length > 0 ? conversionStatuses : undefined,
+        };
+      }
+
+      const now = new Date().toISOString();
+      const nextOrder = await this.documentRepository.getNextOrder(
+        bundleId,
+        parentId
+      );
+      const documentsToCreate: StoredDocument[] = [];
+
       for (const [index, file] of acceptedFiles.entries()) {
         const id = uuidv4();
         const storedFile = await this.documentStorage.copyFromPath({
@@ -157,6 +183,17 @@ export class ImportDocumentsUseCase {
       }
 
       await this.documentRepository.createMany(documentsToCreate);
+
+      return {
+        documents: documentsToCreate.map(document => ({
+          id: document.id,
+          parentId: document.parentId,
+          name: document.name,
+          type: 'file',
+        })),
+        conversionStatuses:
+          conversionStatuses.length > 0 ? conversionStatuses : undefined,
+      };
     } catch (error) {
       await Promise.all(
         copiedStoragePaths.map(storagePath =>
@@ -164,17 +201,10 @@ export class ImportDocumentsUseCase {
         )
       );
       throw error;
+    } finally {
+      await Promise.all(
+        preparedFilesToCleanup.map(file => file.cleanup().catch(() => {}))
+      );
     }
-
-    return {
-      documents: documentsToCreate.map(document => ({
-        id: document.id,
-        parentId: document.parentId,
-        name: document.name,
-        type: 'file',
-      })),
-      conversionStatuses:
-        conversionStatuses.length > 0 ? conversionStatuses : undefined,
-    };
   }
 }

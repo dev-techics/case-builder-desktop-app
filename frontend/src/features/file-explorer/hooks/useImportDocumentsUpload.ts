@@ -6,7 +6,7 @@ import { useUploadFilesMutation } from '../api';
 
 type ConversionStatusPayload = {
   fileName: string;
-  status: 'converting' | 'success' | 'failed';
+  status: 'success' | 'failed';
   message?: string;
 };
 
@@ -48,7 +48,7 @@ const buildConversionStatuses = (
 };
 
 /**
- * Returns a user-friendly message for an upload failure 
+ * Returns a user-friendly message for an upload failure.
  * @param error - The error thrown while uploading files.
  * @returns A message safe to display in the UI.
  */
@@ -83,7 +83,7 @@ export const useImportDocumentsUpload = ({
   bundleId,
   parentId = null,
 }: UseImportDocumentsUploadArgs) => {
-  // Local state for managin file upload
+  // Local state for managing file upload.
   const [uploadFiles] = useUploadFilesMutation();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -92,7 +92,7 @@ export const useImportDocumentsUpload = ({
   const [conversionStatuses, setConversionStatuses] = useState<
     ConversionStatus[]
   >([]);
-  const [hasConversions, setHasConversions] = useState(false);
+  const [hasProcessing, setHasProcessing] = useState(false);
   const routeParams = useParams<{ bundleId: string }>();
   const resolvedBundleId = routeParams.bundleId || bundleId;
 
@@ -102,7 +102,7 @@ export const useImportDocumentsUpload = ({
     setUploadProgress(0);
     setUploadedCount(0);
     setConversionStatuses([]);
-    setHasConversions(false);
+    setHasProcessing(false);
   };
 
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -117,17 +117,10 @@ export const useImportDocumentsUpload = ({
       return;
     }
 
-    // Check if any files need conversion
-    const needsConversion = selectedFiles.some(
-      file =>
-        file.type !== 'application/pdf' &&
-        !file.name.toLowerCase().endsWith('.pdf')
-    );
-
     setIsUploading(true);
     setUploadComplete(false);
     setUploadProgress(0);
-    setHasConversions(needsConversion);
+    setHasProcessing(true);
     setConversionStatuses([]);
 
     try {
@@ -171,9 +164,7 @@ export const useImportDocumentsUpload = ({
       setUploadedCount(uploadedCountValue);
       setUploadProgress(100);
       setUploadComplete(true);
-
     } catch (error: unknown) {
-
       console.error('❌ Upload failed:', error);
       const errorMessage = getUploadErrorMessage(error);
       alert(`Upload failed: ${errorMessage}`);
@@ -187,7 +178,7 @@ export const useImportDocumentsUpload = ({
     conversionStatuses,
     handleClose,
     handleFileUpload,
-    hasConversions,
+    hasProcessing,
     isUploading,
     uploadComplete,
     uploadProgress,
