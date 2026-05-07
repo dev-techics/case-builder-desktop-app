@@ -5,15 +5,18 @@ import { registerBundleIpc } from './ipc/bundle.controller.js';
 import { registerDocumentIpc } from './ipc/document.controller.js';
 import { registerDocumentProtocol } from './document.protocol.js';
 import { createSqliteDatabase } from '../backend/infrastructure/database/sqlite.js';
+import { GhostscriptPdfCompressor } from '../backend/infrastructure/document-processing/compression/pdfCompressor.js';
+import { OfficeDocumentToPdfConverter } from '../backend/infrastructure/document-processing/conversion/docToPdf.js';
+import { InfrastructureDocumentImportPreprocessor } from '../backend/infrastructure/document-processing/documentImportPreprocessor.js';
+import { GhostscriptManager } from '../backend/infrastructure/document-processing/ghostscript/ghostscriptManager.js';
 import { SqliteBundleRepository } from '../backend/infrastructure/repositories/sqliteBundleRepository.js';
 import { SqliteDocumentRepository } from '../backend/infrastructure/repositories/sqliteDocumentRepository.js';
 import { LocalDocumentStorage } from '../backend/infrastructure/files/localDocumentStorage.js';
-import { ElectronDocumentImportPreprocessor } from './services/documentImportPreprocessor.js';
-import { GhostscriptManager } from './services/ghostscriptManager.js';
 import {
   buildDocumentUrl,
   getDatabasePath,
   getDocumentsStoragePath,
+  getGSInstallDir,
 } from './utils/index.js';
 
 const DEV_RENDERER_URL =
@@ -32,15 +35,24 @@ const registerIpc = () => {
   const documentStorage = new LocalDocumentStorage(documentsStoragePath);
   const requireGhostscript =
     process.env.CASE_BUILDER_REQUIRE_GHOSTSCRIPT === 'true';
+  const officeConverterCommand =
+    process.env.CASE_BUILDER_PDF_CONVERTER_PATH?.trim() || null;
   const ghostscriptManager = new GhostscriptManager({
+    installDirectory: getGSInstallDir(),
     requireGhostscript,
   });
-  const documentImportPreprocessor = new ElectronDocumentImportPreprocessor({
+  const pdfCompressor = new GhostscriptPdfCompressor({
     ghostscriptManager,
     requireGhostscript,
-    officeConverterCommand:
-      process.env.CASE_BUILDER_PDF_CONVERTER_PATH?.trim() || null,
   });
+  const documentToPdfConverter = new OfficeDocumentToPdfConverter({
+    officeConverterCommand,
+  });
+  const documentImportPreprocessor =
+    new InfrastructureDocumentImportPreprocessor({
+      pdfCompressor,
+      documentToPdfConverter,
+    });
 
   registerBundleIpc({ bundleRepository, documentStorage });
   registerDocumentIpc({

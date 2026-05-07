@@ -9,6 +9,7 @@ export interface RunCommandResult {
   stderr: string;
 }
 
+// Runs a child process without blocking the Electron main thread.
 export async function runCommand(
   command: string,
   args: string[],
@@ -23,11 +24,11 @@ export async function runCommand(
     let stdout = '';
     let stderr = '';
 
-    child.stdout.on('data', chunk => {
+    child.stdout?.on('data', chunk => {
       stdout += chunk.toString();
     });
 
-    child.stderr.on('data', chunk => {
+    child.stderr?.on('data', chunk => {
       stderr += chunk.toString();
     });
 

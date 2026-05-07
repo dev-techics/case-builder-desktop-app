@@ -19,6 +19,7 @@ Code Style:
 
 - Use async/await
 - Keep functions small
+- Write easy to read code
 - Avoid unnecessary dependencies
 - Write specific and concise comments to describe functions
 - Avoid writing long code larger than 250 lines in single file.
