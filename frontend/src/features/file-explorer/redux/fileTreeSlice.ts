@@ -773,30 +773,6 @@ const fileTreeSlice = createSlice({
       Move Documents
     -------------------*/
     builder
-      .addMatcher(fileTreeApi.endpoints.moveDocument.matchPending, state => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addMatcher(
-        fileTreeApi.endpoints.moveDocument.matchFulfilled,
-        (state, action) => {
-          state.loading = false;
-          if (!action.payload.tree) return;
-          const nextTree = action.payload.tree;
-          state.tree = mergeFileTree(state.tree, nextTree);
-        }
-      )
-      .addMatcher(
-        fileTreeApi.endpoints.moveDocument.matchRejected,
-        (state, action) => {
-          state.loading = false;
-          state.error = resolveErrorMessage(
-            action.payload,
-            'Failed to move document',
-            action.error
-          );
-        }
-      )
       .addMatcher(
         fileTreeApi.endpoints.moveDocumentsBatch.matchPending,
         state => {

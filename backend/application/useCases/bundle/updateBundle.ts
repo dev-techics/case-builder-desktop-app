@@ -3,12 +3,12 @@ import {
   normalizeBundleName,
   type Bundle,
   type BundleStatus,
-} from '../../domain/bundle.js';
-import { ValidationError } from '../../domain/errors.js';
+} from '../../../domain/bundle.js';
+import { ValidationError } from '../../../domain/errors.js';
 import type {
   BundleRepository,
   BundleUpdates,
-} from '../ports/bundleRepository.js';
+} from '../../ports/bundleRepository.js';
 
 type UpdateBundlePayload = {
   id: string;

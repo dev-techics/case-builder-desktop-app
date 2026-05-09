@@ -21,3 +21,7 @@ export function isDocumentType(value: unknown): value is DocumentType {
     typeof value === 'string' && documentTypes.includes(value as DocumentType)
   );
 }
+
+export function normalizeDocumentName(name: string): string {
+  return name.trim();
+}

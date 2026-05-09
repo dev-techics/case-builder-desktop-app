@@ -2,8 +2,20 @@ import { ipcMain } from 'electron';
 import type { DocumentImportPreprocessor } from '../../backend/application/ports/documentImportPreprocessor.js';
 import type { DocumentStorage } from '../../backend/application/ports/documentStorage.js';
 import type { DocumentRepository } from '../../backend/application/ports/documentRepository.js';
-import { ImportDocumentsUseCase } from '../../backend/application/useCases/importDocuments.js';
-import { ListBundleDocumentsTreeUseCase } from '../../backend/application/useCases/listBundleDocumentsTree.js';
+import { CreateFolderUseCase } from '../../backend/application/useCases/document/createFolder.js';
+import { DeleteDocumentUseCase } from '../../backend/application/useCases/document/deleteDocument.js';
+import { ImportDocumentsUseCase } from '../../backend/application/useCases/document/importDocuments.js';
+import { ListBundleDocumentsTreeUseCase } from '../../backend/application/useCases/document/listBundleDocumentsTree.js';
+import { MoveDocumentUseCase } from '../../backend/application/useCases/document/moveDocument.js';
+import { ReorderDocumentsUseCase } from '../../backend/application/useCases/document/reorderDocuments.js';
+import { RenameDocumentUseCase } from '../../backend/application/useCases/document/renameDocument.js';
+import { RotateDocumentUseCase } from '../../backend/application/useCases/document/rotateDocument.js';
+
+type CreateFolderPayload = {
+  bundleId?: string | number;
+  name?: string;
+  parentId?: string | null;
+};
 
 type ImportDocumentPayload = {
   bundleId?: string | number;
@@ -13,6 +25,41 @@ type ImportDocumentPayload = {
     path?: string;
     mimeType?: string | null;
   }>;
+};
+
+type RenameDocumentPayload = {
+  id?: string | number;
+  documentId?: string | number;
+  name?: string;
+  newName?: string;
+};
+
+type DeleteDocumentPayload =
+  | string
+  | number
+  | {
+      id?: string | number;
+      documentId?: string | number;
+    };
+
+type ReorderDocumentsPayload = {
+  bundleId?: string | number;
+  items?: Array<{
+    id?: string | number;
+    order?: number;
+  }>;
+};
+
+type MoveDocumentPayload = {
+  id?: string | number;
+  documentId?: string | number;
+  newParentId?: string | null;
+  parentId?: string | null;
+};
+
+type RotateDocumentPayload = {
+  bundleId?: string;
+  documentId?: string;
 };
 
 export function registerDocumentIpc(deps: {
@@ -26,15 +73,19 @@ export function registerDocumentIpc(deps: {
     deps.documentStorage,
     deps.documentImportPreprocessor
   );
+  const createFolder = new CreateFolderUseCase(deps.documentRepository);
+  const deleteDocument = new DeleteDocumentUseCase(
+    deps.documentRepository,
+    deps.documentStorage
+  );
   const listBundleDocumentsTree = new ListBundleDocumentsTreeUseCase(
     deps.documentRepository
   );
-
-  ipcMain.handle('document:getTree', async (_, bundleIdInput) => {
-    const bundleId =
-      typeof bundleIdInput === 'string'
-        ? bundleIdInput
-        : String(bundleIdInput ?? '');
+  const moveDocument = new MoveDocumentUseCase(deps.documentRepository);
+  const reorderDocuments = new ReorderDocumentsUseCase(deps.documentRepository);
+  const renameDocument = new RenameDocumentUseCase(deps.documentRepository);
+  const rotateDocument = new RotateDocumentUseCase(deps.documentRepository);
+  const getTreeWithDocumentUrls = async (bundleId: string) => {
     const tree = await listBundleDocumentsTree.execute(bundleId);
 
     return {
@@ -51,8 +102,52 @@ export function registerDocumentIpc(deps: {
         ])
       ),
     };
+  };
+
+  /*---------------------------------
+    Document tree fetching handler
+  -----------------------------------*/
+  ipcMain.handle('document:getTree', async (_, bundleIdInput) => {
+    const bundleId =
+      typeof bundleIdInput === 'string'
+        ? bundleIdInput
+        : String(bundleIdInput ?? '');
+
+    return getTreeWithDocumentUrls(bundleId);
   });
 
+  /*-----------------------------
+    Document create folder handler
+  -------------------------------*/
+  ipcMain.handle(
+    'document:createFolder',
+    async (_, payload: CreateFolderPayload) => {
+      const bundleId =
+        typeof payload?.bundleId === 'string'
+          ? payload.bundleId
+          : String(payload?.bundleId ?? '');
+      const parentId =
+        typeof payload?.parentId === 'string' && payload.parentId.trim()
+          ? payload.parentId
+          : null;
+      const folder = await createFolder.execute({
+        bundleId,
+        name: typeof payload?.name === 'string' ? payload.name : '',
+        parentId,
+      });
+
+      return {
+        id: folder.id,
+        name: folder.name,
+        type: folder.type,
+        parentId: folder.parentId,
+      };
+    }
+  );
+
+  /*-----------------------------
+    Document import IPC handler
+  -------------------------------*/
   ipcMain.handle(
     'document:import',
     async (_, payload: ImportDocumentPayload) => {
@@ -83,6 +178,106 @@ export function registerDocumentIpc(deps: {
         })),
         conversionStatuses: result.conversionStatuses,
       };
+    }
+  );
+
+  /*-----------------------------
+    Document reorder IPC handler
+  -------------------------------*/
+  ipcMain.handle(
+    'document:reorder',
+    async (_, payload: ReorderDocumentsPayload) => {
+      const bundleId =
+        typeof payload?.bundleId === 'string'
+          ? payload.bundleId
+          : String(payload?.bundleId ?? '');
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+
+      await reorderDocuments.execute({
+        bundleId,
+        items: items.map(item => ({
+          id: typeof item?.id === 'string' ? item.id : String(item?.id ?? ''),
+          order: typeof item?.order === 'number' ? item.order : Number.NaN,
+        })),
+      });
+
+      return getTreeWithDocumentUrls(bundleId);
+    }
+  );
+
+  /*-----------------------------
+    Document move IPC handler
+  -------------------------------*/
+  ipcMain.handle('document:move', async (_, payload: MoveDocumentPayload) => {
+    const documentId = payload?.id ?? payload?.documentId ?? '';
+    const newParentId =
+      typeof payload?.newParentId === 'string' && payload.newParentId.trim()
+        ? payload.newParentId
+        : typeof payload?.parentId === 'string' && payload.parentId.trim()
+          ? payload.parentId
+          : null;
+    const movedDocument = await moveDocument.execute({
+      documentId:
+        typeof documentId === 'string' ? documentId : String(documentId ?? ''),
+      newParentId,
+    });
+
+    return getTreeWithDocumentUrls(movedDocument.bundleId);
+  });
+
+  /*-----------------------------
+    Document rotate IPC handler
+  -------------------------------*/
+  ipcMain.handle(
+    'document:rotate',
+    async (_, payload: RotateDocumentPayload) => {
+      const documentId = payload.documentId ?? '';
+      const bundleId = payload.bundleId ?? '';
+
+      const rotatedDocument = await rotateDocument.execute({
+        bundleId,
+        documentId,
+      });
+
+      return getTreeWithDocumentUrls(bundleId);
+    }
+  );
+
+  /*-----------------------------
+    Document delete IPC handler
+  -------------------------------*/
+  ipcMain.handle(
+    'document:delete',
+    async (_, payload: DeleteDocumentPayload) => {
+      const documentId =
+        typeof payload === 'object' && payload !== null
+          ? (payload.id ?? payload.documentId ?? '')
+          : payload;
+
+      await deleteDocument.execute(
+        typeof documentId === 'string' ? documentId : String(documentId ?? '')
+      );
+    }
+  );
+
+  /*-----------------------------
+    Document rename IPC handler
+  -------------------------------*/
+  ipcMain.handle(
+    'document:rename',
+    async (_, payload: RenameDocumentPayload) => {
+      const input =
+        typeof payload === 'object' && payload !== null ? payload : {};
+      const documentId = input.id ?? input.documentId ?? '';
+      const name = input.name ?? input.newName;
+
+      return renameDocument.execute({
+        id:
+          typeof documentId === 'string'
+            ? documentId
+            : String(documentId ?? ''),
+        name: typeof name === 'string' ? name : '',
+      });
     }
   );
 }

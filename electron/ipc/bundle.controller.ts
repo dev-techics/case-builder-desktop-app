@@ -2,10 +2,10 @@ import { ipcMain } from 'electron';
 
 import type { BundleRepository } from '../../backend/application/ports/bundleRepository.js';
 import type { DocumentStorage } from '../../backend/application/ports/documentStorage.js';
-import { CreateBundleUseCase } from '../../backend/application/useCases/createBundle.js';
-import { DeleteBundleUseCase } from '../../backend/application/useCases/deleteBundle.js';
-import { ListBundlesUseCase } from '../../backend/application/useCases/listBundles.js';
-import { UpdateBundleUseCase } from '../../backend/application/useCases/updateBundle.js';
+import { CreateBundleUseCase } from '../../backend/application/useCases/bundle/createBundle.js';
+import { DeleteBundleUseCase } from '../../backend/application/useCases/bundle/deleteBundle.js';
+import { ListBundlesUseCase } from '../../backend/application/useCases/bundle/listBundles.js';
+import { UpdateBundleUseCase } from '../../backend/application/useCases/bundle/updateBundle.js';
 
 export function registerBundleIpc(deps: {
   bundleRepository: BundleRepository;

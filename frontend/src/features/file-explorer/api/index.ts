@@ -40,6 +40,13 @@ type RotateDocumentApiResponse = {
   };
 };
 
+type CreateFolderDesktopResponse = {
+  id: string | number;
+  name: string;
+  type: 'folder';
+  parentId: string | null;
+};
+
 type MergeDocumentsMutationResponse = {
   tree: FileTree;
   mergedDocumentId?: string;
@@ -146,25 +153,21 @@ export const fileTreeApi = createApi({
         Get file tree
     ----------------------------*/
     getTree: build.query<FileTree, string | number>({
-      async queryFn(bundleId, _api, _extraOptions, baseQuery) {
+      async queryFn(bundleId) {
         const desktopApi = getDesktopApi();
 
-        if (desktopApi?.getDocumentsTree) {
-          try {
-            const tree = await desktopApi.getDocumentsTree(bundleId);
-            return { data: tree };
-          } catch (error) {
-            return { error: toIpcError(error) };
-          }
+        if (!desktopApi?.getDocumentsTree) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
         }
 
-        const result = await baseQuery(`/api/bundles/${bundleId}/documents`);
-
-        if ('error' in result) {
-          return { error: result.error as FetchBaseQueryError };
+        try {
+          const tree = await desktopApi.getDocumentsTree(bundleId);
+          return { data: tree };
+        } catch (error) {
+          return { error: toIpcError(error) };
         }
-
-        return { data: result.data as FileTree };
       },
     }),
 
@@ -175,13 +178,26 @@ export const fileTreeApi = createApi({
       { documentId: string },
       { documentId: string }
     >({
-      query: ({ documentId }) => ({
-        url: `/api/documents/${documentId}`,
-        method: 'DELETE',
-      }),
-      transformResponse: (_response, _meta, arg) => ({
-        documentId: arg.documentId,
-      }),
+      async queryFn({ documentId }) {
+        const desktopApi = getDesktopApi();
+
+        if (!desktopApi?.deleteDocument) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
+        }
+
+        try {
+          await desktopApi.deleteDocument({ id: documentId });
+          return {
+            data: {
+              documentId,
+            },
+          };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
     }),
 
     /*--------------------------
@@ -191,15 +207,34 @@ export const fileTreeApi = createApi({
       { id: string; newName: string },
       { documentId: string; newName: string }
     >({
-      query: ({ documentId, newName }) => ({
-        url: `/api/documents/${documentId}/rename`,
-        method: 'PATCH',
-        body: { name: newName },
-      }),
-      transformResponse: (_response, _meta, arg) => ({
-        id: arg.documentId,
-        newName: arg.newName,
-      }),
+      async queryFn({ documentId, newName }) {
+        const desktopApi = getDesktopApi();
+
+        if (!desktopApi?.renameDocument) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
+        }
+
+        try {
+          const renamedDocument = await desktopApi.renameDocument({
+            id: documentId,
+            name: newName,
+          });
+
+          return {
+            data: {
+              id: String(renamedDocument.id ?? documentId),
+              newName:
+                typeof renamedDocument.name === 'string'
+                  ? renamedDocument.name
+                  : newName,
+            },
+          };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
     }),
 
     /*--------------------------
@@ -232,15 +267,35 @@ export const fileTreeApi = createApi({
       ServerFileTreeNode,
       { bundleId: string; name: string; parentId?: string | null }
     >({
-      query: ({ bundleId, name, parentId }) => ({
-        url: `/api/bundles/${bundleId}/documents`,
-        method: 'POST',
-        body: {
-          name,
-          type: 'folder',
-          parent_id: parentId,
-        },
-      }),
+      async queryFn({ bundleId, name, parentId }) {
+        const desktopApi = getDesktopApi();
+
+        if (!desktopApi?.createFolder) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
+        }
+
+        try {
+          const folder =
+            (await desktopApi.createFolder({
+              bundleId,
+              name,
+              parentId,
+            })) as CreateFolderDesktopResponse;
+
+          return {
+            data: {
+              id: folder.id,
+              name: folder.name,
+              type: folder.type,
+              parentId: folder.parentId,
+            },
+          };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
     }),
 
     /*--------------------------
@@ -254,7 +309,13 @@ export const fileTreeApi = createApi({
       }
     >({
       async queryFn({ bundleId, formData }) {
-        const desktopApi = window.api!;
+        const desktopApi = getDesktopApi();
+
+        if (!desktopApi?.importDocuments || !desktopApi.getPathForFile) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
+        }
 
         const fileEntries = formData
           .getAll('files[]')
@@ -306,61 +367,25 @@ export const fileTreeApi = createApi({
       { bundleId: string; tree: FileTree },
       { bundleId: string; items: Array<{ id: string; order: number }> }
     >({
-      async queryFn({ bundleId, items }, _api, _extraOptions, baseQuery) {
-        const reorderResult = await baseQuery({
-          url: `/api/bundles/${bundleId}/documents/reorder`,
-          method: 'POST',
-          body: { items },
-        });
+      async queryFn({ bundleId, items }) {
+        const desktopApi = getDesktopApi();
 
-        if ('error' in reorderResult) {
-          return { error: reorderResult.error as FetchBaseQueryError };
+        if (!desktopApi?.reorderDocuments) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
         }
 
-        const treeResult = await baseQuery(
-          `/api/bundles/${bundleId}/documents`
-        );
+        try {
+          const tree = await desktopApi.reorderDocuments({
+            bundleId,
+            items,
+          });
 
-        if ('error' in treeResult) {
-          return { error: treeResult.error as FetchBaseQueryError };
+          return { data: { bundleId, tree } };
+        } catch (error) {
+          return { error: toIpcError(error) };
         }
-
-        return { data: { bundleId, tree: treeResult.data as FileTree } };
-      },
-    }),
-
-    /*--------------------------
-        Move document
-    ----------------------------*/
-    moveDocument: build.mutation<
-      { tree: FileTree },
-      { bundleId: string; documentId: string; newParentId: string | null }
-    >({
-      async queryFn(
-        { bundleId, documentId, newParentId },
-        _api,
-        _extraOptions,
-        baseQuery
-      ) {
-        const moveResult = await baseQuery({
-          url: `/api/documents/${documentId}/move`,
-          method: 'PATCH',
-          body: { parent_id: newParentId },
-        });
-
-        if ('error' in moveResult) {
-          return { error: moveResult.error as FetchBaseQueryError };
-        }
-
-        const treeResult = await baseQuery(
-          `/api/bundles/${bundleId}/documents`
-        );
-
-        if ('error' in treeResult) {
-          return { error: treeResult.error as FetchBaseQueryError };
-        }
-
-        return { data: { tree: treeResult.data as FileTree } };
       },
     }),
 
@@ -377,16 +402,23 @@ export const fileTreeApi = createApi({
       }
     >({
       async queryFn(
-        { bundleId, documentIds, newParentId, skipApplyTree },
+        { bundleId, documentIds, newParentId, skipApplyTree},
         _api,
         _extraOptions,
-        baseQuery
       ) {
+
+        const desktopApi = getDesktopApi();
+
+        if (!desktopApi?.moveDocument) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
+        }
+
         for (const documentId of documentIds) {
-          const moveResult = await baseQuery({
-            url: `/api/documents/${documentId}/move`,
-            method: 'PATCH',
-            body: { parent_id: newParentId },
+          const moveResult = await desktopApi.moveDocument({
+            id: documentId,
+            newParentId,
           });
 
           if ('error' in moveResult) {
@@ -394,17 +426,18 @@ export const fileTreeApi = createApi({
           }
         }
 
-        const treeResult = await baseQuery(
-          `/api/bundles/${bundleId}/documents`
-        );
+        const treeResult = await desktopApi.getDocumentsTree(bundleId);
 
         if ('error' in treeResult) {
           return { error: treeResult.error as FetchBaseQueryError };
         }
 
         return {
-          data: { tree: treeResult.data as FileTree, skipApplyTree },
-        };
+      data: {
+        tree: treeResult,
+        skipApplyTree,
+      },
+    };
       },
     }),
 
@@ -480,7 +513,6 @@ export const {
   useDeleteDocumentMutation,
   useGetTreeQuery,
   useMergeDocumentsMutation,
-  useMoveDocumentMutation,
   useMoveDocumentsBatchMutation,
   useRenameDocumentMutation,
   useReorderDocumentsMutation,

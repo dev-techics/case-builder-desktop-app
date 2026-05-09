@@ -1,4 +1,7 @@
-import type { DocumentRepository } from '../../application/ports/documentRepository.js';
+import type {
+  DocumentOrderUpdate,
+  DocumentRepository,
+} from '../../application/ports/documentRepository.js';
 import type { DocumentType, StoredDocument } from '../../domain/document.js';
 import type { SqliteDatabase } from '../database/sqlite.js';
 
@@ -97,6 +100,111 @@ export class SqliteDocumentRepository implements DocumentRepository {
     transaction();
   }
 
+  async delete(id: string): Promise<StoredDocument[]> {
+    const deletedDocuments = this.db
+      .prepare(
+        `
+          WITH RECURSIVE subtree (
+            id,
+            bundle_id,
+            parent_id,
+            name,
+            type,
+            mime_type,
+            storage_path,
+            order_value,
+            metadata,
+            created_at,
+            updated_at
+          ) AS (
+            SELECT
+              id,
+              bundle_id,
+              parent_id,
+              name,
+              type,
+              mime_type,
+              storage_path,
+              "order",
+              metadata,
+              created_at,
+              updated_at
+            FROM documents
+            WHERE id = @id
+
+            UNION ALL
+
+            SELECT
+              document.id,
+              document.bundle_id,
+              document.parent_id,
+              document.name,
+              document.type,
+              document.mime_type,
+              document.storage_path,
+              document."order",
+              document.metadata,
+              document.created_at,
+              document.updated_at
+            FROM documents AS document
+            INNER JOIN subtree ON document.parent_id = subtree.id
+          )
+          SELECT
+            id,
+            bundle_id,
+            parent_id,
+            name,
+            type,
+            mime_type,
+            storage_path,
+            order_value,
+            metadata,
+            created_at,
+            updated_at
+          FROM subtree
+          ORDER BY
+            CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END,
+            parent_id ASC,
+            order_value ASC,
+            created_at ASC,
+            id ASC
+        `
+      )
+      .all({ id }) as DocumentRow[];
+
+    if (deletedDocuments.length === 0) {
+      throw new Error('Document not found.');
+    }
+
+    const bundleId = deletedDocuments[0].bundle_id;
+    const updatedAt = new Date().toISOString();
+    const deleteDocument = this.db.prepare('DELETE FROM documents WHERE id = ?');
+    const syncBundleDocumentCount = this.db.prepare(`
+      UPDATE bundles
+      SET
+        document_count = (
+          SELECT COUNT(*)
+          FROM documents
+          WHERE bundle_id = @bundle_id
+            AND type = 'file'
+        ),
+        updated_at = @updated_at
+      WHERE id = @bundle_id
+    `);
+
+    const transaction = this.db.transaction(() => {
+      deleteDocument.run(id);
+      syncBundleDocumentCount.run({
+        bundle_id: bundleId,
+        updated_at: updatedAt,
+      });
+    });
+
+    transaction();
+
+    return deletedDocuments.map(mapDocumentRow);
+  }
+
   async getBundleName(bundleId: string): Promise<string | null> {
     const row = this.db
       .prepare('SELECT name FROM bundles WHERE id = ? LIMIT 1')
@@ -184,6 +292,139 @@ export class SqliteDocumentRepository implements DocumentRepository {
       .all(bundleId) as DocumentRow[];
 
     return rows.map(mapDocumentRow);
+  }
+
+  async move(
+    id: string,
+    parentId: string | null,
+    order: number
+  ): Promise<StoredDocument> {
+    const existingDocument = await this.getById(id);
+
+    if (!existingDocument) {
+      throw new Error('Document not found.');
+    }
+
+    const updatedAt = new Date().toISOString();
+    const updateBundleTimestamp = this.db.prepare(
+      `
+        UPDATE bundles
+        SET updated_at = @updated_at
+        WHERE id = @bundle_id
+      `
+    );
+
+    this.db.transaction(() => {
+      this.db
+        .prepare(
+          `
+            UPDATE documents
+            SET
+              parent_id = @parent_id,
+              "order" = @order,
+              updated_at = @updated_at
+            WHERE id = @id
+          `
+        )
+        .run({
+          id,
+          parent_id: parentId,
+          order,
+          updated_at: updatedAt,
+        });
+
+      updateBundleTimestamp.run({
+        bundle_id: existingDocument.bundleId,
+        updated_at: updatedAt,
+      });
+    })();
+
+    return {
+      ...existingDocument,
+      parentId,
+      order,
+      updatedAt,
+    };
+  }
+
+  async reorder(
+    bundleId: string,
+    items: DocumentOrderUpdate[]
+  ): Promise<void> {
+    if (items.length === 0) {
+      return;
+    }
+
+    const updatedAt = new Date().toISOString();
+    const updateDocumentOrder = this.db.prepare(
+      `
+        UPDATE documents
+        SET
+          "order" = @order,
+          updated_at = @updated_at
+        WHERE id = @id
+      `
+    );
+    const updateBundleTimestamp = this.db.prepare(
+      `
+        UPDATE bundles
+        SET updated_at = @updated_at
+        WHERE id = @bundle_id
+      `
+    );
+
+    const transaction = this.db.transaction(() => {
+      for (const item of items) {
+        const result = updateDocumentOrder.run({
+          id: item.id,
+          order: item.order,
+          updated_at: updatedAt,
+        });
+
+        if (result.changes === 0) {
+          throw new Error('Document not found.');
+        }
+      }
+
+      updateBundleTimestamp.run({
+        bundle_id: bundleId,
+        updated_at: updatedAt,
+      });
+    });
+
+    transaction();
+  }
+
+  async rename(id: string, name: string): Promise<StoredDocument> {
+    const existingDocument = await this.getById(id);
+
+    if (!existingDocument) {
+      throw new Error('Document not found.');
+    }
+
+    const updatedAt = new Date().toISOString();
+
+    this.db
+      .prepare(
+        `
+          UPDATE documents
+          SET
+            name = @name,
+            updated_at = @updated_at
+          WHERE id = @id
+        `
+      )
+      .run({
+        id,
+        name,
+        updated_at: updatedAt,
+      });
+
+    return {
+      ...existingDocument,
+      name,
+      updatedAt,
+    };
   }
 }
 

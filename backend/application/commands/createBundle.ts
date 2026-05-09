@@ -1,2 +1,2 @@
-export { CreateBundleUseCase } from "../useCases/createBundle.js"
-export { ListBundlesUseCase } from "../useCases/listBundles.js"
+export { CreateBundleUseCase } from '../useCases/bundle/createBundle.js';
+export { ListBundlesUseCase } from '../useCases/bundle/listBundles.js';

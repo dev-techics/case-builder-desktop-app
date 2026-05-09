@@ -1,14 +1,14 @@
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
-import { ValidationError } from '../../domain/errors.js';
-import type { StoredDocument } from '../../domain/document.js';
-import type { DocumentRepository } from '../ports/documentRepository.js';
+import { ValidationError } from '../../../domain/errors.js';
+import type { StoredDocument } from '../../../domain/document.js';
+import type { DocumentRepository } from '../../ports/documentRepository.js';
 import type {
   DocumentImportPreprocessor,
   DocumentImportStatus,
   PreparedImportDocument,
-} from '../ports/documentImportPreprocessor.js';
-import type { DocumentStorage } from '../ports/documentStorage.js';
+} from '../../ports/documentImportPreprocessor.js';
+import type { DocumentStorage } from '../../ports/documentStorage.js';
 
 export interface ImportableDocumentFile {
   name: string;

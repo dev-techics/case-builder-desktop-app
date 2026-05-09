@@ -32,6 +32,35 @@ declare global {
         status?: BundleStatus;
       }) => Promise<unknown>;
       getDocumentsTree: (bundleId: string | number) => Promise<FileTree>;
+      createFolder: (input: {
+        bundleId: string | number;
+        name: string;
+        parentId?: string | null;
+      }) => Promise<{
+        id: string;
+        name: string;
+        type: 'folder';
+        parentId: string | null;
+      }>;
+      reorderDocuments: (input: {
+        bundleId: string | number;
+        items: Array<{
+          id: string | number;
+          order: number;
+        }>;
+      }) => Promise<FileTree>;
+      moveDocument: (input: {
+        id: string | number;
+        newParentId: string | null;
+      }) => Promise<FileTree>;
+      deleteDocument: (input: { id: string | number }) => Promise<void>;
+      renameDocument: (input: {
+        id: string | number;
+        name: string;
+      }) => Promise<{
+        id: string;
+        name: string;
+      }>;
       importDocuments: (input: {
         bundleId: string | number;
         parentId?: string | null;
