@@ -1,4 +1,4 @@
-import { runCommand } from '../process/runCommand.js';
+import { runCommand } from '../gs-command-runner/runCommand.js';
 
 export interface GhostscriptBinaryResolver {
   getBinaryPath(): Promise<string | null>;
@@ -12,7 +12,10 @@ export interface PdfCompressionResult {
 }
 
 export interface PdfCompressor {
-  compress(inputPath: string, outputPath: string): Promise<PdfCompressionResult>;
+  compress(
+    inputPath: string,
+    outputPath: string
+  ): Promise<PdfCompressionResult>;
 }
 
 type GhostscriptPdfCompressorOptions = {

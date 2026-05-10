@@ -1,4 +1,4 @@
-import { runCommand } from '../process/runCommand.js';
+import { runCommand } from '../gs-command-runner/runCommand.js';
 
 export interface DocumentToPdfConverter {
   convert(inputPath: string, outputDirectory: string): Promise<void>;
@@ -43,7 +43,8 @@ export class OfficeDocumentToPdfConverter implements DocumentToPdfConverter {
   private resolvedCommand: Promise<string | null> | null = null;
 
   constructor(options: OfficeDocumentToPdfConverterOptions = {}) {
-    this.officeConverterCommand = options.officeConverterCommand?.trim() || null;
+    this.officeConverterCommand =
+      options.officeConverterCommand?.trim() || null;
   }
 
   // Converts a supported office document into a PDF using LibreOffice.

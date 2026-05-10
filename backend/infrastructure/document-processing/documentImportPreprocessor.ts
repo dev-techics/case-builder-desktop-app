@@ -1,8 +1,8 @@
 import type {
   DocumentImportPreprocessResult,
-  DocumentImportPreprocessor,
+  DocumentProcessor,
   DocumentImportProcessingInput,
-} from '../../application/ports/documentImportPreprocessor.js';
+} from '../../application/ports/documents/documentProcessor.js';
 import type { PdfCompressor } from './compression/pdfCompressor.js';
 import type { DocumentToPdfConverter } from './conversion/docToPdf.js';
 import { isPdfFile } from './fileTypes.js';
@@ -33,9 +33,7 @@ const createFailedResult = (
   },
 });
 
-export class InfrastructureDocumentImportPreprocessor
-  implements DocumentImportPreprocessor
-{
+export class InfrastructureDocumentImportPreprocessor implements DocumentProcessor {
   private readonly pdfCompressor: PdfCompressor;
   private readonly documentToPdfConverter: DocumentToPdfConverter;
 

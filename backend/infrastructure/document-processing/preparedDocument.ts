@@ -1,4 +1,4 @@
-import type { PreparedImportDocument } from '../../application/ports/documentImportPreprocessor.js';
+import type { PreparedImportDocument } from '../../application/ports/documents/documentProcessor.js';
 
 export const noopCleanup = async () => {};
 

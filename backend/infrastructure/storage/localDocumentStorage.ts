@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { DocumentStorage } from '../../application/ports/documentStorage.js';
+import type { DocumentStorage } from '../../application/ports/documents/documentStorage.js';
 
 export class LocalDocumentStorage implements DocumentStorage {
   constructor(private readonly storageRoot: string) {}
@@ -36,5 +36,13 @@ export class LocalDocumentStorage implements DocumentStorage {
   async deleteBundleStorage(bundleId: string): Promise<void> {
     const bundleDirectory = path.join(this.storageRoot, bundleId);
     await fs.rm(bundleDirectory, { recursive: true, force: true });
+  }
+  // get storage path of a stored document
+  async getFilePath(bundleId: string, documentId: string): Promise<string> {
+    const bundleDir = path.join(this.storageRoot, bundleId);
+    const files = await fs.readdir(bundleDir);
+    const file = files.find(f => path.parse(f).name === documentId);
+    if (!file) throw new Error('File not found');
+    return path.join(bundleDir, file);
   }
 }

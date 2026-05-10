@@ -3,7 +3,7 @@ import {
   type StoredDocument,
 } from '../../../domain/document.js';
 import { ValidationError } from '../../../domain/errors.js';
-import type { DocumentRepository } from '../../ports/documentRepository.js';
+import type { DocumentRepository } from '../../ports/documents/documentRepository.js';
 
 type RenameDocumentPayload = {
   id: string;
@@ -13,10 +13,7 @@ type RenameDocumentPayload = {
 export class RenameDocumentUseCase {
   constructor(private readonly documentRepository: DocumentRepository) {}
 
-  async execute({
-    id,
-    name,
-  }: RenameDocumentPayload): Promise<StoredDocument> {
+  async execute({ id, name }: RenameDocumentPayload): Promise<StoredDocument> {
     if (typeof id !== 'string' || !id.trim()) {
       throw new ValidationError('Document id is required.');
     }

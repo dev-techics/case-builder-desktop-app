@@ -1,7 +1,7 @@
 import type {
   DocumentOrderUpdate,
   DocumentRepository,
-} from '../../application/ports/documentRepository.js';
+} from '../../application/ports/documents/documentRepository.js';
 import type { DocumentType, StoredDocument } from '../../domain/document.js';
 import type { SqliteDatabase } from '../database/sqlite.js';
 
@@ -178,7 +178,9 @@ export class SqliteDocumentRepository implements DocumentRepository {
 
     const bundleId = deletedDocuments[0].bundle_id;
     const updatedAt = new Date().toISOString();
-    const deleteDocument = this.db.prepare('DELETE FROM documents WHERE id = ?');
+    const deleteDocument = this.db.prepare(
+      'DELETE FROM documents WHERE id = ?'
+    );
     const syncBundleDocumentCount = this.db.prepare(`
       UPDATE bundles
       SET
@@ -347,10 +349,7 @@ export class SqliteDocumentRepository implements DocumentRepository {
     };
   }
 
-  async reorder(
-    bundleId: string,
-    items: DocumentOrderUpdate[]
-  ): Promise<void> {
+  async reorder(bundleId: string, items: DocumentOrderUpdate[]): Promise<void> {
     if (items.length === 0) {
       return;
     }

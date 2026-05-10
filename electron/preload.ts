@@ -95,8 +95,11 @@ contextBridge.exposeInMainWorld('api', {
   /* -----------------------
         Rotate Document
   --------------------------*/
-  rotateDocument: (input: { documentId: string }) =>
-    ipcRenderer.invoke('document:rotate', input),
+  rotateDocument: (input: {
+    bundleId: string;
+    documentId: string;
+    pageNumber: number;
+  }) => ipcRenderer.invoke('document:rotate', input),
 
   /*-------------------------
     Get imported file path

@@ -1,7 +1,10 @@
 import { ipcMain } from 'electron';
-import type { DocumentImportPreprocessor } from '../../backend/application/ports/documentImportPreprocessor.js';
-import type { DocumentStorage } from '../../backend/application/ports/documentStorage.js';
-import type { DocumentRepository } from '../../backend/application/ports/documentRepository.js';
+import type {
+  DocumentProcessor,
+  RotateDocumentProcessor,
+} from '../../backend/application/ports/documents/documentProcessor.js';
+import type { DocumentStorage } from '../../backend/application/ports/documents/documentStorage.js';
+import type { DocumentRepository } from '../../backend/application/ports/documents/documentRepository.js';
 import { CreateFolderUseCase } from '../../backend/application/useCases/document/createFolder.js';
 import { DeleteDocumentUseCase } from '../../backend/application/useCases/document/deleteDocument.js';
 import { ImportDocumentsUseCase } from '../../backend/application/useCases/document/importDocuments.js';
@@ -60,18 +63,21 @@ type MoveDocumentPayload = {
 type RotateDocumentPayload = {
   bundleId?: string;
   documentId?: string;
+  pageNumber?: number;
+  rotation?: 0 | 90 | 180 | 270;
 };
 
 export function registerDocumentIpc(deps: {
   documentRepository: DocumentRepository;
   documentStorage: DocumentStorage;
-  documentImportPreprocessor?: DocumentImportPreprocessor;
+  documentProcessor: DocumentProcessor;
+  rotateDocumentProcessor: RotateDocumentProcessor;
   buildDocumentUrl: (documentId: string) => string;
 }) {
   const importDocuments = new ImportDocumentsUseCase(
     deps.documentRepository,
     deps.documentStorage,
-    deps.documentImportPreprocessor
+    deps.documentProcessor
   );
   const createFolder = new CreateFolderUseCase(deps.documentRepository);
   const deleteDocument = new DeleteDocumentUseCase(
@@ -84,7 +90,11 @@ export function registerDocumentIpc(deps: {
   const moveDocument = new MoveDocumentUseCase(deps.documentRepository);
   const reorderDocuments = new ReorderDocumentsUseCase(deps.documentRepository);
   const renameDocument = new RenameDocumentUseCase(deps.documentRepository);
-  const rotateDocument = new RotateDocumentUseCase(deps.documentRepository);
+  const rotateDocument = new RotateDocumentUseCase(
+    deps.documentRepository,
+    deps.documentStorage,
+    deps.rotateDocumentProcessor
+  );
   const getTreeWithDocumentUrls = async (bundleId: string) => {
     const tree = await listBundleDocumentsTree.execute(bundleId);
 
@@ -209,16 +219,16 @@ export function registerDocumentIpc(deps: {
     Document move IPC handler
   -------------------------------*/
   ipcMain.handle('document:move', async (_, payload: MoveDocumentPayload) => {
-    const documentId = payload?.id ?? payload?.documentId ?? '';
+    const documentId = String(payload?.id ?? payload?.documentId ?? '');
+
+    const rawParentId = payload?.newParentId ?? payload?.parentId;
     const newParentId =
-      typeof payload?.newParentId === 'string' && payload.newParentId.trim()
-        ? payload.newParentId
-        : typeof payload?.parentId === 'string' && payload.parentId.trim()
-          ? payload.parentId
-          : null;
+      typeof rawParentId === 'string' && rawParentId.trim()
+        ? rawParentId
+        : null;
+
     const movedDocument = await moveDocument.execute({
-      documentId:
-        typeof documentId === 'string' ? documentId : String(documentId ?? ''),
+      documentId,
       newParentId,
     });
 
@@ -233,10 +243,13 @@ export function registerDocumentIpc(deps: {
     async (_, payload: RotateDocumentPayload) => {
       const documentId = payload.documentId ?? '';
       const bundleId = payload.bundleId ?? '';
-
-      const rotatedDocument = await rotateDocument.execute({
+      const pageNumber = payload.pageNumber ?? 0;
+      const rotation = payload.rotation ?? 0;
+      await rotateDocument.execute({
         bundleId,
         documentId,
+        pageNumber,
+        rotation,
       });
 
       return getTreeWithDocumentUrls(bundleId);

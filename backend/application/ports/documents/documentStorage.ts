@@ -11,4 +11,5 @@ export interface DocumentStorage {
   }): Promise<StoredFileReference>;
   deleteBundleStorage(bundleId: string): Promise<void>;
   deleteByStoragePath(storagePath: string): Promise<void>;
+  getFilePath(bundleId: string, documentId: string): Promise<string>;
 }

@@ -2,7 +2,7 @@ import path from 'node:path';
 import type {
   DocumentImportPreprocessResult,
   DocumentImportProcessingInput,
-} from '../../application/ports/documentImportPreprocessor.js';
+} from '../../application/ports/documents/documentProcessor.js';
 import type { PdfCompressor } from './compression/pdfCompressor.js';
 import type { DocumentToPdfConverter } from './conversion/docToPdf.js';
 import { convertImageToPdf } from './conversion/imageToPdf.js';

@@ -22,8 +22,17 @@ export interface DocumentImportPreprocessResult {
   status?: DocumentImportStatus;
 }
 
-export interface DocumentImportPreprocessor {
+export interface DocumentProcessor {
   preprocess(
     input: DocumentImportProcessingInput
   ): Promise<DocumentImportPreprocessResult>;
+}
+
+export interface RotateDocumentProcessor {
+  getPageCount(filePath: string): Promise<number>;
+  rotatePage(input: {
+    filePath: string;
+    pageNumber: number; // 1-based
+    rotation: 0 | 90 | 180 | 270;
+  }): Promise<void>;
 }

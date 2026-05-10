@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { runCommand } from '../process/runCommand.js';
+import { runCommand } from '../gs-command-runner/runCommand.js';
 import type { GhostscriptArchiveFormat } from './types.js';
 
 // Extracts a managed Ghostscript archive into a staging directory.

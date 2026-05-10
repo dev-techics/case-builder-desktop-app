@@ -1,4 +1,4 @@
-import type { Bundle, BundleStatus } from '../../domain/bundle.js';
+import type { Bundle, BundleStatus } from '../../../domain/bundle.js';
 
 export type BundleUpdates = {
   name?: string;

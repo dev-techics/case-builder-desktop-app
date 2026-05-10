@@ -11,7 +11,7 @@ import { InfrastructureDocumentImportPreprocessor } from '../backend/infrastruct
 import { GhostscriptManager } from '../backend/infrastructure/document-processing/ghostscript/ghostscriptManager.js';
 import { SqliteBundleRepository } from '../backend/infrastructure/repositories/sqliteBundleRepository.js';
 import { SqliteDocumentRepository } from '../backend/infrastructure/repositories/sqliteDocumentRepository.js';
-import { LocalDocumentStorage } from '../backend/infrastructure/files/localDocumentStorage.js';
+import { LocalDocumentStorage } from '../backend/infrastructure/storage/localDocumentStorage.js';
 import {
   buildDocumentUrl,
   getDatabasePath,

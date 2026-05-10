@@ -5,3 +5,4 @@ dist-react
 release
 storage
 frontend
+!backend/infrastructure/storage

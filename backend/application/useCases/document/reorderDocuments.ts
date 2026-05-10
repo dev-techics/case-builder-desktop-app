@@ -2,7 +2,7 @@ import { ValidationError } from '../../../domain/errors.js';
 import type {
   DocumentOrderUpdate,
   DocumentRepository,
-} from '../../ports/documentRepository.js';
+} from '../../ports/documents/documentRepository.js';
 
 type ReorderDocumentsInput = {
   bundleId: string;
@@ -49,7 +49,9 @@ export class ReorderDocumentsUseCase {
       const order = item?.order;
 
       if (!Number.isInteger(order) || order < 0) {
-        throw new ValidationError('Document order must be a non-negative integer.');
+        throw new ValidationError(
+          'Document order must be a non-negative integer.'
+        );
       }
 
       if (seenOrders.has(order)) {

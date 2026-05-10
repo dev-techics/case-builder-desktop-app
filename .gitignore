@@ -27,6 +27,7 @@ release/
 
 # Local data
 storage/
+!backend/infrastructure/storage
 
 # Nested repo metadata (if frontend was copied from another repo)
 frontend/.git/
@@ -34,3 +35,4 @@ frontend/.git/
 # OS files
 .DS_Store
 Thumbs.db
+

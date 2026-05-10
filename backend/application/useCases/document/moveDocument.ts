@@ -1,6 +1,6 @@
 import { ValidationError } from '../../../domain/errors.js';
 import type { StoredDocument } from '../../../domain/document.js';
-import type { DocumentRepository } from '../../ports/documentRepository.js';
+import type { DocumentRepository } from '../../ports/documents/documentRepository.js';
 
 type MoveDocumentInput = {
   documentId: string;

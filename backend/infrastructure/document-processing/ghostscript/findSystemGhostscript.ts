@@ -1,4 +1,4 @@
-import { runCommand } from '../process/runCommand.js';
+import { runCommand } from '../gs-command-runner/runCommand.js';
 import { getSystemGhostscriptCandidates } from './configuration.js';
 
 // Finds a usable Ghostscript binary already installed on the host system.

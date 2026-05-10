@@ -8,7 +8,7 @@ import { ValidationError } from '../../../domain/errors.js';
 import type {
   BundleRepository,
   BundleUpdates,
-} from '../../ports/bundleRepository.js';
+} from '../../ports/bundles/bundleRepository.js';
 
 type UpdateBundlePayload = {
   id: string;

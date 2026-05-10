@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 
-import type { BundleRepository } from '../../backend/application/ports/bundleRepository.js';
-import type { DocumentStorage } from '../../backend/application/ports/documentStorage.js';
+import type { BundleRepository } from '../../backend/application/ports/bundles/bundleRepository.js';
+import type { DocumentStorage } from '../../backend/application/ports/documents/documentStorage.js';
 import { CreateBundleUseCase } from '../../backend/application/useCases/bundle/createBundle.js';
 import { DeleteBundleUseCase } from '../../backend/application/useCases/bundle/deleteBundle.js';
 import { ListBundlesUseCase } from '../../backend/application/useCases/bundle/listBundles.js';

@@ -1,6 +1,6 @@
 import { ValidationError } from '../../../domain/errors.js';
-import type { BundleRepository } from '../../ports/bundleRepository.js';
-import type { DocumentStorage } from '../../ports/documentStorage.js';
+import type { BundleRepository } from '../../ports/bundles/bundleRepository.js';
+import type { DocumentStorage } from '../../ports/documents/documentStorage.js';
 
 export class DeleteBundleUseCase {
   constructor(

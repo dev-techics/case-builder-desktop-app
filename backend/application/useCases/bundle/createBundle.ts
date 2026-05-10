@@ -5,7 +5,7 @@ import {
   type Bundle,
 } from '../../../domain/bundle.js';
 import { ValidationError } from '../../../domain/errors.js';
-import type { BundleRepository } from '../../ports/bundleRepository.js';
+import type { BundleRepository } from '../../ports/bundles/bundleRepository.js';
 
 export interface CreateBundleInput {
   name: string;

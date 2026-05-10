@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { net, protocol } from 'electron';
-import type { DocumentRepository } from '../backend/application/ports/documentRepository.js';
+import type { DocumentRepository } from '../backend/application/ports/documents/documentRepository.js';
 import { DOCUMENT_PROTOCOL } from './utils/index.js';
 
 protocol.registerSchemesAsPrivileged([
@@ -24,7 +24,9 @@ export function registerDocumentProtocol(deps: {
 }) {
   protocol.handle(DOCUMENT_PROTOCOL, async request => {
     const requestUrl = new URL(request.url);
-    const documentId = decodeURIComponent(requestUrl.pathname.replace(/^\//, ''));
+    const documentId = decodeURIComponent(
+      requestUrl.pathname.replace(/^\//, '')
+    );
 
     if (!documentId) {
       return new Response('Document id is required.', { status: 400 });

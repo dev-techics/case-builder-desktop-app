@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { DocumentImportProcessingInput } from '../../application/ports/documentImportPreprocessor.js';
+import type { DocumentImportProcessingInput } from '../../application/ports/documents/documentProcessor.js';
 
 const PDF_MIME_TYPES = new Set([
   'application/pdf',

@@ -2,7 +2,7 @@ import path from 'node:path';
 import type {
   DocumentImportPreprocessResult,
   DocumentImportProcessingInput,
-} from '../../application/ports/documentImportPreprocessor.js';
+} from '../../application/ports/documents/documentProcessor.js';
 import type { PdfCompressor } from './compression/pdfCompressor.js';
 import { getPdfFileName } from './fileTypes.js';
 import { createPreparedDocument, noopCleanup } from './preparedDocument.js';
@@ -36,7 +36,10 @@ export async function preparePdfImport(
   const { input, tempDirectory, pdfCompressor } = options;
   const pdfFileName = getPdfFileName(input.name);
   const outputPath = path.join(tempDirectory, pdfFileName);
-  const compressionResult = await pdfCompressor.compress(input.path, outputPath);
+  const compressionResult = await pdfCompressor.compress(
+    input.path,
+    outputPath
+  );
 
   if (compressionResult.compressed) {
     return {

@@ -1,6 +1,6 @@
 import { ValidationError } from '../../../domain/errors.js';
-import type { DocumentRepository } from '../../ports/documentRepository.js';
-import type { DocumentStorage } from '../../ports/documentStorage.js';
+import type { DocumentRepository } from '../../ports/documents/documentRepository.js';
+import type { DocumentStorage } from '../../ports/documents/documentStorage.js';
 
 export class DeleteDocumentUseCase {
   constructor(

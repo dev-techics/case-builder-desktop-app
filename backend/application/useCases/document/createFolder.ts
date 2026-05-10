@@ -4,7 +4,7 @@ import {
   type StoredDocument,
 } from '../../../domain/document.js';
 import { ValidationError } from '../../../domain/errors.js';
-import type { DocumentRepository } from '../../ports/documentRepository.js';
+import type { DocumentRepository } from '../../ports/documents/documentRepository.js';
 
 type CreateFolderInput = {
   bundleId: string;
@@ -55,7 +55,10 @@ export class CreateFolderUseCase {
     }
 
     const now = new Date().toISOString();
-    const order = await this.documentRepository.getNextOrder(bundleId, parentId);
+    const order = await this.documentRepository.getNextOrder(
+      bundleId,
+      parentId
+    );
     const folder: StoredDocument = {
       id: uuidv4(),
       bundleId,

@@ -1,7 +1,7 @@
 import type {
   BundleRepository,
   BundleUpdates,
-} from '../../application/ports/bundleRepository.js';
+} from '../../application/ports/bundles/bundleRepository.js';
 import type { Bundle } from '../../domain/bundle.js';
 import type { SqliteDatabase } from '../database/sqlite.js';
 
