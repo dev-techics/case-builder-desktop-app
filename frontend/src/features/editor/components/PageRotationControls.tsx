@@ -1,15 +1,14 @@
-import { Rotate01Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon } from '@hugeicons/react';
+import { RotateCcw, RotateCw } from 'lucide-react';
 
 type PageRotationControlsProps = {
   pageNumber: number;
-  rotation: number;
   onRotateLeft: () => void;
   onRotateRight: () => void;
 };
 
 const PageRotationControls = ({
   pageNumber,
+  onRotateLeft,
   onRotateRight,
 }: PageRotationControlsProps) => {
   return (
@@ -17,10 +16,18 @@ const PageRotationControls = ({
       <button
         aria-label={`Rotate page ${pageNumber} left`}
         className="rounded p-1 text-gray-600 transition hover:bg-gray-100"
+        onClick={onRotateLeft}
+        type="button"
+      >
+        <RotateCcw className="h-4 w-4" />
+      </button>
+      <button
+        aria-label={`Rotate page ${pageNumber} right`}
+        className="rounded p-1 text-gray-600 transition hover:bg-gray-100"
         onClick={onRotateRight}
         type="button"
       >
-        <HugeiconsIcon className="h-4 w-4" icon={Rotate01Icon} />
+        <RotateCw className="h-4 w-4" />
       </button>
     </div>
   );

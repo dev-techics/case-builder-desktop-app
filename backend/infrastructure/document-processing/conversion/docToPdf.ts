@@ -33,10 +33,7 @@ const getConfiguredConverterCommand = (
 };
 
 const getConverterCandidates = () =>
-  OFFICE_CONVERTER_CANDIDATES[process.platform as NodeJS.Platform] ?? [
-    'soffice',
-    'libreoffice',
-  ];
+  OFFICE_CONVERTER_CANDIDATES[process.platform] ?? ['soffice', 'libreoffice'];
 
 export class OfficeDocumentToPdfConverter implements DocumentToPdfConverter {
   private readonly officeConverterCommand: string | null;
@@ -70,12 +67,10 @@ export class OfficeDocumentToPdfConverter implements DocumentToPdfConverter {
   }
 
   private async resolveCommand() {
-    if (!this.resolvedCommand) {
-      this.resolvedCommand = this.findCommand().catch(error => {
-        this.resolvedCommand = null;
-        throw error;
-      });
-    }
+    this.resolvedCommand ??= this.findCommand().catch(error => {
+      this.resolvedCommand = null;
+      throw error;
+    });
 
     return this.resolvedCommand;
   }

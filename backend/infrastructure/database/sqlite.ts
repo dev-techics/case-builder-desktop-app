@@ -42,6 +42,34 @@ const CREATE_DOCUMENTS_INDEXES_SQL = `
   CREATE INDEX IF NOT EXISTS idx_documents_parent_id ON documents (parent_id);
 `;
 
+const CREATE_HIGHLIGHTS_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS highlights (
+    id TEXT PRIMARY KEY,
+    bundle_id TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    page_number INTEGER NOT NULL,
+    x REAL NOT NULL,
+    y REAL NOT NULL,
+    width REAL NOT NULL,
+    height REAL NOT NULL,
+    text TEXT NOT NULL,
+    color_name TEXT NOT NULL,
+    color_hex TEXT NOT NULL,
+    color_rgb TEXT NOT NULL,
+    opacity REAL NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (bundle_id) REFERENCES bundles(id) ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+  )
+`;
+
+const CREATE_HIGHLIGHTS_INDEXES_SQL = `
+  CREATE INDEX IF NOT EXISTS idx_highlights_bundle_id ON highlights (bundle_id);
+  CREATE INDEX IF NOT EXISTS idx_highlights_document_id ON highlights (document_id);
+  CREATE INDEX IF NOT EXISTS idx_highlights_document_page ON highlights (document_id, page_number);
+`;
+
 const EXPECTED_BUNDLES_COLUMNS = new Set([
   'id',
   'name',
@@ -68,6 +96,7 @@ export function createSqliteDatabase(dbPath: string): SqliteDatabase {
 
   ensureBundlesTable(db);
   ensureDocumentsTable(db);
+  ensureHighlightsTable(db);
   return db;
 }
 
@@ -102,6 +131,11 @@ function ensureBundlesTable(db: SqliteDatabase) {
 function ensureDocumentsTable(db: SqliteDatabase) {
   db.exec(CREATE_DOCUMENTS_TABLE_SQL);
   db.exec(CREATE_DOCUMENTS_INDEXES_SQL);
+}
+
+function ensureHighlightsTable(db: SqliteDatabase) {
+  db.exec(CREATE_HIGHLIGHTS_TABLE_SQL);
+  db.exec(CREATE_HIGHLIGHTS_INDEXES_SQL);
 }
 
 function migrateLegacyBundlesTable(

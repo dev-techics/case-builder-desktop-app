@@ -36,3 +36,4 @@ frontend/.git/
 .DS_Store
 Thumbs.db
 
+!window-api.d.ts

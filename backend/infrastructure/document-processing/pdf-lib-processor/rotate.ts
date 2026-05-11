@@ -3,10 +3,19 @@ import { PDFDocument, degrees } from 'pdf-lib';
 import fs from 'node:fs/promises';
 import type { RotateDocumentProcessor } from '../../../application/ports/documents/documentProcessor.js';
 
-export class PdfLibProcessor implements RotateDocumentProcessor {
-  async getPageCount(filePath: string): Promise<number> {
+export class DocumentRotateProcessor implements RotateDocumentProcessor {
+  private async loadPdf(filePath: string) {
     const buffer = await fs.readFile(filePath);
-    const pdf = await PDFDocument.load(buffer);
+    return PDFDocument.load(buffer);
+  }
+
+  private async savePdf(filePath: string, pdf: PDFDocument) {
+    const savedBuffer = await pdf.save();
+    await fs.writeFile(filePath, savedBuffer);
+  }
+
+  async getPageCount(filePath: string): Promise<number> {
+    const pdf = await this.loadPdf(filePath);
     return pdf.getPageCount();
   }
 
@@ -15,8 +24,7 @@ export class PdfLibProcessor implements RotateDocumentProcessor {
     pageNumber: number;
     rotation: 0 | 90 | 180 | 270;
   }): Promise<void> {
-    const buffer = await fs.readFile(input.filePath);
-    const pdf = await PDFDocument.load(buffer);
+    const pdf = await this.loadPdf(input.filePath);
 
     const pageIndex = input.pageNumber - 1; // pdf-lib is 0-based
     const page = pdf.getPage(pageIndex);
@@ -25,8 +33,6 @@ export class PdfLibProcessor implements RotateDocumentProcessor {
     const newRotation = (currentRotation + input.rotation) % 360;
 
     page.setRotation(degrees(newRotation));
-
-    const savedBuffer = await pdf.save();
-    await fs.writeFile(input.filePath, savedBuffer);
+    await this.savePdf(input.filePath, pdf);
   }
 }

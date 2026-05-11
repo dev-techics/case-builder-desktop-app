@@ -1,5 +1,6 @@
 import type { BundleStatus } from "@case-builder/ui";
 import type { FileTree } from "@/features/file-explorer/types/fileTree";
+import type { CreateHighlightRequest } from "@/features/toolbar/types/types";
 
 export {};
 
@@ -7,6 +8,28 @@ type DocumentImportStatus = {
   fileName: string;
   status: 'success' | 'failed';
   message?: string;
+};
+
+type DesktopHighlightRecord = {
+  id: string;
+  bundleId: string;
+  documentId: string;
+  pageNumber: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  colorName: string;
+  colorHex: string;
+  colorRgb: {
+    r: number;
+    g: number;
+    b: number;
+  };
+  opacity: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 declare global {
@@ -60,6 +83,26 @@ declare global {
       }) => Promise<{
         id: string;
         name: string;
+      }>;
+      rotateDocument: (input: {
+        bundleId: string;
+        documentId: string;
+        pageNumber: number;
+        rotation: number;
+      }) => Promise<{
+        documentUrl?: string;
+      }>;
+      getHighlights: (
+        bundleId: string | number
+      ) => Promise<DesktopHighlightRecord[]>;
+      createHighlight: (input: {
+        bundleId: string | number;
+        data: CreateHighlightRequest;
+      }) => Promise<DesktopHighlightRecord>;
+      deleteHighlight: (input: {
+        id: string | number;
+      }) => Promise<{
+        id: string;
       }>;
       importDocuments: (input: {
         bundleId: string | number;

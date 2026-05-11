@@ -67,13 +67,15 @@ type RotateDocumentPayload = {
   rotation?: 0 | 90 | 180 | 270;
 };
 
-export function registerDocumentIpc(deps: {
+type RegDocIpcControllerType = {
   documentRepository: DocumentRepository;
   documentStorage: DocumentStorage;
   documentProcessor: DocumentProcessor;
-  rotateDocumentProcessor: RotateDocumentProcessor;
+  rotateProcessor: RotateDocumentProcessor;
   buildDocumentUrl: (documentId: string) => string;
-}) {
+};
+
+export function registerDocumentIpc(deps: RegDocIpcControllerType) {
   const importDocuments = new ImportDocumentsUseCase(
     deps.documentRepository,
     deps.documentStorage,
@@ -90,11 +92,18 @@ export function registerDocumentIpc(deps: {
   const moveDocument = new MoveDocumentUseCase(deps.documentRepository);
   const reorderDocuments = new ReorderDocumentsUseCase(deps.documentRepository);
   const renameDocument = new RenameDocumentUseCase(deps.documentRepository);
+
+  // Instance of document rotate usecase class
   const rotateDocument = new RotateDocumentUseCase(
     deps.documentRepository,
     deps.documentStorage,
-    deps.rotateDocumentProcessor
+    deps.rotateProcessor
   );
+  const buildRevisionedDocumentUrl = (documentId: string) => {
+    const baseUrl = deps.buildDocumentUrl(documentId);
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${separator}rev=${Date.now()}`;
+  };
   const getTreeWithDocumentUrls = async (bundleId: string) => {
     const tree = await listBundleDocumentsTree.execute(bundleId);
 
@@ -243,7 +252,8 @@ export function registerDocumentIpc(deps: {
     async (_, payload: RotateDocumentPayload) => {
       const documentId = payload.documentId ?? '';
       const bundleId = payload.bundleId ?? '';
-      const pageNumber = payload.pageNumber ?? 0;
+      const pageNumber =
+        typeof payload.pageNumber === 'number' ? payload.pageNumber : Number.NaN;
       const rotation = payload.rotation ?? 0;
       await rotateDocument.execute({
         bundleId,
@@ -252,7 +262,9 @@ export function registerDocumentIpc(deps: {
         rotation,
       });
 
-      return getTreeWithDocumentUrls(bundleId);
+      return {
+        documentUrl: buildRevisionedDocumentUrl(documentId),
+      };
     }
   );
 

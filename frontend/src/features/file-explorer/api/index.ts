@@ -34,11 +34,6 @@ type UploadFilesResponse = {
   conversionStatuses?: DocumentImportStatus[];
 };
 
-type RotateDocumentApiResponse = {
-  document?: {
-    url?: string;
-  };
-};
 
 type CreateFolderDesktopResponse = {
   id: string | number;
@@ -235,29 +230,6 @@ export const fileTreeApi = createApi({
           return { error: toIpcError(error) };
         }
       },
-    }),
-
-    /*--------------------------
-        Rotate document
-    ----------------------------*/
-    rotateDocument: build.mutation<
-      { documentId: string; rotation: number; documentUrl?: string },
-      { documentId: string; rotation: number; bundleId?: string }
-    >({
-      query: ({ documentId, rotation, bundleId }) => ({
-        url: `/api/documents/${documentId}/rotate`,
-        method: 'POST',
-        body: { rotation, bundle_id: bundleId },
-      }),
-      transformResponse: (
-        response: RotateDocumentApiResponse | undefined,
-        _meta,
-        arg
-      ) => ({
-        documentId: arg.documentId,
-        rotation: arg.rotation,
-        documentUrl: response?.document?.url,
-      }),
     }),
 
     /*--------------------------
@@ -516,6 +488,5 @@ export const {
   useMoveDocumentsBatchMutation,
   useRenameDocumentMutation,
   useReorderDocumentsMutation,
-  useRotateDocumentMutation,
   useUploadFilesMutation,
 } = fileTreeApi;

@@ -1,12 +1,13 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
+import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 
-const BaseQuery = import.meta.env.VITE_BASE_URL;
+const getDesktopApi = () =>
+  typeof window !== 'undefined' && window.api?.isDesktop ? window.api : undefined;
 
-type RotateDocumentApiResponse = {
-  document?: {
-    url?: string;
-  };
-};
+const toIpcError = (error: unknown): FetchBaseQueryError => ({
+  status: 'CUSTOM_ERROR',
+  error: error instanceof Error ? error.message : 'IPC request failed',
+});
 
 type RotateDocumentPageResponse = {
   documentId: string;
@@ -18,46 +19,45 @@ type RotateDocumentPageRequest = {
   bundleId: string;
   documentId: string;
   pageNumber: number;
-  rotation?: number;
+  rotation: number;
 };
 
 export const editorApi = createApi({
   reducerPath: 'editorApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: BaseQuery,
-    credentials: 'include',
-    prepareHeaders: headers => {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-  }),
+  baseQuery: fakeBaseQuery<FetchBaseQueryError>(),
   endpoints: build => ({
     rotateDocumentPage: build.mutation<
       RotateDocumentPageResponse,
       RotateDocumentPageRequest
     >({
-      query: ({ bundleId, documentId, pageNumber, rotation }) => ({
-        url: `/api/documents/${documentId}/rotate`,
-        method: 'POST',
-        body: {
-          bundle_id: bundleId,
-          document_id: documentId,
-          page_number: pageNumber,
-          rotation,
-        },
-      }),
-      transformResponse: (
-        response: RotateDocumentApiResponse | undefined,
-        _meta,
-        arg
-      ) => ({
-        documentId: arg.documentId,
-        pageNumber: arg.pageNumber,
-        documentUrl: response?.document?.url,
-      }),
+      async queryFn({ bundleId, documentId, pageNumber, rotation }) {
+        const desktopApi = getDesktopApi();
+
+        if (!desktopApi?.rotateDocument) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
+        }
+
+        try {
+          const response = await desktopApi.rotateDocument({
+            bundleId,
+            documentId,
+            pageNumber,
+            rotation,
+          });
+
+          return {
+            data: {
+              documentId,
+              pageNumber,
+              documentUrl: response.documentUrl,
+            },
+          };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
     }),
   }),
 });

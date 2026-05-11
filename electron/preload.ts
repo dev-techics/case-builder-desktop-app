@@ -1,8 +1,11 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-
+console.log('Hello world!');
 contextBridge.exposeInMainWorld('api', {
   isDesktop: true,
 
+  /*====================
+  |  Bundle channels   | 
+  ======================*/
   /*--------------------
     Create bundle IPC 
   ----------------------*/
@@ -35,6 +38,9 @@ contextBridge.exposeInMainWorld('api', {
   deleteBundle: (id: string | number) =>
     ipcRenderer.invoke('bundle:delete', id),
 
+  /*====================
+  |  Document Channels  |
+  ======================*/
   /*-----------------------
     Fetch document tree
   -------------------------*/
@@ -99,10 +105,89 @@ contextBridge.exposeInMainWorld('api', {
     bundleId: string;
     documentId: string;
     pageNumber: number;
+    rotation: number;
   }) => ipcRenderer.invoke('document:rotate', input),
+
+  /*========================
+   | Highlight Channels   |
+  ==========================*/
+
+  /*-------------------- 
+      Get highlights 
+    ---------------------*/
+  getHighlights: (bundleId: string | number) =>
+    ipcRenderer.invoke('highlight:listByBundle', bundleId),
+
+  /*---------------------- 
+    Create highlight 
+  ------------------------*/
+  createHighlight: (input: {
+    bundleId: string | number;
+    data: {
+      document_id: string;
+      page_number: number;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      text: string;
+      color_name: string;
+      color_hex: string;
+      color_rgb: {
+        r: number;
+        g: number;
+        b: number;
+      };
+      opacity: number;
+    };
+  }) => ipcRenderer.invoke('highlight:create', input),
+
+  /*------------------- 
+    Delete highlight 
+  ---------------------*/
+  deleteHighlight: (input: { id: string | number }) =>
+    ipcRenderer.invoke('highlight:delete', input),
 
   /*-------------------------
     Get imported file path
   ---------------------------*/
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
+
+  /*======================
+  |   Comment Channels   |
+  ========================*/
+  /*-----------------
+      Get Comments 
+   ------------------*/
+  getComments: (bundleId: string | number) =>
+    ipcRenderer.invoke('comment:listByBundle', bundleId),
+
+  /*--------------------
+    Create comment
+  ---------------------*/
+  createComment: (input: {}) => ipcRenderer.invoke('comment:create', input),
+
+  /*------------------
+    Delete Comment  
+  -------------------*/
+  deleteComment: (input: { id: string | number }) =>
+    ipcRenderer.invoke('comment:delete', input),
+
+  /*======================
+  |   Redact Channels     |
+  ========================*/
+  /*---------------------
+    Get Redacts
+  ----------------------*/
+  getRedacts: (bundleId: string | number) =>
+    ipcRenderer.invoke('redact:listByBundle', bundleId),
+  /*------------------ 
+    Create redact
+  -------------------*/
+  createRedact: (input: {}) => ipcRenderer.invoke('redact:create', input),
+  /*-------------------
+    Delete Redact  
+  ---------------------*/
+  deleteRedact: (input: { id: string | number }) =>
+    ipcRenderer.invoke('redact:delete', input),
 });

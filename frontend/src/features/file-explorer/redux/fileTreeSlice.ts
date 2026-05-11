@@ -515,41 +515,6 @@ const fileTreeSlice = createSlice({
             state.operationsInProgress.renaming.filter(id => id !== documentId);
         }
       );
-
-    /*-------------------
-      Rotate Document
-    -------------------*/
-    builder
-      .addMatcher(
-        fileTreeApi.endpoints.rotateDocument.matchPending,
-        (state, action) => {
-          const documentId = action.meta.arg.originalArgs.documentId;
-          state.operationsInProgress.rotating.push(documentId);
-          state.error = null;
-        }
-      )
-      .addMatcher(
-        fileTreeApi.endpoints.rotateDocument.matchFulfilled,
-        (state, action) => {
-          const documentId = action.meta.arg.originalArgs.documentId;
-          state.operationsInProgress.rotating =
-            state.operationsInProgress.rotating.filter(id => id !== documentId);
-        }
-      )
-      .addMatcher(
-        fileTreeApi.endpoints.rotateDocument.matchRejected,
-        (state, action) => {
-          const documentId = action.meta.arg.originalArgs.documentId;
-          state.error = resolveErrorMessage(
-            action.payload,
-            'Failed to rotate document',
-            action.error
-          );
-          state.operationsInProgress.rotating =
-            state.operationsInProgress.rotating.filter(id => id !== documentId);
-        }
-      );
-
     /*-------------------
       Merge Documents
     -------------------*/

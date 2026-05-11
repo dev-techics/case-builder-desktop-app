@@ -4,7 +4,7 @@ import { ValidationError } from '../../../domain/errors.js';
 import type { StoredDocument } from '../../../domain/document.js';
 import type { DocumentRepository } from '../../ports/documents/documentRepository.js';
 import type {
-  DocumentImportPreprocessor,
+  DocumentProcessor,
   DocumentImportStatus,
   PreparedImportDocument,
 } from '../../ports/documents/documentProcessor.js';
@@ -56,7 +56,7 @@ export class ImportDocumentsUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentStorage: DocumentStorage,
-    private readonly documentImportPreprocessor?: DocumentImportPreprocessor
+    private readonly documentImportPreprocessor?: DocumentProcessor
   ) {}
 
   async execute(input: ImportDocumentsInput): Promise<ImportDocumentsResult> {
@@ -74,7 +74,7 @@ export class ImportDocumentsUseCase {
     const parentId = input.parentId?.trim() || null;
     if (parentId) {
       const parentDocument = await this.documentRepository.getById(parentId);
-      if (!parentDocument || parentDocument.bundleId !== bundleId) {
+      if (parentDocument?.bundleId !== bundleId) {
         throw new ValidationError('Parent folder not found.');
       }
       if (parentDocument.type !== 'folder') {

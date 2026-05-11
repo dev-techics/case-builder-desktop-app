@@ -3,14 +3,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerBundleIpc } from './ipc/bundle.controller.js';
 import { registerDocumentIpc } from './ipc/document.controller.js';
+import { registerHighlightIpc } from './ipc/highlight.controller.js';
 import { registerDocumentProtocol } from './document.protocol.js';
 import { createSqliteDatabase } from '../backend/infrastructure/database/sqlite.js';
 import { GhostscriptPdfCompressor } from '../backend/infrastructure/document-processing/compression/pdfCompressor.js';
 import { OfficeDocumentToPdfConverter } from '../backend/infrastructure/document-processing/conversion/docToPdf.js';
-import { InfrastructureDocumentImportPreprocessor } from '../backend/infrastructure/document-processing/documentImportPreprocessor.js';
+import { DocumentImportPreprocessor } from '../backend/infrastructure/document-processing/documentImportPreprocessor.js';
 import { GhostscriptManager } from '../backend/infrastructure/document-processing/ghostscript/ghostscriptManager.js';
 import { SqliteBundleRepository } from '../backend/infrastructure/repositories/sqliteBundleRepository.js';
 import { SqliteDocumentRepository } from '../backend/infrastructure/repositories/sqliteDocumentRepository.js';
+import { SqliteHighlightRepository } from '../backend/infrastructure/repositories/sqliteHighlightRepository.js';
 import { LocalDocumentStorage } from '../backend/infrastructure/storage/localDocumentStorage.js';
 import {
   buildDocumentUrl,
@@ -18,6 +20,7 @@ import {
   getDocumentsStoragePath,
   getGSInstallDir,
 } from './utils/index.js';
+import { DocumentRotateProcessor } from '../backend/infrastructure/document-processing/pdf-lib-processor/rotate.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
@@ -32,6 +35,7 @@ const registerIpc = () => {
   const db = createSqliteDatabase(databasePath);
   const bundleRepository = new SqliteBundleRepository(db);
   const documentRepository = new SqliteDocumentRepository(db);
+  const highlightRepository = new SqliteHighlightRepository(db);
   const documentStorage = new LocalDocumentStorage(documentsStoragePath);
   const requireGhostscript =
     process.env.CASE_BUILDER_REQUIRE_GHOSTSCRIPT === 'true';
@@ -48,18 +52,24 @@ const registerIpc = () => {
   const documentToPdfConverter = new OfficeDocumentToPdfConverter({
     officeConverterCommand,
   });
-  const documentImportPreprocessor =
-    new InfrastructureDocumentImportPreprocessor({
-      pdfCompressor,
-      documentToPdfConverter,
-    });
+  const documentProcessor = new DocumentImportPreprocessor({
+    pdfCompressor,
+    documentToPdfConverter,
+  });
+  // Instance of document rotate processor class
+  const rotateProcessor = new DocumentRotateProcessor();
 
   registerBundleIpc({ bundleRepository, documentStorage });
   registerDocumentIpc({
     documentRepository,
     documentStorage,
-    documentImportPreprocessor,
+    documentProcessor,
+    rotateProcessor,
     buildDocumentUrl,
+  });
+  registerHighlightIpc({
+    documentRepository,
+    highlightRepository,
   });
   registerDocumentProtocol({
     documentRepository,

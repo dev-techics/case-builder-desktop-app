@@ -16,7 +16,6 @@ import LazyPDFRenderer from './components/LazyPDFRenderer';
 import { setMaxScale, setScale } from './states/editorSlice';
 import {
   useBundleMetadata,
-  useFileRotations,
   useInfinitePdfFiles,
   usePdfSizing,
 } from '@/features/editor/hooks';
@@ -49,11 +48,6 @@ const PDFViewer = () => {
     treeId: tree.id,
   });
 
-  // Rotation state and mutation wiring
-  const { fileRotations, fileUrlOverrides, resetRotations } = useFileRotations({
-    bundleId: resolvedBundleId ?? '',
-  });
-
   // Size calculations, max scale, and page metrics tracking
   const { contentStyle, computedMaxScale, handlePageMetrics, resetSizing } =
     usePdfSizing({
@@ -82,9 +76,8 @@ const PDFViewer = () => {
   // Reset view state when bundle changes
   useEffect(() => {
     resetSizing();
-    resetRotations();
     dispatch(setScale(1));
-  }, [dispatch, resetRotations, resetSizing, resolvedBundleId]);
+  }, [dispatch, resetSizing, resolvedBundleId]);
 
   useEffect(() => {
     if (!Number.isFinite(computedMaxScale)) {
@@ -99,11 +92,10 @@ const PDFViewer = () => {
       visibleFiles.map(file => ({
         ...file,
         url:
-          fileUrlOverrides[file.id] ??
           file.url ??
           `${getDocumentStreamUrl(file.id)}?original=true&cb=${streamSessionKey}`,
       })),
-    [fileUrlOverrides, streamSessionKey, visibleFiles]
+    [streamSessionKey, visibleFiles]
   );
 
   // Derived UI state
@@ -188,17 +180,14 @@ const PDFViewer = () => {
             >
               {/* PDF Header */}
               <ErrorBoundary FallbackComponent={Fallback}>
-                <PdfHeader
-                  file={fileWithUrl}
-                  rotation={fileRotations[fileWithUrl.id] ?? 0}
-                />
+                <PdfHeader file={fileWithUrl} />
               </ErrorBoundary>
 
               {/* PDF Content Area - LAZY LOADED */}
               <LazyPDFRenderer
                 bundleId={resolvedBundleId ?? undefined}
                 file={fileWithUrl}
-                rotation={fileRotations[fileWithUrl.id] ?? 0}
+                rotation={0}
                 onPageMetrics={handlePageMetrics}
               />
             </div>

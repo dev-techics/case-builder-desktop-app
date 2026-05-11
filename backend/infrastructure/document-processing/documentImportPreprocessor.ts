@@ -33,7 +33,7 @@ const createFailedResult = (
   },
 });
 
-export class InfrastructureDocumentImportPreprocessor implements DocumentProcessor {
+export class DocumentImportPreprocessor implements DocumentProcessor {
   private readonly pdfCompressor: PdfCompressor;
   private readonly documentToPdfConverter: DocumentToPdfConverter;
 

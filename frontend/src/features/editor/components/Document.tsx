@@ -16,6 +16,7 @@ const ROTATION_STEP_DEGREES = 90;
 
 type LoadedPdfPage = {
   pageNumber: number;
+  rotate: number;
   getViewport: (options: { scale: number; rotation?: number }) => {
     width: number;
     height: number;
@@ -26,7 +27,7 @@ const normalizeRotation = (rotation: number) => ((rotation % 360) + 360) % 360;
 
 const buildPageMetrics = (
   page: LoadedPdfPage,
-  rotation: number
+  rotation?: number
 ): DocumentPageMetrics => {
   const viewport = page.getViewport({ scale: 1, rotation });
 
@@ -90,6 +91,10 @@ const PDFDocument = ({
 
   const documentUrl = documentUrlOverride ?? file.url;
 
+  useEffect(() => {
+    setDocumentUrlOverride(undefined);
+  }, [file.url]);
+
   const fileConfig = useMemo(() => {
     if (!documentUrl) {
       return undefined;
@@ -106,6 +111,24 @@ const PDFDocument = ({
         : undefined,
     };
   }, [documentUrl]);
+
+  const resolvePageRotation = (
+    pageNumber: number,
+    localRotation: number,
+    loadedPage?: LoadedPdfPage
+  ) => {
+    const persistedRotation =
+      loadedPage?.rotate ?? loadedPagesRef.current.get(pageNumber)?.rotate;
+
+    if (persistedRotation === undefined) {
+      const pendingRotation = normalizeRotation(documentRotation + localRotation);
+      return pendingRotation === 0 ? undefined : pendingRotation;
+    }
+
+    return normalizeRotation(
+      persistedRotation + documentRotation + localRotation
+    );
+  };
 
   useEffect(() => {
     setPageInfo(previousPageInfo => {
@@ -125,7 +148,7 @@ const PDFDocument = ({
 
         const nextMetrics = buildPageMetrics(
           loadedPage,
-          normalizeRotation(documentRotation + page.rotation)
+          resolvePageRotation(page.pageNumber, page.rotation, loadedPage)
         );
 
         if (
@@ -174,8 +197,10 @@ const PDFDocument = ({
 
     const nextMetrics = buildPageMetrics(
       page,
-      normalizeRotation(
-        documentRotation + (pagesByNumber.get(pageNumber)?.rotation ?? 0)
+      resolvePageRotation(
+        pageNumber,
+        pagesByNumber.get(pageNumber)?.rotation ?? 0,
+        page
       )
     );
 
@@ -233,7 +258,7 @@ const PDFDocument = ({
 
     const nextMetrics = buildPageMetrics(
       loadedPage,
-      normalizeRotation(documentRotation + nextPageRotation)
+      resolvePageRotation(pageNumber, nextPageRotation, loadedPage)
     );
 
     setPageInfo(previousPageInfo => {
@@ -282,8 +307,9 @@ const PDFDocument = ({
           .map(page => {
             const pageNumber = page.pageNumber;
             const pageData = pageInfo.get(pageNumber);
-            const resolvedRotation = normalizeRotation(
-              documentRotation + page.rotation
+            const resolvedRotation = resolvePageRotation(
+              pageNumber,
+              page.rotation
             );
 
             return (
@@ -303,7 +329,6 @@ const PDFDocument = ({
                 {/* Page actions stay next to each page for page-specific controls. */}
                 <PageRotationControls
                   pageNumber={pageNumber}
-                  rotation={resolvedRotation}
                   onRotateLeft={() =>
                     handleRotatePage(pageNumber, -ROTATION_STEP_DEGREES)
                   }

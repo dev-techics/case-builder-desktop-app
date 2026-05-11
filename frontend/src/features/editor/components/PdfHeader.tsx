@@ -6,7 +6,6 @@ import type { FileTreeFileNode } from '@/features/file-explorer/types/fileTree';
 
 type PdfHeaderProps = {
   file: FileTreeFileNode;
-  rotation: number;
 };
 
 const PdfHeader = ({ file }: PdfHeaderProps) => {

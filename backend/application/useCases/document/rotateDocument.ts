@@ -27,7 +27,6 @@ export class RotateDocumentUseCase {
     }
     // check if the bundle exists in our system
     const bundle = await this.documentRepository.getBundleName(bundleId);
-
     if (!bundle) {
       throw new ValidationError('Bundle not found');
     }
@@ -40,16 +39,22 @@ export class RotateDocumentUseCase {
     if (!document) {
       throw new ValidationError('Document not found');
     }
-    /* ---------- Validate page number -----------*/
-    if (!pageNumber) {
-      throw new ValidationError('page number is required');
-    }
-    // check the page is exists in the document
-    // storage gives us the path, processor reads the PDF
+
     const filePath = await this.documentStorage.getFilePath(
       bundleId,
       documentId
     );
+    /* ---------- Validate rotation deg ------------ */
+    if (![90, 180, 270].includes(rotation)) {
+      throw new ValidationError('Invalid rotation');
+    }
+
+    if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
+      throw new ValidationError('Page number is required');
+    }
+
+    /* ----------- Validate page number --------------*/
+    // Storage gives us the path and the processor validates page existence.
     const totalPages =
       await this.rotateDocumentProcessor.getPageCount(filePath);
 
@@ -58,15 +63,11 @@ export class RotateDocumentUseCase {
         `Page ${input.pageNumber} does not exist. Document has ${totalPages} pages.`
       );
     }
-    /* ---------- Validate rotation deg ------------ */
-
-    if (!rotation) {
-      throw new ValidationError('Invalid rotation');
-    }
-
+    console.log('page number ' + pageNumber);
+    console.log('total pages ' + totalPages);
+    console.log(' Validation passed');
     /*============= Validation Ends here ================= */
 
-    // rotate document here
     await this.rotateDocumentProcessor.rotatePage({
       filePath,
       pageNumber,

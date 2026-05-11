@@ -11,7 +11,6 @@ import type {
   EditorState,
   Highlight,
   CreateHighlightRequest,
-  HighlightApiResponse,
   PendingComment,
   PendingHighlight,
   Redaction,
@@ -21,6 +20,34 @@ import type {
 } from '@/features/toolbar/types/types';
 import axiosInstance from '@/api/axiosInstance';
 import { redactionsApi } from '@/features/toolbar/api/redactionsApi';
+
+type DesktopApi = NonNullable<Window['api']>;
+type DesktopHighlightRecord = Awaited<
+  ReturnType<DesktopApi['getHighlights']>
+>[number];
+
+const getDesktopApi = () =>
+  typeof window !== 'undefined' && window.api?.isDesktop ? window.api : undefined;
+
+const mapDesktopHighlight = (highlight: DesktopHighlightRecord): Highlight => ({
+  id: highlight.id,
+  fileId: highlight.documentId,
+  pageNumber: highlight.pageNumber,
+  coordinates: {
+    x: highlight.x,
+    y: highlight.y,
+    width: highlight.width,
+    height: highlight.height,
+  },
+  text: highlight.text,
+  color: {
+    name: highlight.colorName,
+    hex: highlight.colorHex,
+    rgb: highlight.colorRgb,
+    opacity: highlight.opacity,
+  },
+  createdAt: highlight.createdAt,
+});
 
 const initialState: EditorState = {
   activeTool: 'select',
@@ -318,34 +345,14 @@ export const loadHighlights = createAsyncThunk<
   { rejectValue: string }
 >('toolbar/loadHighlights', async ({ bundleId }, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.get(
-      `/api/bundles/${bundleId}/highlights`
-    );
+    const desktopApi = getDesktopApi();
 
-    // Transform API response to match frontend Highlight type
-    const highlights: Highlight[] = response.data.highlights.map(
-      (h: HighlightApiResponse) => ({
-        id: String(h.id),
-        fileId: String(h.documentId),
-        pageNumber: h.pageNumber,
-        coordinates: {
-          x: h.x,
-          y: h.y,
-          width: h.width,
-          height: h.height,
-        },
-        text: h.text,
-        color: {
-          name: h.colorName,
-          hex: h.colorHex,
-          rgb: h.colorRgb,
-          opacity: h.opacity,
-        },
-        createdAt: h.createdAt,
-      })
-    );
+    if (!desktopApi?.getHighlights) {
+      return rejectWithValue('Desktop API unavailable');
+    }
 
-    return highlights;
+    const highlights = await desktopApi.getHighlights(bundleId);
+    return highlights.map(mapDesktopHighlight);
   } catch (err: any) {
     console.error('Failed to load highlights:', err);
     const errorMessage =
@@ -455,36 +462,18 @@ export const createHighlight = createAsyncThunk<
   'toolbar/createHighlight',
   async ({ bundleId, data }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post(
-        `/api/bundles/${bundleId}/highlights`,
-        data
-      );
+      const desktopApi = getDesktopApi();
 
-      const h: HighlightApiResponse = response.data.highlight;
+      if (!desktopApi?.createHighlight) {
+        return rejectWithValue('Desktop API unavailable');
+      }
 
-      // Transform to frontend format
-      const highlight: Highlight = {
-        id: String(h.id),
-        fileId: String(h.documentId),
-        pageNumber: h.pageNumber,
-        coordinates: {
-          x: h.x,
-          y: h.y,
-          width: h.width,
-          height: h.height,
-        },
-        text: h.text,
-        color: {
-          name: h.colorName,
-          rgb: h.colorRgb,
-          hex: h.colorHex,
-          opacity: h.opacity,
-        },
-        createdAt: h.createdAt,
-      };
+      const highlight = await desktopApi.createHighlight({
+        bundleId,
+        data,
+      });
 
-      console.log('✅ Highlight created:', highlight);
-      return highlight;
+      return mapDesktopHighlight(highlight);
     } catch (err: any) {
       console.error('Failed to create highlight:', err);
       const errorMessage =
@@ -505,9 +494,14 @@ export const deleteHighlight = createAsyncThunk<
   { rejectValue: string }
 >('toolbar/deleteHighlight', async ({ highlightId }, { rejectWithValue }) => {
   try {
-    await axiosInstance.delete(`/api/highlights/${highlightId}`);
-    console.log('✅ Highlight deleted:', highlightId);
-    return highlightId;
+    const desktopApi = getDesktopApi();
+
+    if (!desktopApi?.deleteHighlight) {
+      return rejectWithValue('Desktop API unavailable');
+    }
+
+    const deletedHighlight = await desktopApi.deleteHighlight({ id: highlightId });
+    return deletedHighlight.id;
   } catch (err: any) {
     console.error('Failed to delete highlight:', err);
     const errorMessage =
@@ -517,120 +511,6 @@ export const deleteHighlight = createAsyncThunk<
     return rejectWithValue(errorMessage);
   }
 });
-
-/**
- * Update highlight color
- */
-export const updateHighlightColor = createAsyncThunk<
-  Highlight,
-  {
-    highlightId: string;
-    color: {
-      color_name: string;
-      color_hex: string;
-      color_rgb: { r: number; g: number; b: number };
-      opacity?: number;
-    };
-  },
-  { rejectValue: string }
->(
-  'toolbar/updateHighlightColor',
-  async ({ highlightId, color }, { rejectWithValue }) => {
-    try {
-      const response = await axiosInstance.put(
-        `/api/highlights/${highlightId}`,
-        color
-      );
-
-      const h: HighlightApiResponse = response.data.highlight;
-
-      const highlight: Highlight = {
-        id: String(h.id),
-        fileId: String(h.documentId),
-        pageNumber: h.pageNumber,
-        coordinates: {
-          x: h.x,
-          y: h.y,
-          width: h.width,
-          height: h.height,
-        },
-        text: h.text,
-        color: {
-          name: h.colorName,
-          hex: h.colorHex,
-          rgb: h.colorRgb,
-          opacity: h.opacity,
-        },
-        createdAt: h.createdAt,
-      };
-
-      console.log('✅ Highlight color updated:', highlight);
-      return highlight;
-    } catch (err: any) {
-      console.error('Failed to update highlight color:', err);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to update highlight';
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
-
-/**
- * Bulk delete highlights
- */
-export const bulkDeleteHighlights = createAsyncThunk<
-  string[],
-  { bundleId: string; highlightIds: string[] },
-  { rejectValue: string }
->(
-  'toolbar/bulkDeleteHighlights',
-  async ({ bundleId, highlightIds }, { rejectWithValue }) => {
-    try {
-      await axiosInstance.post(
-        `/api/bundles/${bundleId}/highlights/bulk-delete`,
-        {
-          highlight_ids: highlightIds.map(id => parseInt(id)),
-        }
-      );
-      console.log('✅ Bulk deleted highlights:', highlightIds);
-      return highlightIds;
-    } catch (err: any) {
-      console.error('Failed to bulk delete highlights:', err);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to delete highlights';
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
-
-/**
- * Clear all highlights for a document
- */
-export const clearDocumentHighlights = createAsyncThunk<
-  string,
-  { documentId: string },
-  { rejectValue: string }
->(
-  'toolbar/clearDocumentHighlights',
-  async ({ documentId }, { rejectWithValue }) => {
-    try {
-      await axiosInstance.delete(`/api/documents/${documentId}/highlights`);
-      console.log('✅ Cleared all highlights for document:', documentId);
-      return documentId;
-    } catch (err: any) {
-      console.error('Failed to clear document highlights:', err);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to clear highlights';
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
 
 /*=============================================
 =            Redux Slice                      =
@@ -871,25 +751,6 @@ const toolbarSlice = createSlice({
       });
 
     /*-------------------
-      Update Highlight Color
-    -------------------*/
-    builder
-      .addCase(updateHighlightColor.pending, state => {
-        state.highlightError = null;
-      })
-      .addCase(updateHighlightColor.fulfilled, (state, action) => {
-        const index = state.highlights.findIndex(
-          h => h.id === action.payload.id
-        );
-        if (index !== -1) {
-          state.highlights[index] = action.payload;
-        }
-      })
-      .addCase(updateHighlightColor.rejected, (state, action) => {
-        state.highlightError = action.payload || 'Failed to update highlight';
-      });
-
-    /*-------------------
       Load Redactions
     -------------------*/
     builder
@@ -934,32 +795,6 @@ const toolbarSlice = createSlice({
       })
       .addCase(deleteRedaction.rejected, (state, action) => {
         state.redactionError = action.payload || 'Failed to delete redaction';
-      });
-
-    /*-------------------
-      Bulk Delete Highlights
-    -------------------*/
-    builder
-      .addCase(bulkDeleteHighlights.fulfilled, (state, action) => {
-        state.highlights = state.highlights.filter(
-          h => !action.payload.includes(h.id)
-        );
-      })
-      .addCase(bulkDeleteHighlights.rejected, (state, action) => {
-        state.highlightError = action.payload || 'Failed to delete highlights';
-      });
-
-    /*-------------------
-      Clear Document Highlights
-    -------------------*/
-    builder
-      .addCase(clearDocumentHighlights.fulfilled, (state, action) => {
-        state.highlights = state.highlights.filter(
-          h => h.fileId !== action.payload
-        );
-      })
-      .addCase(clearDocumentHighlights.rejected, (state, action) => {
-        state.highlightError = action.payload || 'Failed to clear highlights';
       });
 
     /*-------------------
