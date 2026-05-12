@@ -13,6 +13,7 @@ import { GhostscriptManager } from '../backend/infrastructure/document-processin
 import { SqliteBundleRepository } from '../backend/infrastructure/repositories/sqliteBundleRepository.js';
 import { SqliteDocumentRepository } from '../backend/infrastructure/repositories/sqliteDocumentRepository.js';
 import { SqliteHighlightRepository } from '../backend/infrastructure/repositories/sqliteHighlightRepository.js';
+import { SqliteCommentRepository } from '../backend/infrastructure/repositories/sqliteCommentRepository.js';
 import { LocalDocumentStorage } from '../backend/infrastructure/storage/localDocumentStorage.js';
 import {
   buildDocumentUrl,
@@ -21,6 +22,7 @@ import {
   getGSInstallDir,
 } from './utils/index.js';
 import { DocumentRotateProcessor } from '../backend/infrastructure/document-processing/pdf-lib-processor/rotate.js';
+import { registerCommentIpc } from './ipc/comment.controller.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
@@ -36,6 +38,7 @@ const registerIpc = () => {
   const bundleRepository = new SqliteBundleRepository(db);
   const documentRepository = new SqliteDocumentRepository(db);
   const highlightRepository = new SqliteHighlightRepository(db);
+  const commentRepository = new SqliteCommentRepository(db);
   const documentStorage = new LocalDocumentStorage(documentsStoragePath);
   const requireGhostscript =
     process.env.CASE_BUILDER_REQUIRE_GHOSTSCRIPT === 'true';
@@ -71,6 +74,7 @@ const registerIpc = () => {
     documentRepository,
     highlightRepository,
   });
+  registerCommentIpc({ documentRepository, commentRepository });
   registerDocumentProtocol({
     documentRepository,
     documentsStorageRoot: documentsStoragePath,

@@ -4,88 +4,100 @@ import path from 'node:path';
 
 export type SqliteDatabase = InstanceType<typeof Database>;
 
-const CREATE_BUNDLES_TABLE_SQL = `
+// ─── Table Definitions ────────────────────────────────────────────────────────
+
+const SQL_CREATE_BUNDLES_TABLE = `
   CREATE TABLE IF NOT EXISTS bundles (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    case_number TEXT NOT NULL,
+    id           TEXT    PRIMARY KEY,
+    name         TEXT    NOT NULL,
+    case_number  TEXT    NOT NULL,
     document_count INTEGER NOT NULL DEFAULT 0,
-    status TEXT NOT NULL DEFAULT 'In Progress',
-    color TEXT NOT NULL DEFAULT 'blue',
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    description TEXT,
-    tags TEXT
+    status       TEXT    NOT NULL DEFAULT 'In Progress',
+    color        TEXT    NOT NULL DEFAULT 'blue',
+    created_at   TEXT    NOT NULL,
+    updated_at   TEXT    NOT NULL,
+    description  TEXT,
+    tags         TEXT
   )
 `;
 
-const CREATE_DOCUMENTS_TABLE_SQL = `
+const SQL_CREATE_DOCUMENTS_TABLE = `
   CREATE TABLE IF NOT EXISTS documents (
-    id TEXT PRIMARY KEY,
-    bundle_id TEXT NOT NULL,
-    parent_id TEXT,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('file', 'folder')),
-    mime_type TEXT,
+    id           TEXT    PRIMARY KEY,
+    bundle_id    TEXT    NOT NULL,
+    parent_id    TEXT,
+    name         TEXT    NOT NULL,
+    type         TEXT    NOT NULL CHECK (type IN ('file', 'folder')),
+    mime_type    TEXT,
     storage_path TEXT,
-    "order" INTEGER NOT NULL DEFAULT 0,
-    metadata TEXT,
-    created_at TEXT,
-    updated_at TEXT,
-    FOREIGN KEY (bundle_id) REFERENCES bundles(id) ON DELETE CASCADE,
-    FOREIGN KEY (parent_id) REFERENCES documents(id) ON DELETE CASCADE
+    "order"      INTEGER NOT NULL DEFAULT 0,
+    metadata     TEXT,
+    created_at   TEXT,
+    updated_at   TEXT,
+    FOREIGN KEY (bundle_id)  REFERENCES bundles(id)   ON DELETE CASCADE,
+    FOREIGN KEY (parent_id)  REFERENCES documents(id) ON DELETE CASCADE
   )
 `;
 
-const CREATE_DOCUMENTS_INDEXES_SQL = `
+const SQL_CREATE_DOCUMENTS_INDEXES = `
   CREATE INDEX IF NOT EXISTS idx_documents_bundle_id ON documents (bundle_id);
   CREATE INDEX IF NOT EXISTS idx_documents_parent_id ON documents (parent_id);
 `;
 
-const CREATE_HIGHLIGHTS_TABLE_SQL = `
+const SQL_CREATE_HIGHLIGHTS_TABLE = `
   CREATE TABLE IF NOT EXISTS highlights (
-    id TEXT PRIMARY KEY,
-    bundle_id TEXT NOT NULL,
-    document_id TEXT NOT NULL,
+    id          TEXT    PRIMARY KEY,
+    bundle_id   TEXT    NOT NULL,
+    document_id TEXT    NOT NULL,
     page_number INTEGER NOT NULL,
-    x REAL NOT NULL,
-    y REAL NOT NULL,
-    width REAL NOT NULL,
-    height REAL NOT NULL,
-    text TEXT NOT NULL,
-    color_name TEXT NOT NULL,
-    color_hex TEXT NOT NULL,
-    color_rgb TEXT NOT NULL,
-    opacity REAL NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (bundle_id) REFERENCES bundles(id) ON DELETE CASCADE,
+    x           REAL    NOT NULL,
+    y           REAL    NOT NULL,
+    width       REAL    NOT NULL,
+    height      REAL    NOT NULL,
+    text        TEXT    NOT NULL,
+    color_name  TEXT    NOT NULL,
+    color_hex   TEXT    NOT NULL,
+    color_rgb   TEXT    NOT NULL,
+    opacity     REAL    NOT NULL,
+    created_at  TEXT    NOT NULL,
+    updated_at  TEXT    NOT NULL,
+    FOREIGN KEY (bundle_id)   REFERENCES bundles(id)   ON DELETE CASCADE,
     FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
   )
 `;
 
-const CREATE_HIGHLIGHTS_INDEXES_SQL = `
-  CREATE INDEX IF NOT EXISTS idx_highlights_bundle_id ON highlights (bundle_id);
-  CREATE INDEX IF NOT EXISTS idx_highlights_document_id ON highlights (document_id);
-  CREATE INDEX IF NOT EXISTS idx_highlights_document_page ON highlights (document_id, page_number);
+const SQL_CREATE_HIGHLIGHTS_INDEXES = `
+  CREATE INDEX IF NOT EXISTS idx_highlights_bundle_id       ON highlights (bundle_id);
+  CREATE INDEX IF NOT EXISTS idx_highlights_document_id     ON highlights (document_id);
+  CREATE INDEX IF NOT EXISTS idx_highlights_document_page   ON highlights (document_id, page_number);
 `;
 
-const EXPECTED_BUNDLES_COLUMNS = new Set([
-  'id',
-  'name',
-  'case_number',
-  'document_count',
-  'status',
-  'color',
-  'created_at',
-  'updated_at',
-  'description',
-  'tags',
-]);
+const SQL_CREATE_COMMENTS_TABLE = `
+  CREATE TABLE IF NOT EXISTS comments (
+    id            TEXT    PRIMARY KEY,
+    bundle_id     TEXT    NOT NULL,
+    document_id   TEXT    NOT NULL,
+    page_number   INTEGER NOT NULL,
+    text          TEXT    NOT NULL,
+    selected_text TEXT,
+    x             REAL    NOT NULL,
+    y             REAL    NOT NULL,
+    page_y        REAL    NOT NULL,
+    resolved      INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT,
+    updated_at    TEXT,
+    FOREIGN KEY (bundle_id)   REFERENCES bundles(id)   ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+  )
+`;
 
-type TableInfoRow = {
-  name: string;
-};
+const SQL_CREATE_COMMENTS_INDEXES = `
+  CREATE INDEX IF NOT EXISTS idx_comments_bundle_id     ON comments (bundle_id);
+  CREATE INDEX IF NOT EXISTS idx_comments_document_id   ON comments (document_id);
+  CREATE INDEX IF NOT EXISTS idx_comments_document_page ON comments (document_id, page_number);
+`;
+
+// ─── Database Initialisation ──────────────────────────────────────────────────
 
 export function createSqliteDatabase(dbPath: string): SqliteDatabase {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -94,124 +106,13 @@ export function createSqliteDatabase(dbPath: string): SqliteDatabase {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 
-  ensureBundlesTable(db);
-  ensureDocumentsTable(db);
-  ensureHighlightsTable(db);
+  db.exec(SQL_CREATE_BUNDLES_TABLE);
+  db.exec(SQL_CREATE_DOCUMENTS_TABLE);
+  db.exec(SQL_CREATE_DOCUMENTS_INDEXES);
+  db.exec(SQL_CREATE_HIGHLIGHTS_TABLE);
+  db.exec(SQL_CREATE_HIGHLIGHTS_INDEXES);
+  db.exec(SQL_CREATE_COMMENTS_TABLE);
+  db.exec(SQL_CREATE_COMMENTS_INDEXES);
+
   return db;
-}
-
-function ensureBundlesTable(db: SqliteDatabase) {
-  const bundlesTable = db
-    .prepare(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1"
-    )
-    .get('bundles') as { name: string } | undefined;
-
-  if (!bundlesTable) {
-    db.exec(CREATE_BUNDLES_TABLE_SQL);
-    return;
-  }
-
-  const columns = db
-    .prepare('PRAGMA table_info(bundles)')
-    .all() as TableInfoRow[];
-  const columnNames = new Set(columns.map(column => column.name));
-
-  const needsMigration =
-    columnNames.size !== EXPECTED_BUNDLES_COLUMNS.size ||
-    [...EXPECTED_BUNDLES_COLUMNS].some(column => !columnNames.has(column));
-
-  if (!needsMigration) {
-    return;
-  }
-
-  migrateLegacyBundlesTable(db, columnNames);
-}
-
-function ensureDocumentsTable(db: SqliteDatabase) {
-  db.exec(CREATE_DOCUMENTS_TABLE_SQL);
-  db.exec(CREATE_DOCUMENTS_INDEXES_SQL);
-}
-
-function ensureHighlightsTable(db: SqliteDatabase) {
-  db.exec(CREATE_HIGHLIGHTS_TABLE_SQL);
-  db.exec(CREATE_HIGHLIGHTS_INDEXES_SQL);
-}
-
-function migrateLegacyBundlesTable(
-  db: SqliteDatabase,
-  columnNames: ReadonlySet<string>
-) {
-  const legacyTableName = `bundles_legacy_${Date.now()}`;
-  const selectExpressions = {
-    id: columnNames.has('id')
-      ? 'CAST(id AS TEXT)'
-      : 'lower(hex(randomblob(16)))',
-    name: columnNames.has('name')
-      ? "COALESCE(name, 'Untitled Bundle')"
-      : "'Untitled Bundle'",
-    caseNumber: columnNames.has('case_number')
-      ? "COALESCE(case_number, '')"
-      : "''",
-    documentCount: columnNames.has('document_count')
-      ? 'COALESCE(document_count, 0)'
-      : columnNames.has('doc_count')
-        ? 'COALESCE(doc_count, 0)'
-        : '0',
-    status: columnNames.has('status')
-      ? `
-          CASE
-            WHEN status IN ('In Progress', 'Complete', 'Review', 'Archived') THEN status
-            ELSE 'In Progress'
-          END
-        `
-      : "'In Progress'",
-    color: columnNames.has('color') ? "COALESCE(color, 'blue')" : "'blue'",
-    createdAt: columnNames.has('created_at')
-      ? 'COALESCE(created_at, CURRENT_TIMESTAMP)'
-      : 'CURRENT_TIMESTAMP',
-    updatedAt: columnNames.has('updated_at')
-      ? 'COALESCE(updated_at, CURRENT_TIMESTAMP)'
-      : columnNames.has('created_at')
-        ? 'COALESCE(created_at, CURRENT_TIMESTAMP)'
-        : 'CURRENT_TIMESTAMP',
-    description: columnNames.has('description') ? 'description' : 'NULL',
-    tags: columnNames.has('tags') ? 'tags' : 'NULL',
-  };
-
-  const migrate = db.transaction(() => {
-    db.exec(`ALTER TABLE bundles RENAME TO "${legacyTableName}"`);
-    db.exec(CREATE_BUNDLES_TABLE_SQL);
-
-    db.prepare(
-      `
-        INSERT INTO bundles (
-          id,
-          name,
-          case_number,
-          document_count,
-          status,
-          color,
-          created_at,
-          updated_at,
-          description,
-          tags
-        )
-        SELECT
-          ${selectExpressions.id},
-          ${selectExpressions.name},
-          ${selectExpressions.caseNumber},
-          ${selectExpressions.documentCount},
-          ${selectExpressions.status},
-          ${selectExpressions.color},
-          ${selectExpressions.createdAt},
-          ${selectExpressions.updatedAt},
-          ${selectExpressions.description},
-          ${selectExpressions.tags}
-        FROM "${legacyTableName}"
-      `
-    ).run();
-  });
-
-  migrate();
 }

@@ -13,6 +13,7 @@ import { dashboardApi } from '@/features/dashboard/api';
 import dashboardReducer from '@/features/dashboard/redux';
 import { propertiesPanelApi } from '@/features/properties-panel/api';
 import bundleListApi from '@/features/bundles-list/api';
+import { toolbarApi } from '@/features/toolbar/api';
 
 const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ const store = configureStore({
     [dashboardApi.reducerPath]: dashboardApi.reducer,
     [propertiesPanelApi.reducerPath]: propertiesPanelApi.reducer,
     [bundleListApi.reducerPath]: bundleListApi.reducer,
+    [toolbarApi.reducerPath]: toolbarApi.reducer,
     /*----------- state slices ------------ */
     auth: authReducer,
     fileTree: fileTreeReducer,
@@ -41,7 +43,8 @@ const store = configureStore({
       editorApi.middleware,
       dashboardApi.middleware,
       propertiesPanelApi.middleware,
-      bundleListApi.middleware
+      bundleListApi.middleware,
+      toolbarApi.middleware
     ),
 });
 

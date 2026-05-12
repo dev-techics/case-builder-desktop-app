@@ -6,3 +6,4 @@ release
 storage
 frontend
 !backend/infrastructure/storage
+!frontend/src/types/window-api.d.ts

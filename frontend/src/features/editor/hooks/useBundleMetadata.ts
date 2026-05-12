@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useAppDispatch } from '@/app/hooks';
-import { loadComments } from '@/features/toolbar/redux';
+import { useGetCommentsQuery } from '@/features/toolbar/api';
 import {
   clearDocumentInfo,
   setCurrentBundleId,
@@ -19,10 +19,12 @@ export const useBundleMetadata = ({
   treeId,
 }: UseBundleMetadataOptions) => {
   const dispatch = useAppDispatch();
+
   const resolvedBundleId = resolveBundleId({
     routeBundleId: bundleId,
     treeId,
   });
+
   const { data: metadata } = useGetMetaDataQuery(
     { bundleId: resolvedBundleId ?? '' },
     {
@@ -31,11 +33,11 @@ export const useBundleMetadata = ({
     }
   );
 
-  useEffect(() => {
-    if (resolvedBundleId) {
-      dispatch(loadComments({ bundleId: resolvedBundleId }));
-    }
-  }, [dispatch, resolvedBundleId]);
+  // Fetch comments for the bundle — results flow into the slice via addMatcher
+  useGetCommentsQuery(resolvedBundleId ?? '', {
+    skip: !resolvedBundleId,
+    refetchOnMountOrArgChange: true,
+  });
 
   useEffect(() => {
     if (resolvedBundleId) {

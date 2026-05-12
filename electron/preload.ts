@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-console.log('Hello world!');
+
 contextBridge.exposeInMainWorld('api', {
   isDesktop: true,
 
@@ -165,8 +165,18 @@ contextBridge.exposeInMainWorld('api', {
   /*--------------------
     Create comment
   ---------------------*/
-  createComment: (input: {}) => ipcRenderer.invoke('comment:create', input),
-
+  createComment: (input: {
+    bundleId: string | number;
+    data: {
+      document_id: string | number;
+      page_number: number;
+      text: string;
+      selected_text?: string;
+      x: number;
+      y: number;
+      page_y: number;
+    };
+  }) => ipcRenderer.invoke('comment:create', input),
   /*------------------
     Delete Comment  
   -------------------*/

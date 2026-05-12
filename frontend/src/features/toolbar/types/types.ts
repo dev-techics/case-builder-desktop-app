@@ -71,7 +71,7 @@ export type Comment = {
   fileId: string;
   pageNumber: number;
   text: string;
-  selectedText?: string; // Optional: the text that was selected when comment was created
+  selectedText: string; // Optional: the text that was selected when comment was created
   position: {
     x: number;
     y: number;

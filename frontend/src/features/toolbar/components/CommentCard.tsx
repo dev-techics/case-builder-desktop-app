@@ -1,73 +1,88 @@
 import { Check, MoreVertical, Pencil, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
-import { useAppDispatch } from '@/app/hooks';
+import { useAppSelector } from '@/app/hooks';
 import { Button } from '@/components/ui/button';
 import {
-  deleteCommentThunk,
-  toggleCommentResolvedThunk,
-  updateCommentThunk,
-} from '../redux';
+  useDeleteCommentMutation,
+  // TODO: Uncomment when update and toggle endpoints are added to commentApi
+  // useUpdateCommentMutation,
+  // useToggleCommentResolvedMutation,
+} from '../api';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Comment = {
+  id: string;
+  fileId: string;
+  pageNumber: number;
+  text: string;
+  selectedText: string;
+  position: { x: number; y: number; pageY: number };
+  resolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author?: string;
+};
 
 type CommentCardProps = {
-  comment: any;
+  comment: Comment;
   onClose?: () => void;
 };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const diffMs = Date.now() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60_000);
+  const diffHours = Math.floor(diffMs / 3_600_000);
+  const diffDays = Math.floor(diffMs / 86_400_000);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const CommentCard = ({ comment, onClose }: CommentCardProps) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.text);
-  const dispatch = useAppDispatch();
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60_000);
-    const diffHours = Math.floor(diffMs / 3_600_000);
-    const diffDays = Math.floor(diffMs / 86_400_000);
+  // bundleId is needed to invalidate the correct RTK Query cache tag on delete
+  const bundleId = useAppSelector((state) => state.propertiesPanel.currentBundleId);
 
-    if (diffMins < 1) {
-      return 'just now';
-    }
-    if (diffMins < 60) {
-      return `${diffMins}m ago`;
-    }
-    if (diffHours < 24) {
-      return `${diffHours}h ago`;
-    }
-    if (diffDays < 7) {
-      return `${diffDays}d ago`;
-    }
-    return date.toLocaleDateString();
-  };
+  const [deleteComment] = useDeleteCommentMutation();
 
-  // Handle comment update
+  // TODO: Wire up when endpoints are available
+  // const [updateComment] = useUpdateCommentMutation();
+  // const [toggleCommentResolved] = useToggleCommentResolvedMutation();
+
   const handleUpdate = () => {
-    if (editText.trim()) {
-      dispatch(
-        updateCommentThunk({ commentId: comment.id, text: editText.trim() })
-      );
-      setIsEditing(false);
-    }
+    if (!editText.trim()) return;
+
+    // TODO: Swap dispatch for mutation when updateComment endpoint is added
+    // updateComment({ id: comment.id, bundleId, text: editText.trim() });
+    setIsEditing(false);
   };
-  // Handle comment delete
+
   const handleDelete = () => {
-    console.log('Deleting comment with id:', comment.id);
-    dispatch(deleteCommentThunk({ commentId: comment.id }));
+    deleteComment({ id: comment.id, bundleId: bundleId ?? '' });
     onClose?.();
   };
-  // Handle resolve/unresolve
+
   const handleResolve = () => {
-    dispatch(toggleCommentResolvedThunk({ commentId: comment.id }));
+    // TODO: Swap dispatch for mutation when toggleCommentResolved endpoint is added
+    // toggleCommentResolved({ id: comment.id, bundleId: bundleId ?? '' });
   };
 
   return (
     <div
       className="absolute top-0 left-10 z-30 w-80 rounded-lg border-2 bg-white shadow-xl"
-      style={{
-        borderColor: comment.resolved ? '#86efac' : '#93c5fd',
-      }}
+      style={{ borderColor: comment.resolved ? '#86efac' : '#93c5fd' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-gray-50 p-3">
@@ -83,6 +98,8 @@ const CommentCard = ({ comment, onClose }: CommentCardProps) => {
           <span className="text-gray-500 text-xs">
             {formatDate(comment.createdAt)}
           </span>
+
+          {/* Context menu */}
           <div className="relative">
             <button
               className="rounded p-1 hover:bg-gray-100"
@@ -100,10 +117,7 @@ const CommentCard = ({ comment, onClose }: CommentCardProps) => {
                 <div className="absolute right-0 z-20 mt-1 w-40 rounded-md border border-gray-200 bg-white shadow-lg">
                   <button
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
-                    onClick={() => {
-                      setIsEditing(true);
-                      setShowMenu(false);
-                    }}
+                    onClick={() => { setIsEditing(true); setShowMenu(false); }}
                     type="button"
                   >
                     <Pencil size={14} />
@@ -111,10 +125,7 @@ const CommentCard = ({ comment, onClose }: CommentCardProps) => {
                   </button>
                   <button
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
-                    onClick={() => {
-                      handleResolve();
-                      setShowMenu(false);
-                    }}
+                    onClick={() => { handleResolve(); setShowMenu(false); }}
                     type="button"
                   >
                     <Check size={14} />
@@ -122,10 +133,7 @@ const CommentCard = ({ comment, onClose }: CommentCardProps) => {
                   </button>
                   <button
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-red-600 text-sm hover:bg-red-50"
-                    onClick={() => {
-                      handleDelete();
-                      setShowMenu(false);
-                    }}
+                    onClick={() => { handleDelete(); setShowMenu(false); }}
                     type="button"
                   >
                     <Trash2 size={14} />
@@ -135,6 +143,7 @@ const CommentCard = ({ comment, onClose }: CommentCardProps) => {
               </>
             )}
           </div>
+
           <button
             className="ml-1 rounded p-1 hover:bg-gray-100"
             onClick={onClose}
@@ -145,7 +154,7 @@ const CommentCard = ({ comment, onClose }: CommentCardProps) => {
         </div>
       </div>
 
-      {/* Selected text (if any) */}
+      {/* Selected text */}
       {comment.selectedText && (
         <div className="border-b bg-gray-50 p-3">
           <p className="mb-1 text-gray-500 text-xs">Selected text:</p>
@@ -162,15 +171,12 @@ const CommentCard = ({ comment, onClose }: CommentCardProps) => {
             <textarea
               autoFocus
               className="min-h-[80px] w-full resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              onChange={e => setEditText(e.target.value)}
+              onChange={(e) => setEditText(e.target.value)}
               value={editText}
             />
             <div className="flex justify-end gap-2">
               <Button
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditText(comment.text);
-                }}
+                onClick={() => { setIsEditing(false); setEditText(comment.text); }}
                 size="sm"
                 type="button"
                 variant="outline"

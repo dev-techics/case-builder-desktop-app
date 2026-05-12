@@ -32,6 +32,31 @@ type DesktopHighlightRecord = {
   updatedAt: string;
 };
 
+type DesktopCommentRecord = {
+  id: string;
+  bundleId: string;
+  documentId: string;
+  pageNumber: number;
+  text: string;
+  selectedText: string;
+  x: number;
+  y: number;
+  pageY: number;
+  resolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type CreateCommentRequest = {
+  document_id: string;
+  page_number: number;
+  text: string;
+  selected_text?: string;
+  x: number;
+  y: number;
+  page_y: number;
+};
+
 declare global {
   interface Window {
     api?: {
@@ -100,6 +125,18 @@ declare global {
         data: CreateHighlightRequest;
       }) => Promise<DesktopHighlightRecord>;
       deleteHighlight: (input: {
+        id: string | number;
+      }) => Promise<{
+        id: string;
+      }>;
+      getComments: (
+        bundleId: string | number
+      ) => Promise<DesktopCommentRecord[]>;
+      createComment: (input: {
+        bundleId: string | number;
+        data: CreateCommentRequest;
+      }) => Promise<DesktopCommentRecord>;
+      deleteComment: (input: {
         id: string | number;
       }) => Promise<{
         id: string;

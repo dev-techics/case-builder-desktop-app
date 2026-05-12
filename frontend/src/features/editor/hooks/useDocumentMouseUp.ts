@@ -61,8 +61,7 @@ export const useDocumentMouseUp = ({
       pageRefsMap.forEach((element, pageNumber) => {
         if (
           element &&
-          selection.containsNode &&
-          selection.containsNode(element, true)
+          selection.containsNode?.(element, true)
         ) {
           selectedPageNumber = pageNumber;
           pageElement = element;
