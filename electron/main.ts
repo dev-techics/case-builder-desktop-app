@@ -23,6 +23,8 @@ import {
 } from './utils/index.js';
 import { DocumentRotateProcessor } from '../backend/infrastructure/document-processing/pdf-lib-processor/rotate.js';
 import { registerCommentIpc } from './ipc/comment.controller.js';
+import { registerRedactionIpc } from './ipc/redaction.controller.js';
+import { SqliteRedactionRepository } from '../backend/infrastructure/repositories/sqliteRedactionRepository.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
@@ -39,6 +41,7 @@ const registerIpc = () => {
   const documentRepository = new SqliteDocumentRepository(db);
   const highlightRepository = new SqliteHighlightRepository(db);
   const commentRepository = new SqliteCommentRepository(db);
+  const redactionRepository = new SqliteRedactionRepository(db);
   const documentStorage = new LocalDocumentStorage(documentsStoragePath);
   const requireGhostscript =
     process.env.CASE_BUILDER_REQUIRE_GHOSTSCRIPT === 'true';
@@ -75,6 +78,7 @@ const registerIpc = () => {
     highlightRepository,
   });
   registerCommentIpc({ documentRepository, commentRepository });
+  registerRedactionIpc({ documentRepository, redactionRepository });
   registerDocumentProtocol({
     documentRepository,
     documentsStorageRoot: documentsStoragePath,

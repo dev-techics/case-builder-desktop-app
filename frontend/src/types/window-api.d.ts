@@ -141,6 +141,18 @@ declare global {
       }) => Promise<{
         id: string;
       }>;
+        getRedactions: (
+        bundleId: string | number
+      ) => Promise<DesktopRedactionRecord[]>;
+      createRedaction: (input: {
+        bundleId: string | number;
+        data: CreateRedactionRequest;
+      }) => Promise<DesktopRedactionRecord>;
+      deleteRedaction: (input: {
+        id: string | number;
+      }) => Promise<{
+        id: string;
+      }>;
       importDocuments: (input: {
         bundleId: string | number;
         parentId?: string | null;

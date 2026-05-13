@@ -1,54 +1,45 @@
 import {
   createSlice,
-  createAsyncThunk,
   type PayloadAction,
 } from '@reduxjs/toolkit';
 import type {
   AnnotationTool,
   Comment,
-  // CreateCommentRequest,
-  // CommentApiResponse,
   EditorState,
   Highlight,
-  CreateHighlightRequest,
   PendingComment,
   PendingHighlight,
   Redaction,
   RedactionStyle,
-  CreateRedactionRequest,
-  RedactionApiResponse,
 } from '@/features/toolbar/types/types';
-// import axiosInstance from '@/api/axiosInstance';
-import { redactionsApi } from '@/features/toolbar/api/redactionsApi';
 import { toolbarApi } from '../api';
 
-type DesktopApi = NonNullable<Window['api']>;
-type DesktopHighlightRecord = Awaited<
-  ReturnType<DesktopApi['getHighlights']>
->[number];
+// type DesktopApi = NonNullable<Window['api']>;
 
-const getDesktopApi = () =>
-  typeof window !== 'undefined' && window.api?.isDesktop ? window.api : undefined;
+// type DesktopHighlightRecord = Awaited<
+//   ReturnType<DesktopApi['getHighlights']>
+// >[number];
 
-const mapDesktopHighlight = (highlight: DesktopHighlightRecord): Highlight => ({
-  id: highlight.id,
-  fileId: highlight.documentId,
-  pageNumber: highlight.pageNumber,
-  coordinates: {
-    x: highlight.x,
-    y: highlight.y,
-    width: highlight.width,
-    height: highlight.height,
-  },
-  text: highlight.text,
-  color: {
-    name: highlight.colorName,
-    hex: highlight.colorHex,
-    rgb: highlight.colorRgb,
-    opacity: highlight.opacity,
-  },
-  createdAt: highlight.createdAt,
-});
+
+// const mapDesktopHighlight = (highlight: DesktopHighlightRecord): Highlight => ({
+//   id: highlight.id,
+//   fileId: highlight.documentId,
+//   pageNumber: highlight.pageNumber,
+//   coordinates: {
+//     x: highlight.x,
+//     y: highlight.y,
+//     width: highlight.width,
+//     height: highlight.height,
+//   },
+//   text: highlight.text,
+//   color: {
+//     name: highlight.colorName,
+//     hex: highlight.colorHex,
+//     rgb: highlight.colorRgb,
+//     opacity: highlight.opacity,
+//   },
+//   createdAt: highlight.createdAt,
+// });
 
 const initialState: EditorState = {
   activeTool: 'select',
@@ -79,385 +70,28 @@ const initialState: EditorState = {
 };
 
 /*=============================================
-=            Async Thunks - Comments          =
-=============================================*/
-
-/**
- * Load all comments for a bundle
- 
-export const loadComments = createAsyncThunk<
-  Comment[],
-  { bundleId: string },
-  { rejectValue: string }
->('toolbar/loadComments', async ({ bundleId }, { rejectWithValue }) => {
-  try {
-    console.log('Loading comments for bundle:', bundleId);
-    const response = await axiosInstance.get(
-      `/api/bundles/${bundleId}/comments`
-    );
-
-    // Transform API response to match frontend Comment type
-    const comments: Comment[] = response.data.comments.map(
-      (c: CommentApiResponse) => ({
-        id: String(c.id),
-        fileId: String(c.documentId),
-        pageNumber: c.pageNumber,
-        text: c.text,
-        selectedText: c.selectedText,
-        position: {
-          x: c.x,
-          y: c.y,
-          pageY: c.pageY,
-        },
-        resolved: c.resolved,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-        author: c.user?.name,
-      })
-    );
-
-    return comments;
-  } catch (err: any) {
-    console.error('Failed to load comments:', err);
-    const errorMessage =
-      err.response?.data?.message || err.message || 'Failed to load comments';
-    return rejectWithValue(errorMessage);
-  }
-});
-*/
-/**
- * Create a new comment
- 
-export const createComment = createAsyncThunk<
-  Comment,
-  { bundleId: string; data: CreateCommentRequest },
-  { rejectValue: string }
->('toolbar/createComment', async ({ bundleId, data }, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.post(
-      `/api/bundles/${bundleId}/comments`,
-      data
-    );
-
-    const c: CommentApiResponse = response.data.comment;
-
-    // Transform to frontend format
-    const comment: Comment = {
-      id: String(c.id),
-      fileId: String(c.documentId),
-      pageNumber: c.pageNumber,
-      text: c.text,
-      selectedText: c.selectedText,
-      position: {
-        x: c.x,
-        y: c.y,
-        pageY: c.pageY,
-      },
-      resolved: c.resolved,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-      author: c.user?.name,
-    };
-
-    console.log('✅ Comment created:', comment);
-    return comment;
-  } catch (err: any) {
-    console.error('Failed to create comment:', err);
-    const errorMessage =
-      err.response?.data?.message || err.message || 'Failed to create comment';
-    return rejectWithValue(errorMessage);
-  }
-});
-*/
-/**
- * Update comment text
-
-export const updateCommentThunk = createAsyncThunk<
-  Comment,
-  { commentId: string; text: string },
-  { rejectValue: string }
->('toolbar/updateComment', async ({ commentId, text }, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.put(`/api/comments/${commentId}`, {
-      text,
-    });
-
-    const c: CommentApiResponse = response.data.comment;
-
-    const comment: Comment = {
-      id: String(c.id),
-      fileId: String(c.documentId),
-      pageNumber: c.pageNumber,
-      text: c.text,
-      selectedText: c.selectedText,
-      position: {
-        x: c.x,
-        y: c.y,
-        pageY: c.pageY,
-      },
-      resolved: c.resolved,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-      author: c.user?.name,
-    };
-
-    console.log('✅ Comment updated:', comment);
-    return comment;
-  } catch (err: any) {
-    console.error('Failed to update comment:', err);
-    const errorMessage =
-      err.response?.data?.message || err.message || 'Failed to update comment';
-    return rejectWithValue(errorMessage);
-  }
-});
- */
-/**
- * Toggle comment resolved status
-
-export const toggleCommentResolvedThunk = createAsyncThunk<
-  Comment,
-  { commentId: string },
-  { rejectValue: string }
->(
-  'toolbar/toggleCommentResolved',
-  async ({ commentId }, { rejectWithValue }) => {
-    try {
-      const response = await axiosInstance.post(
-        `/api/comments/${commentId}/toggle-resolved`
-      );
-
-      const c: CommentApiResponse = response.data.comment;
-
-      const comment: Comment = {
-        id: String(c.id),
-        fileId: String(c.documentId),
-        pageNumber: c.pageNumber,
-        text: c.text,
-        selectedText: c.selectedText,
-        position: {
-          x: c.x,
-          y: c.y,
-          pageY: c.pageY,
-        },
-        resolved: c.resolved,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-        author: c.user?.name,
-      };
-
-      console.log('✅ Comment resolved status toggled:', comment);
-      return comment;
-    } catch (err: any) {
-      console.error('Failed to toggle comment resolved:', err);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to toggle comment';
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
- */
-/**
- * Delete a comment
-
-export const deleteCommentThunk = createAsyncThunk<
-  string,
-  { commentId: string },
-  { rejectValue: string }
->('toolbar/deleteComment', async ({ commentId }, { rejectWithValue }) => {
-  try {
-    await axiosInstance.delete(`/api/comments/${commentId}`);
-    console.log('✅ Comment deleted:', commentId);
-    return commentId;
-  } catch (err: any) {
-    console.error('Failed to delete comment:', err);
-    const errorMessage =
-      err.response?.data?.message || err.message || 'Failed to delete comment';
-    return rejectWithValue(errorMessage);
-  }
-});
- */
-
-/*=============================================
 =            Async Thunks                     =
 =============================================*/
 
-/**
- * Load all highlights for a bundle
- */
-export const loadHighlights = createAsyncThunk<
-  Highlight[],
-  { bundleId: string },
-  { rejectValue: string }
->('toolbar/loadHighlights', async ({ bundleId }, { rejectWithValue }) => {
-  try {
-    const desktopApi = getDesktopApi();
-
-    if (!desktopApi?.getHighlights) {
-      return rejectWithValue('Desktop API unavailable');
-    }
-
-    const highlights = await desktopApi.getHighlights(bundleId);
-    return highlights.map(mapDesktopHighlight);
-  } catch (err: any) {
-    console.error('Failed to load highlights:', err);
-    const errorMessage =
-      err.response?.data?.message || err.message || 'Failed to load highlights';
-    return rejectWithValue(errorMessage);
-  }
-});
-
-const mapRedactionFromApi = (r: RedactionApiResponse): Redaction => ({
-  id: String(r.id),
-  fileId: String(r.documentId),
-  pageNumber: r.pageNumber,
-  coordinates: {
-    x: r.x,
-    y: r.y,
-    width: r.width,
-    height: r.height,
-  },
-  style: {
-    name: r.name || 'Custom',
-    fillHex: r.opacity === 0 ? null : r.fillHex,
-    opacity: r.opacity ?? 1,
-    borderHex: r.borderHex || '#000000',
-    borderWidth: r.borderWidth ?? 2,
-  },
-  createdAt: r.createdAt,
-});
-
-/*=============================================
-=            Async Thunks - Redactions        =
-=============================================*/
-
-/**
- * Load all redactions for a bundle
- */
-export const loadRedactions = createAsyncThunk<
-  Redaction[],
-  { bundleId: string },
-  { rejectValue: string }
->('toolbar/loadRedactions', async ({ bundleId }, { rejectWithValue }) => {
-  try {
-    const redactions = await redactionsApi.fetchRedactions(bundleId);
-    return redactions.map(mapRedactionFromApi);
-  } catch (err: any) {
-    console.error('Failed to load redactions:', err);
-    const errorMessage =
-      err.response?.data?.message ||
-      err.message ||
-      'Failed to load redactions';
-    return rejectWithValue(errorMessage);
-  }
-});
-
-/**
- * Create a new redaction
- */
-export const createRedaction = createAsyncThunk<
-  Redaction,
-  { bundleId: string; data: CreateRedactionRequest },
-  { rejectValue: string }
->('toolbar/createRedaction', async ({ bundleId, data }, { rejectWithValue }) => {
-  try {
-    const redaction = await redactionsApi.createRedaction(bundleId, data);
-    return mapRedactionFromApi(redaction);
-  } catch (err: any) {
-    console.error('Failed to create redaction:', err);
-    const errorMessage =
-      err.response?.data?.message ||
-      err.message ||
-      'Failed to create redaction';
-    return rejectWithValue(errorMessage);
-  }
-});
-
-/**
- * Delete a redaction
- */
-export const deleteRedaction = createAsyncThunk<
-  string,
-  { redactionId: string },
-  { rejectValue: string }
->(
-  'toolbar/deleteRedaction',
-  async ({ redactionId }, { rejectWithValue }) => {
-    try {
-      await redactionsApi.deleteRedaction(redactionId);
-      return redactionId;
-    } catch (err: any) {
-      console.error('Failed to delete redaction:', err);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to delete redaction';
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
-
-/**
- * Create a new highlight
- */
-export const createHighlight = createAsyncThunk<
-  Highlight,
-  { bundleId: string; data: CreateHighlightRequest },
-  { rejectValue: string }
->(
-  'toolbar/createHighlight',
-  async ({ bundleId, data }, { rejectWithValue }) => {
-    try {
-      const desktopApi = getDesktopApi();
-
-      if (!desktopApi?.createHighlight) {
-        return rejectWithValue('Desktop API unavailable');
-      }
-
-      const highlight = await desktopApi.createHighlight({
-        bundleId,
-        data,
-      });
-
-      return mapDesktopHighlight(highlight);
-    } catch (err: any) {
-      console.error('Failed to create highlight:', err);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to create highlight';
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
-
-/**
- * Delete a highlight
- */
-export const deleteHighlight = createAsyncThunk<
-  string,
-  { highlightId: string },
-  { rejectValue: string }
->('toolbar/deleteHighlight', async ({ highlightId }, { rejectWithValue }) => {
-  try {
-    const desktopApi = getDesktopApi();
-
-    if (!desktopApi?.deleteHighlight) {
-      return rejectWithValue('Desktop API unavailable');
-    }
-
-    const deletedHighlight = await desktopApi.deleteHighlight({ id: highlightId });
-    return deletedHighlight.id;
-  } catch (err: any) {
-    console.error('Failed to delete highlight:', err);
-    const errorMessage =
-      err.response?.data?.message ||
-      err.message ||
-      'Failed to delete highlight';
-    return rejectWithValue(errorMessage);
-  }
-});
+// const mapRedactionFromApi = (r: RedactionApiResponse): Redaction => ({
+//   id: String(r.id),
+//   fileId: String(r.documentId),
+//   pageNumber: r.pageNumber,
+//   coordinates: {
+//     x: r.x,
+//     y: r.y,
+//     width: r.width,
+//     height: r.height,
+//   },
+//   style: {
+//     name: r.name || 'Custom',
+//     fillHex: r.opacity === 0 ? null : r.fillHex,
+//     opacity: r.opacity ?? 1,
+//     borderHex: r.borderHex || '#000000',
+//     borderWidth: r.borderWidth ?? 2,
+//   },
+//   createdAt: r.createdAt,
+// });
 
 /*=============================================
 =            Redux Slice                      =
@@ -650,99 +284,224 @@ const toolbarSlice = createSlice({
     /*-------------------
       Load Highlights
     -------------------*/
-    builder
-      .addCase(loadHighlights.pending, state => {
-        state.loadingHighlights = true;
-        state.highlightError = null;
-      })
-      .addCase(loadHighlights.fulfilled, (state, action) => {
-        state.loadingHighlights = false;
-        state.highlights = action.payload;
-      })
-      .addCase(loadHighlights.rejected, (state, action) => {
-        state.loadingHighlights = false;
-        state.highlightError = action.payload || 'Failed to load highlights';
+   builder
+  .addMatcher(
+    toolbarApi.endpoints.getHighlights.matchPending,
+    (state) => {
+      state.loadingHighlights = true;
+      state.highlightError = null;
+    }
+  )
+  .addMatcher(
+    toolbarApi.endpoints.getHighlights.matchFulfilled,
+    (state, action) => {
+      state.loadingHighlights = false;
+      state.highlights = action.payload.map((h) => ({
+        id: h.id,
+        fileId: h.documentId,
+        pageNumber: h.pageNumber,
+        coordinates: {
+          x: h.x,
+          y: h.y,
+          width: h.width,
+          height: h.height,
+        },
+        text: h.text,
+        color: {
+          name: h.colorName,
+          hex: h.colorHex,
+          rgb: h.colorRgb,
+          opacity: h.opacity,
+        },
+        createdAt: h.createdAt,
+      }));
+    }
+  )
+  .addMatcher(
+    toolbarApi.endpoints.getHighlights.matchRejected,
+    (state, action) => {
+      state.loadingHighlights = false;
+      state.highlightError = action.error.message ?? 'Failed to load highlights';
+    }
+  );
+ 
+// ─── Create Highlight ─────────────────────────────────────────────────────────
+ 
+builder
+  .addMatcher(
+    toolbarApi.endpoints.createHighlight.matchPending,
+    (state) => {
+      state.highlightError = null;
+    }
+  )
+  .addMatcher(
+    toolbarApi.endpoints.createHighlight.matchFulfilled,
+    (state, action) => {
+      const h = action.payload;
+      state.highlights.push({
+        id: h.id,
+        fileId: h.documentId,
+        pageNumber: h.pageNumber,
+        coordinates: {
+          x: h.x,
+          y: h.y,
+          width: h.width,
+          height: h.height,
+        },
+        text: h.text,
+        color: {
+          name: h.colorName,
+          hex: h.colorHex,
+          rgb: h.colorRgb,
+          opacity: h.opacity,
+        },
+        createdAt: h.createdAt,
       });
+ 
+      // Clear pending highlight state after successful creation
+      state.pendingHighlight = null;
+      state.ToolbarPosition = { x: null, y: null };
+    }
+  )
+  .addMatcher(
+    toolbarApi.endpoints.createHighlight.matchRejected,
+    (state, action) => {
+      state.highlightError = action.error.message ?? 'Failed to create highlight';
+    }
+  );
+ 
+// ─── Delete Highlight ─────────────────────────────────────────────────────────
+ 
+builder
+  .addMatcher(
+    toolbarApi.endpoints.deleteHighlight.matchPending,
+    (state) => {
+      state.highlightError = null;
+    }
+  )
+  .addMatcher(
+    toolbarApi.endpoints.deleteHighlight.matchFulfilled,
+    (state, action) => {
+      state.highlights = state.highlights.filter(
+        (h) => h.id !== action.payload.id
+      );
+    }
+  )
+  .addMatcher(
+    toolbarApi.endpoints.deleteHighlight.matchRejected,
+    (state, action) => {
+      state.highlightError = action.error.message ?? 'Failed to delete highlight';
+    }
+  );
 
-    /*-------------------
-      Create Highlight
-    -------------------*/
-    builder
-      .addCase(createHighlight.pending, state => {
-        state.highlightError = null;
-      })
-      .addCase(createHighlight.fulfilled, (state, action) => {
-        state.highlights.push(action.payload);
-        // Clear pending highlight after creation
-        state.pendingHighlight = null;
-        state.ToolbarPosition = { x: null, y: null };
-      })
-      .addCase(createHighlight.rejected, (state, action) => {
-        state.highlightError = action.payload || 'Failed to create highlight';
-      });
-
-    /*-------------------
-      Delete Highlight
-    -------------------*/
-    builder
-      .addCase(deleteHighlight.pending, state => {
-        state.highlightError = null;
-      })
-      .addCase(deleteHighlight.fulfilled, (state, action) => {
-        state.highlights = state.highlights.filter(
-          h => h.id !== action.payload
-        );
-      })
-      .addCase(deleteHighlight.rejected, (state, action) => {
-        state.highlightError = action.payload || 'Failed to delete highlight';
-      });
-
-    /*-------------------
-      Load Redactions
-    -------------------*/
-    builder
-      .addCase(loadRedactions.pending, state => {
-        state.loadingRedactions = true;
-        state.redactionError = null;
-      })
-      .addCase(loadRedactions.fulfilled, (state, action) => {
-        state.loadingRedactions = false;
-        state.redactions = action.payload;
-      })
-      .addCase(loadRedactions.rejected, (state, action) => {
-        state.loadingRedactions = false;
-        state.redactionError = action.payload || 'Failed to load redactions';
-      });
-
-    /*-------------------
-      Create Redaction
-    -------------------*/
-    builder
-      .addCase(createRedaction.pending, state => {
-        state.redactionError = null;
-      })
-      .addCase(createRedaction.fulfilled, (state, action) => {
-        state.redactions.push(action.payload);
-      })
-      .addCase(createRedaction.rejected, (state, action) => {
-        state.redactionError = action.payload || 'Failed to create redaction';
-      });
-
-    /*-------------------
-      Delete Redaction
-    -------------------*/
-    builder
-      .addCase(deleteRedaction.pending, state => {
-        state.redactionError = null;
-      })
-      .addCase(deleteRedaction.fulfilled, (state, action) => {
-        state.redactions = state.redactions.filter(
-          r => r.id !== action.payload
-        );
-      })
-      .addCase(deleteRedaction.rejected, (state, action) => {
-        state.redactionError = action.payload || 'Failed to delete redaction';
-      });
+      /*--------------------
+        Redactions
+      ----------------------*/
+   builder
+  .addMatcher(
+    toolbarApi.endpoints.getRedactions.matchPending,
+    (state) => {
+      state.loadingRedactions = true;
+      state.redactionError = null;
+    }
+  )
+ .addMatcher(
+  toolbarApi.endpoints.getRedactions.matchFulfilled,
+  (state, action) => {
+    state.loadingRedactions = false;
+    state.redactions = action.payload.map((r) => ({
+      id: r.id,
+      fileId: r.documentId,
+      pageNumber: r.pageNumber,
+      coordinates: {
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+      },
+      style: {
+        name: r.name,
+        fillHex: r.fillHex,
+        opacity: r.opacity,
+        borderHex: r.borderHex,
+        borderWidth: r.borderWidth,
+      },
+      createdAt: r.createdAt,
+    }));
+  }
+)
+  .addMatcher(
+    toolbarApi.endpoints.getRedactions.matchRejected,
+    (state, action) => {
+      state.loadingRedactions = false;
+      state.redactionError = action.error.message ?? 'Failed to load redactions';
+    }
+  );
+ 
+// ─── Create Redaction ─────────────────────────────────────────────────────────
+ 
+builder
+  .addMatcher(
+    toolbarApi.endpoints.createRedaction.matchPending,
+    (state) => {
+      state.redactionError = null;
+    }
+  )
+ .addMatcher(
+  toolbarApi.endpoints.createRedaction.matchFulfilled,
+  (state, action) => {
+    const r = action.payload;
+    state.redactions.push({
+      id: r.id,
+      fileId: r.documentId,
+      pageNumber: r.pageNumber,
+      coordinates: {
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+      },
+      style: {
+        name: r.name,
+        fillHex: r.fillHex,
+        opacity: r.opacity,
+        borderHex: r.borderHex,
+        borderWidth: r.borderWidth,
+      },
+      createdAt: r.createdAt,
+    });
+  }
+)
+  .addMatcher(
+    toolbarApi.endpoints.createRedaction.matchRejected,
+    (state, action) => {
+      state.redactionError = action.error.message ?? 'Failed to create redaction';
+    }
+  );
+ 
+// ─── Delete Redaction ─────────────────────────────────────────────────────────
+ 
+builder
+  .addMatcher(
+    toolbarApi.endpoints.deleteRedaction.matchPending,
+    (state) => {
+      state.redactionError = null;
+    }
+  )
+  .addMatcher(
+    toolbarApi.endpoints.deleteRedaction.matchFulfilled,
+    (state, action) => {
+      state.redactions = state.redactions.filter(
+        (r) => r.id !== action.payload.id
+      );
+    }
+  )
+  .addMatcher(
+    toolbarApi.endpoints.deleteRedaction.matchRejected,
+    (state, action) => {
+      state.redactionError = action.error.message ?? 'Failed to delete redaction';
+    }
+  );
 
     /*-------------------
       Load Comments

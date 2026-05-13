@@ -97,6 +97,34 @@ const SQL_CREATE_COMMENTS_INDEXES = `
   CREATE INDEX IF NOT EXISTS idx_comments_document_page ON comments (document_id, page_number);
 `;
 
+const SQL_CREATE_REDACTIONS_TABLE = `
+  CREATE TABLE IF NOT EXISTS redactions (
+    id           TEXT    PRIMARY KEY,
+    bundle_id    TEXT    NOT NULL,
+    document_id  TEXT    NOT NULL,
+    page_number  INTEGER NOT NULL,
+    x            REAL    NOT NULL,
+    y            REAL    NOT NULL,
+    width        REAL    NOT NULL,
+    height       REAL    NOT NULL,
+    name         TEXT    NOT NULL,
+    fill_hex     TEXT    NOT NULL,
+    opacity      REAL    NOT NULL,
+    border_hex   TEXT    NOT NULL,
+    border_width REAL    NOT NULL,
+    created_at   TEXT,
+    updated_at   TEXT,
+    FOREIGN KEY (bundle_id)   REFERENCES bundles(id)   ON DELETE CASCADE,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+  )
+`;
+
+const SQL_CREATE_REDACTIONS_INDEXES = `
+  CREATE INDEX IF NOT EXISTS idx_redactions_bundle_id     ON redactions (bundle_id);
+  CREATE INDEX IF NOT EXISTS idx_redactions_document_id   ON redactions (document_id);
+  CREATE INDEX IF NOT EXISTS idx_redactions_document_page ON redactions (document_id, page_number);
+`;
+
 // ─── Database Initialisation ──────────────────────────────────────────────────
 
 export function createSqliteDatabase(dbPath: string): SqliteDatabase {
@@ -113,6 +141,8 @@ export function createSqliteDatabase(dbPath: string): SqliteDatabase {
   db.exec(SQL_CREATE_HIGHLIGHTS_INDEXES);
   db.exec(SQL_CREATE_COMMENTS_TABLE);
   db.exec(SQL_CREATE_COMMENTS_INDEXES);
+  db.exec(SQL_CREATE_REDACTIONS_TABLE);
+  db.exec(SQL_CREATE_REDACTIONS_INDEXES);
 
   return db;
 }

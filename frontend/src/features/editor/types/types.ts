@@ -22,6 +22,7 @@ export type DocumentPageMetrics = {
 
 export type HighlightOverlayProps = {
   fileId: string;
+  bundleId: string;
   pageNumber: number;
   pageHeight: number; // PDF page height in PDF units
   scale: number;

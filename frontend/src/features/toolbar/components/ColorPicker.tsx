@@ -1,5 +1,5 @@
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { createHighlight } from '@/features/toolbar/redux';
+import { useAppSelector } from '@/app/hooks';
+import { useCreateHighlightMutation } from '@/features/toolbar/api';
 import type {
   HighlightColor,
   CreateHighlightRequest,
@@ -35,8 +35,7 @@ function HighlightColorPicker() {
     state => state.toolbar.pendingHighlight
   );
   const treeId = useAppSelector(state => state.fileTree.tree.id);
-  const dispatch = useAppDispatch();
-
+  const [createHighlight] = useCreateHighlightMutation();
   const handleColorClick = (color: HighlightColor) => {
     if (!pendingHighlight) {
       console.warn('⚠️ No pending highlight data');
@@ -68,7 +67,7 @@ function HighlightColorPicker() {
     console.log('✅ Creating highlight:', highlight);
 
     // Add highlight to Redux store
-    dispatch(createHighlight({ bundleId, data: highlight }));
+    createHighlight({ bundleId, data: highlight });
 
     // Clear the text selection
     const selection = window.getSelection();

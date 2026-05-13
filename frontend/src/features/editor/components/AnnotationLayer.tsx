@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent } from 'react';
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { createRedaction } from '@/features/toolbar/redux';
+import { useAppSelector } from '@/app/hooks';
+import { useCreateRedactionMutation } from '@/features/toolbar/api';
 import CommentOverlay from '@/features/toolbar/components/CommentOverlay';
 import { InteractiveHighlightOverlay } from '@/features/toolbar/components/HighlightOverlay';
 import RedactionOverlay from '@/features/toolbar/components/RedactionOverlay';
@@ -33,9 +33,9 @@ const hexToRgba = (hex: string, opacity: number) => {
   const normalized =
     sanitized.length === 3
       ? sanitized
-          .split('')
-          .map(char => char + char)
-          .join('')
+        .split('')
+        .map(char => char + char)
+        .join('')
       : sanitized;
   const value = Number.parseInt(normalized, 16);
   const r = (value >> 16) & 255;
@@ -50,8 +50,8 @@ const AnnotationLayer = ({
   pageInfo,
   scale,
 }: AnnotationLayerProps) => {
-  const dispatch = useAppDispatch();
   const activeTool = useAppSelector(state => state.toolbar.activeTool);
+  const [createRedaction] = useCreateRedactionMutation();
   const redactionStyle = useAppSelector(state => state.toolbar.redactionStyle);
   const treeId = useAppSelector(state => state.fileTree.tree.id);
   const bundleId = resolveBundleIdFromTreeId(treeId);
@@ -153,24 +153,23 @@ const AnnotationLayer = ({
     const resolvedFillHex = redactionStyle.fillHex || '#000000';
     const resolvedOpacity = redactionStyle.fillHex ? redactionStyle.opacity : 0;
 
-    dispatch(
-      createRedaction({
-        bundleId,
-        data: {
-          document_id: fileId,
-          page_number: pageNumber,
-          x: pdfCoords.x,
-          y: pdfCoords.y,
-          width: pdfCoords.width,
-          height: pdfCoords.height,
-          name: redactionStyle.name,
-          fill_hex: resolvedFillHex,
-          opacity: resolvedOpacity,
-          border_hex: redactionStyle.borderHex,
-          border_width: redactionStyle.borderWidth,
-        },
-      })
-    );
+    createRedaction({
+      bundleId,
+      data: {
+        document_id: fileId,
+        page_number: pageNumber,
+        x: pdfCoords.x,
+        y: pdfCoords.y,
+        width: pdfCoords.width,
+        height: pdfCoords.height,
+        name: redactionStyle.name,
+        fill_hex: resolvedFillHex,
+        opacity: resolvedOpacity,
+        border_hex: redactionStyle.borderHex,
+        border_width: redactionStyle.borderWidth,
+      },
+    })
+
   };
 
   const handlePointerCancel = () => {
@@ -211,6 +210,7 @@ const AnnotationLayer = ({
         <>
           <InteractiveHighlightOverlay
             fileId={fileId}
+            bundleId={bundleId ?? ''}
             pageHeight={pageInfo.height}
             pageNumber={pageNumber}
             scale={scale}
