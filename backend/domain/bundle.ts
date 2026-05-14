@@ -7,6 +7,13 @@ export const bundleStatuses = [
 
 export type BundleStatus = (typeof bundleStatuses)[number];
 
+export interface BundleMetadata {
+  headerLeft?: string;
+  headerRight?: string;
+  footer?: string;
+  [key: string]: unknown;
+}
+
 export interface Bundle {
   id: string;
   name: string;
@@ -17,6 +24,14 @@ export interface Bundle {
   updatedAt: string;
   description?: string;
   tags?: string[];
+}
+
+export function createEmptyBundleMetadata(): BundleMetadata {
+  return {
+    headerLeft: '',
+    headerRight: '',
+    footer: '',
+  };
 }
 
 export function normalizeBundleName(name: string): string {

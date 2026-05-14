@@ -1,4 +1,8 @@
-import type { Bundle, BundleStatus } from '../../../domain/bundle.js';
+import type {
+  Bundle,
+  BundleMetadata,
+  BundleStatus,
+} from '../../../domain/bundle.js';
 
 export type BundleUpdates = {
   name?: string;
@@ -8,6 +12,11 @@ export type BundleUpdates = {
 export interface BundleRepository {
   create(bundle: Bundle): Promise<void>;
   delete(id: string): Promise<void>;
+  getMetadata(id: string): Promise<BundleMetadata>;
   list(): Promise<Bundle[]>;
   update(id: string, updates: BundleUpdates): Promise<Bundle>;
+  updateMetadata(
+    id: string,
+    metadata: BundleMetadata
+  ): Promise<BundleMetadata>;
 }

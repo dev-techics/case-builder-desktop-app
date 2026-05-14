@@ -24,8 +24,8 @@ export const usePersistMetadata = () => {
       await saveMetaData({
         bundleId,
         payload: {
-          header_left: headerLeftText,
-          header_right: headerRightText,
+          headerLeft: headerLeftText,
+          headerRight: headerRightText,
           footer: footerText,
         },
       }).unwrap();

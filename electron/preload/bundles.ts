@@ -1,9 +1,13 @@
 import { ipcRenderer } from 'electron';
 
+type BundleMetadata = {
+  [key: string]: unknown;
+};
+
 export const bundlesApi = {
   /*--------------------
-        Create bundle IPC 
-      ----------------------*/
+    Create bundle IPC 
+  ----------------------*/
   createBundle: (
     input:
       | {
@@ -16,7 +20,17 @@ export const bundlesApi = {
       | string
   ) => ipcRenderer.invoke('bundle:create', input),
 
+  /*----------------
+     Get bundles
+  ------------------*/
+
   getBundles: () => ipcRenderer.invoke('bundle:getAll'),
+
+  /*-----------------------
+    Get bundle metadata
+  -------------------------*/
+  getBundleMetadata: (bundleId: string | number) =>
+    ipcRenderer.invoke('bundle:getMetadata', bundleId),
 
   /*----------------------
         Bundle update channel
@@ -27,9 +41,17 @@ export const bundlesApi = {
     status?: string;
   }) => ipcRenderer.invoke('bundle:update', input),
 
+  /*-----------------------------
+    Save & Update bundle metadata
+  -------------------------------*/
+  updateBundleMetadata: (input: {
+    bundleId: string | number;
+    metadata: BundleMetadata;
+  }) => ipcRenderer.invoke('bundle:updateMetadata', input),
+
   /*--------------------
-        Delete bundle IPC
-      ----------------------*/
+    Delete bundle IPC
+  ----------------------*/
   deleteBundle: (id: string | number) =>
     ipcRenderer.invoke('bundle:delete', id),
 };

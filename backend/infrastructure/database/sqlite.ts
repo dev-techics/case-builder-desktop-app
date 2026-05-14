@@ -17,8 +17,14 @@ const SQL_CREATE_BUNDLES_TABLE = `
     created_at   TEXT    NOT NULL,
     updated_at   TEXT    NOT NULL,
     description  TEXT,
-    tags         TEXT
+    tags         TEXT,
+    metadata     TEXT
   )
+`;
+
+const SQL_ADD_BUNDLES_METADATA_COLUMN = `
+  ALTER TABLE bundles
+  ADD COLUMN metadata TEXT
 `;
 
 const SQL_CREATE_DOCUMENTS_TABLE = `
@@ -135,6 +141,7 @@ export function createSqliteDatabase(dbPath: string): SqliteDatabase {
   db.pragma('foreign_keys = ON');
 
   db.exec(SQL_CREATE_BUNDLES_TABLE);
+  ensureBundlesMetadataColumn(db);
   db.exec(SQL_CREATE_DOCUMENTS_TABLE);
   db.exec(SQL_CREATE_DOCUMENTS_INDEXES);
   db.exec(SQL_CREATE_HIGHLIGHTS_TABLE);
@@ -145,4 +152,15 @@ export function createSqliteDatabase(dbPath: string): SqliteDatabase {
   db.exec(SQL_CREATE_REDACTIONS_INDEXES);
 
   return db;
+}
+
+function ensureBundlesMetadataColumn(db: SqliteDatabase): void {
+  const columns = db.prepare('PRAGMA table_info(bundles)').all() as Array<{
+    name: string;
+  }>;
+
+  const hasMetadataColumn = columns.some(column => column.name === 'metadata');
+  if (!hasMetadataColumn) {
+    db.exec(SQL_ADD_BUNDLES_METADATA_COLUMN);
+  }
 }

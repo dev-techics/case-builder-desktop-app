@@ -2,7 +2,11 @@ import type {
   BundleRepository,
   BundleUpdates,
 } from '../../application/ports/bundles/bundleRepository.js';
-import type { Bundle } from '../../domain/bundle.js';
+import {
+  createEmptyBundleMetadata,
+  type Bundle,
+  type BundleMetadata,
+} from '../../domain/bundle.js';
 import type { SqliteDatabase } from '../database/sqlite.js';
 
 type BundleRow = {
@@ -15,6 +19,10 @@ type BundleRow = {
   updated_at: string;
   description: string | null;
   tags: string | null;
+};
+
+type BundleMetadataRow = {
+  metadata: string | null;
 };
 
 export class SqliteBundleRepository implements BundleRepository {
@@ -63,6 +71,25 @@ export class SqliteBundleRepository implements BundleRepository {
 
   async delete(id: string): Promise<void> {
     this.db.prepare('DELETE FROM bundles WHERE id = ?').run(id);
+  }
+
+  async getMetadata(id: string): Promise<BundleMetadata> {
+    const row = this.db
+      .prepare(
+        `
+          SELECT metadata
+          FROM bundles
+          WHERE id = ?
+          LIMIT 1
+        `
+      )
+      .get(id) as BundleMetadataRow | undefined;
+
+    if (!row) {
+      throw new Error('Bundle not found.');
+    }
+
+    return deserializeMetadata(row.metadata);
   }
 
   async list(): Promise<Bundle[]> {
@@ -147,6 +174,48 @@ export class SqliteBundleRepository implements BundleRepository {
 
     return mapBundleRow(row);
   }
+
+  async updateMetadata(
+    id: string,
+    metadata: BundleMetadata
+  ): Promise<BundleMetadata> {
+    const currentMetadata = this.db
+      .prepare(
+        `
+          SELECT metadata
+          FROM bundles
+          WHERE id = ?
+          LIMIT 1
+        `
+      )
+      .get(id) as BundleMetadataRow | undefined;
+
+    if (!currentMetadata) {
+      throw new Error('Bundle not found.');
+    }
+
+    const updatedAt = new Date().toISOString();
+    const mergedMetadata = mergeMetadata(
+      readStoredMetadataObject(currentMetadata.metadata),
+      metadata
+    );
+
+    const result = this.db
+      .prepare(
+        `
+          UPDATE bundles
+          SET metadata = ?, updated_at = ?
+          WHERE id = ?
+        `
+      )
+      .run(serializeMetadata(mergedMetadata), updatedAt, id);
+
+    if (result.changes === 0) {
+      throw new Error('Bundle not found.');
+    }
+
+    return mergedMetadata;
+  }
 }
 
 function mapBundleRow(row: BundleRow): Bundle {
@@ -189,4 +258,76 @@ function deserializeTags(rawTags: string | null): string[] | undefined {
 
     return tags.length > 0 ? tags : undefined;
   }
+}
+
+function serializeMetadata(metadata: BundleMetadata): string {
+  return JSON.stringify(metadata);
+}
+
+function deserializeMetadata(rawMetadata: string | null): BundleMetadata {
+  const source = readStoredMetadataObject(rawMetadata);
+  const metadata: BundleMetadata = {
+    ...source,
+    headerLeft: readMetadataValue(source.headerLeft ?? source.header_left),
+    headerRight: readMetadataValue(source.headerRight ?? source.header_right),
+    footer: readMetadataValue(source.footer),
+  };
+
+  delete metadata.header_left;
+  delete metadata.header_right;
+
+  return metadata;
+}
+
+function readStoredMetadataObject(rawMetadata: string | null): Record<string, unknown> {
+  if (!rawMetadata) {
+    return createEmptyBundleMetadata();
+  }
+
+  try {
+    const parsed = JSON.parse(rawMetadata) as unknown;
+    return getMetadataSource(parsed);
+  } catch {
+    return createEmptyBundleMetadata();
+  }
+}
+
+function getMetadataSource(value: unknown): Record<string, unknown> {
+  if (!isRecord(value)) {
+    return createEmptyBundleMetadata();
+  }
+
+  if (isRecord(value.metadata)) {
+    return value.metadata;
+  }
+
+  return value;
+}
+
+function readMetadataValue(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function mergeMetadata(
+  currentMetadata: Record<string, unknown>,
+  patch: BundleMetadata
+): BundleMetadata {
+  const mergedMetadata: BundleMetadata = {
+    ...currentMetadata,
+    ...patch,
+  };
+
+  if (patch.headerLeft !== undefined) {
+    delete mergedMetadata.header_left;
+  }
+
+  if (patch.headerRight !== undefined) {
+    delete mergedMetadata.header_right;
+  }
+
+  return mergedMetadata;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

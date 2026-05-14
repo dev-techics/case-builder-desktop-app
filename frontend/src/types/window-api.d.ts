@@ -57,10 +57,14 @@ type CreateCommentRequest = {
   page_y: number;
 };
 
+type DesktopBundleMetadata = {
+  [key: string]: unknown;
+};
+
 declare global {
   interface Window {
     api?: {
-      isDesktop?: boolean;
+      isDesktop?: true;
       createBundle: (
         input:
           | {
@@ -79,6 +83,13 @@ declare global {
         name?: string;
         status?: BundleStatus;
       }) => Promise<unknown>;
+      getBundleMetadata: (
+        bundleId: string | number
+      ) => Promise<DesktopBundleMetadata>;
+      updateBundleMetadata: (input: {
+        bundleId: string | number;
+        metadata: DesktopBundleMetadata;
+      }) => Promise<DesktopBundleMetadata>;
       getDocumentsTree: (bundleId: string | number) => Promise<FileTree>;
       createFolder: (input: {
         bundleId: string | number;

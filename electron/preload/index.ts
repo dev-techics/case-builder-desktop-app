@@ -6,6 +6,7 @@ import { commentsApi } from './comments.js';
 import { redactionsApi } from './redactions.js';
 
 contextBridge.exposeInMainWorld('api', {
+  isDesktop: true,
   ...documentsApi,
   ...bundlesApi,
   ...highlightsApi,

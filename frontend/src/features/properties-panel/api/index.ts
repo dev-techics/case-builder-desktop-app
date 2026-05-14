@@ -1,7 +1,16 @@
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import camelcaseKeys from 'camelcase-keys';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+const getDesktopApi = () =>
+  typeof window === 'undefined' ? undefined : window.api;
+
+const toIpcError = (error: unknown): FetchBaseQueryError => ({
+  status: 'CUSTOM_ERROR',
+  error: error instanceof Error ? error.message : 'IPC request failed',
+});
 
 export type ExportCompressionProfile =
   | 'none'
@@ -32,11 +41,7 @@ export type PropertiesPanelMetadata = {
   footer: string;
 };
 
-export type SaveMetaDataPayload = {
-  header_left: string;
-  header_right: string;
-  footer: string;
-};
+export type SaveMetaDataPayload = PropertiesPanelMetadata;
 
 export type ExportBundleRequestPayload = {
   include_index: boolean;
@@ -201,14 +206,29 @@ export const propertiesPanelApi = createApi({
         Save metadata to db
     -------------------------------*/
     saveMetaData: builder.mutation<
-      unknown,
+      PropertiesPanelMetadata,
       { bundleId: string; payload: SaveMetaDataPayload }
     >({
-      query: ({ bundleId, payload }) => ({
-        url: `/api/bundles/${bundleId}/metadata`,
-        method: 'PATCH',
-        body: payload,
-      }),
+      async queryFn({ bundleId, payload }) {
+        const desktopApi = getDesktopApi();
+        
+        if (!desktopApi?.updateBundleMetadata) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable :(')),
+          };
+        }
+
+        try {
+          const metadata = await desktopApi.updateBundleMetadata({
+            bundleId,
+            metadata: payload,
+          });
+
+          return { data: normalizeMetadata(metadata) };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
 
       // Optimistically update the cache for getMetaData query
       async onQueryStarted(
@@ -220,15 +240,26 @@ export const propertiesPanelApi = createApi({
             'getMetaData',
             { bundleId },
             draft => {
-              draft.headerLeft = payload.header_left;
-              draft.headerRight = payload.header_right;
+              if (!draft) {
+                return;
+              }
+
+              draft.headerLeft = payload.headerLeft;
+              draft.headerRight = payload.headerRight;
               draft.footer = payload.footer;
             }
           )
         );
 
         try {
-          await queryFulfilled;
+          const { data } = await queryFulfilled;
+          dispatch(
+            propertiesPanelApi.util.upsertQueryData(
+              'getMetaData',
+              { bundleId },
+              data
+            )
+          );
         } catch {
           patchResult.undo();
         }
@@ -238,11 +269,22 @@ export const propertiesPanelApi = createApi({
         Get metadata from backend
     --------------------------------*/
     getMetaData: builder.query<PropertiesPanelMetadata, { bundleId: string }>({
-      query: ({ bundleId }) => ({
-        url: `/api/bundles/${bundleId}/metadata`,
-        method: 'GET',
-      }),
-      transformResponse: normalizeMetadata,
+      async queryFn({ bundleId }) {
+        const desktopApi = getDesktopApi();
+
+        if (!desktopApi?.getBundleMetadata) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
+        }
+
+        try {
+          const metadata = await desktopApi.getBundleMetadata(bundleId);
+          return { data: normalizeMetadata(metadata) };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
     }),
 
     /*------------------------

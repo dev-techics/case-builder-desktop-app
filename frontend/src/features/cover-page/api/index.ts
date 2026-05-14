@@ -1,7 +1,16 @@
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { CoverPageTemplate } from '../types';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+const getDesktopApi = () =>
+  typeof window !== 'undefined' ? window.api : undefined;
+
+const toIpcError = (error: unknown): FetchBaseQueryError => ({
+  status: 'CUSTOM_ERROR',
+  error: error instanceof Error ? error.message : 'IPC request failed',
+});
 
 type CoverPagePayload = {
   templateKey?: string;
@@ -176,11 +185,26 @@ const coverPageApi = createApi({
       unknown,
       { bundleId: string; metadata: BundleMetadataPayload }
     >({
-      query: ({ bundleId, metadata }) => ({
-        url: `/api/bundles/${bundleId}/metadata`,
-        method: 'PATCH',
-        body: metadata,
-      }),
+      async queryFn({ bundleId, metadata }) {
+        const desktopApi = getDesktopApi();
+
+        if (!desktopApi?.updateBundleMetadata) {
+          return {
+            error: toIpcError(new Error('Desktop API unavailable')),
+          };
+        }
+
+        try {
+          const response = await desktopApi.updateBundleMetadata({
+            bundleId,
+            metadata,
+          });
+
+          return { data: response };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
     }),
   }),
 });
