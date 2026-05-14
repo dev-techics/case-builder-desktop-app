@@ -2,12 +2,14 @@ import { ipcMain } from 'electron';
 
 import type { BundleRepository } from '../../backend/application/ports/bundles/bundleRepository.js';
 import type { DocumentStorage } from '../../backend/application/ports/documents/documentStorage.js';
+import type { ExportService } from '../../backend/application/ports/export/exportService.js';
 import { CreateBundleUseCase } from '../../backend/application/useCases/bundle/createBundle.js';
 import { DeleteBundleUseCase } from '../../backend/application/useCases/bundle/deleteBundle.js';
 import { GetBundleMetadataUseCase } from '../../backend/application/useCases/bundle/getBundleMetadata.js';
 import { ListBundlesUseCase } from '../../backend/application/useCases/bundle/listBundles.js';
 import { UpdateBundleUseCase } from '../../backend/application/useCases/bundle/updateBundle.js';
 import { UpdateBundleMetadataUseCase } from '../../backend/application/useCases/bundle/updateBundleMetadata.js';
+import { ExportBundleUseCase } from '../../backend/application/useCases/export/exportBundle.js';
 
 type BundleMetadataPayload = {
   headerLeft?: unknown;
@@ -20,6 +22,7 @@ type BundleMetadataPayload = {
 export function registerBundleIpc(deps: {
   bundleRepository: BundleRepository;
   documentStorage: DocumentStorage;
+  exportService?: ExportService;
 }) {
   const createBundle = new CreateBundleUseCase(deps.bundleRepository);
   const deleteBundle = new DeleteBundleUseCase(
@@ -32,6 +35,9 @@ export function registerBundleIpc(deps: {
   const updateBundleMetadata = new UpdateBundleMetadataUseCase(
     deps.bundleRepository
   );
+  const exportBundle = deps.exportService
+    ? new ExportBundleUseCase(deps.exportService)
+    : null;
 
   /*--------------------------
     createBundle IPC Handler:
@@ -115,6 +121,19 @@ export function registerBundleIpc(deps: {
     const bundleId = typeof id === 'string' ? id : String(id ?? '');
     await deleteBundle.execute(bundleId);
   });
+
+  /*-----------------------
+    Export bundle handler
+  -------------------------*/
+  ipcMain.handle('bundle:export', async (_, id) => {
+    const bundleId = typeof id === 'string' ? id : String(id ?? '');
+
+    if (!exportBundle) {
+      throw new Error('Export service is not configured.');
+    }
+
+    await exportBundle.execute(bundleId);
+  });
 }
 
 function toBundleId(value: unknown): string {
@@ -122,7 +141,5 @@ function toBundleId(value: unknown): string {
 }
 
 function toMetadataPayload(value: unknown): BundleMetadataPayload {
-  return typeof value === 'object' && value !== null
-    ? (value as BundleMetadataPayload)
-    : {};
+  return typeof value === 'object' && value !== null ? value : {};
 }

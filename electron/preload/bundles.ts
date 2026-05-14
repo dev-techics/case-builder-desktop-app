@@ -54,4 +54,10 @@ export const bundlesApi = {
   ----------------------*/
   deleteBundle: (id: string | number) =>
     ipcRenderer.invoke('bundle:delete', id),
+
+  /*--------------- 
+    Export bundle
+  -----------------*/
+  exportBundle: (bundleId: string) =>
+    ipcRenderer.invoke('bundle:export', bundleId),
 };
