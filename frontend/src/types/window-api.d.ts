@@ -61,6 +61,12 @@ type DesktopBundleMetadata = {
   [key: string]: unknown;
 };
 
+type DesktopExportBundleResponse = {
+  canceled: boolean;
+  outputPath?: string;
+  pageCount?: number;
+};
+
 declare global {
   interface Window {
     api?: {
@@ -90,6 +96,14 @@ declare global {
         bundleId: string | number;
         metadata: DesktopBundleMetadata;
       }) => Promise<DesktopBundleMetadata>;
+      exportBundle: (input: {
+        bundleId: string;
+        includeFrontCover?: boolean;
+        includeBackCover?: boolean;
+        includeIndex?: boolean;
+        compress?: boolean;
+        fileName?: string;
+      }) => Promise<DesktopExportBundleResponse>;
       getDocumentsTree: (bundleId: string | number) => Promise<FileTree>;
       createFolder: (input: {
         bundleId: string | number;

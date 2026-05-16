@@ -1,14 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import {
-  useExportBundleMutation,
-  useLazyDownloadExportQuery,
-  useLazyGetExportStatusQuery,
-} from '../api';
-import type {
-  ExportBundleRequestPayload,
-  ExportCompressionProfile,
-} from '../api';
+import type { ExportCompressionProfile } from '../api';
 
 type UseExportBundleProps = {
   hasFiles: boolean;
@@ -21,26 +13,10 @@ type UseExportBundleProps = {
 
 type ExportStatus = 'idle' | 'exporting' | 'success' | 'error';
 
-const EXPORT_POLL_DELAY_MS = 3000;
 const SUCCESS_RESET_DELAY_MS = 3000;
 
-const sleep = (delayMs: number) =>
-  new Promise<void>(resolve => {
-    globalThis.setTimeout(resolve, delayMs);
-  });
-
-const triggerBrowserDownload = (blob: Blob, fileName: string) => {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  globalThis.setTimeout(() => URL.revokeObjectURL(url), 100);
-};
+const getDesktopApi = () =>
+  typeof window === 'undefined' ? undefined : window.api;
 
 const getExportErrorMessage = (error: unknown): string => {
   const fallback = 'Failed to export bundle';
@@ -103,10 +79,6 @@ const useExportBundle = ({
   frontCoverAvailable,
   backCoverAvailable,
 }: UseExportBundleProps) => {
-  const [startExportBundle] = useExportBundleMutation();
-  const [checkExportStatus] = useLazyGetExportStatusQuery();
-  const [downloadExport] = useLazyDownloadExportQuery();
-
   const [includeIndex, setIncludeIndex] = useState(true);
   const [includeFrontCover, setIncludeFrontCover] =
     useState(frontCoverAvailable);
@@ -131,9 +103,17 @@ const useExportBundle = ({
   );
 
   const handleExport = async () => {
+    const desktopApi = getDesktopApi();
+
     if (resetTimerRef.current !== null) {
       globalThis.clearTimeout(resetTimerRef.current);
       resetTimerRef.current = null;
+    }
+
+    if (!desktopApi?.exportBundle) {
+      setExportStatus('error');
+      setExportMessage('Desktop export API unavailable');
+      return;
     }
 
     if (!hasFiles || !bundleId) {
@@ -144,78 +124,25 @@ const useExportBundle = ({
       return;
     }
 
-    const trimmedTargetSizeMb = targetSizeMb.trim();
-    const parsedTargetSizeMb = Number.parseFloat(trimmedTargetSizeMb);
-    const isCompressionEnabled = compressionProfile !== 'none';
-
-    if (
-      isCompressionEnabled &&
-      (!trimmedTargetSizeMb ||
-        !Number.isFinite(parsedTargetSizeMb) ||
-        parsedTargetSizeMb <= 0)
-    ) {
-      setExportStatus('error');
-      setExportMessage('Please enter a valid target size in MB');
-      return;
-    }
-
     setIsExporting(true);
     setExportStatus('exporting');
-    setExportMessage('Starting export...');
+    setExportMessage('Preparing export...');
 
     try {
-      const exportPayload = {
-        include_index: includeIndex,
-        include_front_cover: includeFrontCover && frontCoverAvailable,
-        include_back_cover: includeBackCover && backCoverAvailable,
-        compression_profile: compressionProfile,
-        ...(isCompressionEnabled ? { target_size_mb: parsedTargetSizeMb } : {}),
-      } satisfies ExportBundleRequestPayload;
-
-      const exportResponse = await startExportBundle({
+      const exportResponse = await desktopApi.exportBundle({
         bundleId,
-        payload: exportPayload,
-      }).unwrap();
+        includeFrontCover: includeFrontCover && frontCoverAvailable,
+        includeBackCover: includeBackCover && backCoverAvailable,
+        includeIndex,
+        compress: compressionProfile !== 'none',
+        fileName: buildExportFileName(projectName),
+      });
 
-      if (!exportResponse.exportId) {
-        throw new Error('Export job ID not returned by server');
+      if (exportResponse?.canceled) {
+        setExportStatus('idle');
+        setExportMessage('');
+        return;
       }
-
-      setExportMessage('Processing PDF on server...');
-
-      while (true) {
-        const statusData = await checkExportStatus(
-          exportResponse.exportId,
-          false
-        ).unwrap();
-
-        if (statusData.status === 'complete') {
-          break;
-        }
-
-        if (statusData.status === 'failed') {
-          throw new Error(statusData.error || 'Export failed on server');
-        }
-
-        setExportMessage(
-          statusData.status === 'processing'
-            ? 'Generating PDF...'
-            : 'Waiting in queue...'
-        );
-        await sleep(EXPORT_POLL_DELAY_MS);
-      }
-
-      setExportMessage('Downloading...');
-      const downloadBlob = await downloadExport(
-        exportResponse.exportId,
-        false
-      ).unwrap();
-
-      const fileBaseName = (projectName?.trim() || 'Bundle').replace(
-        /\s+/g,
-        '_'
-      );
-      triggerBrowserDownload(downloadBlob, `${fileBaseName}_${Date.now()}.pdf`);
 
       const successParts: string[] = [];
       if (includeFrontCover && frontCoverAvailable) {
@@ -233,9 +160,11 @@ const useExportBundle = ({
         successParts.length > 1
           ? ` (including ${successParts.slice(0, -1).join(', ')})`
           : '';
+      const savedLocation =
+        exportResponse?.outputPath ? ` to ${exportResponse.outputPath}` : '';
 
       setExportStatus('success');
-      setExportMessage(`Successfully exported${successAddons}`);
+      setExportMessage(`Successfully exported${successAddons}${savedLocation}`);
 
       resetTimerRef.current = globalThis.setTimeout(() => {
         setExportStatus('idle');
@@ -270,3 +199,8 @@ const useExportBundle = ({
 };
 
 export default useExportBundle;
+
+function buildExportFileName(projectName?: string | null): string {
+  const baseName = projectName?.trim() || 'Bundle';
+  return /\.pdf$/i.test(baseName) ? baseName : `${baseName}.pdf`;
+}

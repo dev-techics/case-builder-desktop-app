@@ -58,6 +58,12 @@ export const bundlesApi = {
   /*--------------- 
     Export bundle
   -----------------*/
-  exportBundle: (bundleId: string) =>
-    ipcRenderer.invoke('bundle:export', bundleId),
+  exportBundle: (input: {
+    bundleId: string;
+    includeFrontCover?: boolean;
+    includeBackCover?: boolean;
+    includeIndex?: boolean;
+    compress?: boolean;
+    fileName?: string;
+  }) => ipcRenderer.invoke('bundle:export', input),
 };

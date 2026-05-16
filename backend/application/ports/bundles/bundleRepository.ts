@@ -12,6 +12,7 @@ export type BundleUpdates = {
 export interface BundleRepository {
   create(bundle: Bundle): Promise<void>;
   delete(id: string): Promise<void>;
+  getById(id: string): Promise<Bundle | null>;
   getMetadata(id: string): Promise<BundleMetadata>;
   list(): Promise<Bundle[]>;
   update(id: string, updates: BundleUpdates): Promise<Bundle>;

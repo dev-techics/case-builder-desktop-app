@@ -131,6 +131,25 @@ const SQL_CREATE_REDACTIONS_INDEXES = `
   CREATE INDEX IF NOT EXISTS idx_redactions_document_page ON redactions (document_id, page_number);
 `;
 
+const SQL_CREATE_COVER_PAGES_TABLE = `
+  CREATE TABLE IF NOT EXISTS cover_pages (
+    id          TEXT    PRIMARY KEY,
+    name        TEXT    NOT NULL,
+    description TEXT,
+    type        TEXT    NOT NULL DEFAULT 'front' CHECK (type IN ('front', 'back')),
+    is_default  INTEGER NOT NULL DEFAULT 0,
+    html        TEXT,
+    design_json TEXT,
+    created_at  TEXT,
+    updated_at  TEXT,
+    deleted_at  TEXT
+  )
+`;
+
+const SQL_CREATE_COVER_PAGES_INDEXES = `
+  CREATE INDEX IF NOT EXISTS idx_cover_pages_type ON cover_pages (type);
+`;
+
 // ─── Database Initialisation ──────────────────────────────────────────────────
 
 export function createSqliteDatabase(dbPath: string): SqliteDatabase {
@@ -150,6 +169,8 @@ export function createSqliteDatabase(dbPath: string): SqliteDatabase {
   db.exec(SQL_CREATE_COMMENTS_INDEXES);
   db.exec(SQL_CREATE_REDACTIONS_TABLE);
   db.exec(SQL_CREATE_REDACTIONS_INDEXES);
+  db.exec(SQL_CREATE_COVER_PAGES_TABLE);
+  db.exec(SQL_CREATE_COVER_PAGES_INDEXES);
 
   return db;
 }

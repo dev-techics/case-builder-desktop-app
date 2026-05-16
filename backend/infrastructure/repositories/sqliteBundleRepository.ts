@@ -92,6 +92,30 @@ export class SqliteBundleRepository implements BundleRepository {
     return deserializeMetadata(row.metadata);
   }
 
+  async getById(id: string): Promise<Bundle | null> {
+    const row = this.db
+      .prepare(
+        `
+          SELECT
+            id,
+            name,
+            case_number,
+            document_count,
+            status,
+            created_at,
+            updated_at,
+            description,
+            tags
+          FROM bundles
+          WHERE id = ?
+          LIMIT 1
+        `
+      )
+      .get(id) as BundleRow | undefined;
+
+    return row ? mapBundleRow(row) : null;
+  }
+
   async list(): Promise<Bundle[]> {
     const rows = this.db
       .prepare(

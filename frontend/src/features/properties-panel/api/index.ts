@@ -43,25 +43,6 @@ export type PropertiesPanelMetadata = {
 
 export type SaveMetaDataPayload = PropertiesPanelMetadata;
 
-export type ExportBundleRequestPayload = {
-  include_index: boolean;
-  include_front_cover: boolean;
-  include_back_cover: boolean;
-  compression_profile: ExportCompressionProfile;
-  target_size_mb?: number;
-};
-
-export type ExportBundleResponse = {
-  message: string;
-  exportId: string;
-};
-
-export type ExportBundleStatusResponse = {
-  status: string;
-  error: string | null;
-  message: string | null;
-};
-
 type RawDocumentMetadataResponse = {
   size?: number | string | null;
   original_name?: string | null;
@@ -83,44 +64,6 @@ export type DocumentMetadata = {
   originalName: string;
   pageCount: number | null;
   lastModifiedAt: string | null;
-};
-
-const normalizeExportResponse = (response: unknown): ExportBundleResponse => {
-  const payload =
-    response && typeof response === 'object'
-      ? (camelcaseKeys(response as object, {
-          deep: true,
-        }) as {
-          exportId?: unknown;
-          message?: unknown;
-        })
-      : {};
-
-  return {
-    message: typeof payload.message === 'string' ? payload.message : '',
-    exportId: typeof payload.exportId === 'string' ? payload.exportId : '',
-  };
-};
-
-const normalizeExportStatusResponse = (
-  response: unknown
-): ExportBundleStatusResponse => {
-  const payload =
-    response && typeof response === 'object'
-      ? (camelcaseKeys(response as object, {
-          deep: true,
-        }) as {
-          status?: unknown;
-          error?: unknown;
-          message?: unknown;
-        })
-      : {};
-
-  return {
-    status: typeof payload.status === 'string' ? payload.status : 'unknown',
-    error: typeof payload.error === 'string' ? payload.error : null,
-    message: typeof payload.message === 'string' ? payload.message : null,
-  };
 };
 // Convert server response to match our redux state
 const normalizeMetadata = (
@@ -298,38 +241,6 @@ export const propertiesPanelApi = createApi({
       transformResponse: normalizeDocumentMetadata,
       keepUnusedDataFor: 300,
     }),
-    /*---------------------
-        Export mutation
-    -----------------------*/
-    exportBundle: builder.mutation<
-      ExportBundleResponse,
-      { bundleId: string; payload: ExportBundleRequestPayload }
-    >({
-      query: ({ bundleId, payload }) => ({
-        url: `/api/bundles/${bundleId}/export`,
-        method: 'POST',
-        body: payload,
-      }),
-      transformResponse: normalizeExportResponse,
-    }),
-    getExportStatus: builder.query<ExportBundleStatusResponse, string>({
-      query: exportId => ({
-        url: `/api/bundles/exports/${exportId}/status`,
-        method: 'GET',
-      }),
-      transformResponse: normalizeExportStatusResponse,
-    }),
-    downloadExport: builder.query<Blob, string>({
-      query: exportId => ({
-        url: `/api/bundles/exports/${exportId}/download`,
-        method: 'GET',
-        headers: {
-          accept: 'application/pdf',
-        },
-        responseHandler: async response => response.blob(),
-      }),
-      keepUnusedDataFor: 0,
-    }),
   }),
 });
 
@@ -337,7 +248,4 @@ export const {
   useSaveMetaDataMutation,
   useGetMetaDataQuery,
   useGetDocumentMetadataQuery,
-  useExportBundleMutation,
-  useLazyGetExportStatusQuery,
-  useLazyDownloadExportQuery,
 } = propertiesPanelApi;

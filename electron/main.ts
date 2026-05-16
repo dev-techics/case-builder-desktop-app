@@ -9,6 +9,7 @@ import { createSqliteDatabase } from '../backend/infrastructure/database/sqlite.
 import { GhostscriptPdfCompressor } from '../backend/infrastructure/document-processing/compression/pdfCompressor.js';
 import { OfficeDocumentToPdfConverter } from '../backend/infrastructure/document-processing/conversion/docToPdf.js';
 import { DocumentImportPreprocessor } from '../backend/infrastructure/document-processing/documentImportPreprocessor.js';
+import { BundleExportService } from '../backend/infrastructure/document-processing/export/BundleExportService.js';
 import { GhostscriptManager } from '../backend/infrastructure/document-processing/ghostscript/ghostscriptManager.js';
 import { SqliteBundleRepository } from '../backend/infrastructure/repositories/sqliteBundleRepository.js';
 import { SqliteDocumentRepository } from '../backend/infrastructure/repositories/sqliteDocumentRepository.js';
@@ -64,8 +65,16 @@ const registerIpc = () => {
   });
   // Instance of document rotate processor class
   const rotateProcessor = new DocumentRotateProcessor();
+  const exportService = new BundleExportService({
+    bundleRepository,
+    documentRepository,
+    highlightRepository,
+    redactionRepository,
+    documentsStorageRoot: documentsStoragePath,
+    pdfCompressor,
+  });
 
-  registerBundleIpc({ bundleRepository, documentStorage });
+  registerBundleIpc({ bundleRepository, documentStorage, exportService });
   registerDocumentIpc({
     documentRepository,
     documentStorage,
