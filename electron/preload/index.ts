@@ -4,6 +4,7 @@ import { bundlesApi } from './bundles.js';
 import { highlightsApi } from './highlights.js';
 import { commentsApi } from './comments.js';
 import { redactionsApi } from './redactions.js';
+import { coverPageApi } from './coverPage.js';
 
 contextBridge.exposeInMainWorld('api', {
   isDesktop: true,
@@ -12,4 +13,5 @@ contextBridge.exposeInMainWorld('api', {
   ...highlightsApi,
   ...commentsApi,
   ...redactionsApi,
+  ...coverPageApi,
 });

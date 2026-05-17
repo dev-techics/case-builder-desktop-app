@@ -9,6 +9,7 @@ import type {
   OnProgress,
   PageDecoration,
 } from './ExportTypes.js';
+import { CoverPageGenerator } from '../services/CoverPageGenerator.js';
 
 /**
  * Mutable context object passed through every step of the export pipeline.
@@ -22,6 +23,7 @@ export interface ExportContext {
   bundle: Bundle;
   options: ExportOptions;
   onProgress?: OnProgress;
+  coverPageGenerator?: CoverPageGenerator;
 
   // ── Pipeline state (mutated by steps) ────────────────────────────────────
 

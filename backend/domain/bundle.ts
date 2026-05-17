@@ -11,6 +11,8 @@ export interface BundleMetadata {
   headerLeft?: string;
   headerRight?: string;
   footer?: string;
+  frontCoverPageId?: string;
+  backCoverPageId?: string;
   [key: string]: unknown;
 }
 
@@ -44,7 +46,6 @@ export function normalizeCaseNumber(caseNumber: string): string {
 
 export function isBundleStatus(value: unknown): value is BundleStatus {
   return (
-    typeof value === 'string' &&
-    bundleStatuses.includes(value as BundleStatus)
+    typeof value === 'string' && bundleStatuses.includes(value as BundleStatus)
   );
 }

@@ -56,10 +56,8 @@ export interface PageDecoration {
 export interface ExportOptions {
   /** Absolute path where the final PDF will be written */
   outputPath: string;
-  /** Legacy alias for a leading cover page. */
-  includeCover?: boolean;
-  includeFrontCover?: boolean;
-  includeBackCover?: boolean;
+  frontCoverPageId?: string;
+  backCoverPageId?: string;
   includeIndex?: boolean;
   applyAnnotations?: boolean;
   applyPageDecorations?: boolean;

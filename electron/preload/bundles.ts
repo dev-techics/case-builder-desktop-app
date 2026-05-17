@@ -60,7 +60,8 @@ export const bundlesApi = {
   -----------------*/
   exportBundle: (input: {
     bundleId: string;
-    includeFrontCover?: boolean;
+    frontCoverPageId?: string;
+    backCoverPageId?: string;
     includeBackCover?: boolean;
     includeIndex?: boolean;
     compress?: boolean;

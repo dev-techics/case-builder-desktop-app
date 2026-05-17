@@ -11,6 +11,9 @@ import { ListBundlesUseCase } from '../../backend/application/useCases/bundle/li
 import { UpdateBundleUseCase } from '../../backend/application/useCases/bundle/updateBundle.js';
 import { UpdateBundleMetadataUseCase } from '../../backend/application/useCases/bundle/updateBundleMetadata.js';
 import { ExportBundleUseCase } from '../../backend/application/useCases/export/exportBundle.js';
+import { CoverPageGenerator } from '../../backend/infrastructure/document-processing/export/services/CoverPageGenerator.js';
+import { HtmlToPdfService } from '../../backend/infrastructure/document-processing/coverpage/htmlToPdfService.js';
+import { SqliteCoverPageRepository } from '../../backend/infrastructure/repositories/sqliteCoverPageRepository.js';
 
 type BundleMetadataPayload = {
   headerLeft?: unknown;
@@ -26,12 +29,8 @@ type BundleExportPayload =
   | {
       id?: unknown;
       bundleId?: unknown;
-      includeCover?: unknown;
-      include_cover?: unknown;
-      includeFrontCover?: unknown;
-      include_front_cover?: unknown;
-      includeBackCover?: unknown;
-      include_back_cover?: unknown;
+      frontCoverPageId?: string;
+      backCoverPageId?: string;
       includeIndex?: unknown;
       include_index?: unknown;
       compress?: unknown;
@@ -45,6 +44,7 @@ export function registerBundleIpc(deps: {
   bundleRepository: BundleRepository;
   documentStorage: DocumentStorage;
   exportService?: ExportService;
+  coverPageGenerator?: CoverPageGenerator;
 }) {
   const createBundle = new CreateBundleUseCase(deps.bundleRepository);
   const deleteBundle = new DeleteBundleUseCase(
@@ -147,42 +147,44 @@ export function registerBundleIpc(deps: {
   /*-----------------------
     Export bundle handler
   -------------------------*/
-  ipcMain.handle('bundle:export', async (_, exportInput: BundleExportPayload) => {
-    const input = normalizeExportPayload(exportInput);
+  ipcMain.handle(
+    'bundle:export',
+    async (_, exportInput: BundleExportPayload) => {
+      const input = normalizeExportPayload(exportInput);
 
-    if (!exportBundle) {
-      throw new Error('Export service is not configured.');
+      if (!exportBundle) {
+        throw new Error('Export service is not configured.');
+      }
+
+      const saveResult = await dialog.showSaveDialog({
+        title: 'Export Bundle',
+        defaultPath: path.join(
+          app.getPath('downloads'),
+          ensurePdfFileName(input.fileName)
+        ),
+        filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
+        properties: ['createDirectory', 'showOverwriteConfirmation'],
+      });
+
+      if (saveResult.canceled || !saveResult.filePath) {
+        return { canceled: true };
+      }
+
+      const result = await exportBundle.execute({
+        bundleId: input.bundleId,
+        outputPath: saveResult.filePath,
+        frontCoverPageId: input.frontCoverPageId,
+        backCoverPageId: input.backCoverPageId,
+        includeIndex: input.includeIndex,
+        compress: input.compress,
+      });
+
+      return {
+        canceled: false,
+        ...result,
+      };
     }
-
-    const saveResult = await dialog.showSaveDialog({
-      title: 'Export Bundle',
-      defaultPath: path.join(
-        app.getPath('downloads'),
-        ensurePdfFileName(input.fileName)
-      ),
-      filters: [{ name: 'PDF Document', extensions: ['pdf'] }],
-      properties: ['createDirectory', 'showOverwriteConfirmation'],
-    });
-
-    if (saveResult.canceled || !saveResult.filePath) {
-      return { canceled: true };
-    }
-
-    const result = await exportBundle.execute({
-      bundleId: input.bundleId,
-      outputPath: saveResult.filePath,
-      includeCover: input.includeCover,
-      includeFrontCover: input.includeFrontCover,
-      includeBackCover: input.includeBackCover,
-      includeIndex: input.includeIndex,
-      compress: input.compress,
-    });
-
-    return {
-      canceled: false,
-      ...result,
-    };
-  });
+  );
 }
 
 function toBundleId(value: unknown): string {
@@ -197,9 +199,8 @@ function normalizeExportPayload(input: BundleExportPayload) {
   if (typeof input === 'string' || typeof input === 'number') {
     return {
       bundleId: String(input),
-      includeCover: false,
-      includeFrontCover: false,
-      includeBackCover: false,
+      frontCoverPageId: '',
+      backCoverPageId: '',
       includeIndex: true,
       compress: false,
       fileName: 'Bundle.pdf',
@@ -209,23 +210,20 @@ function normalizeExportPayload(input: BundleExportPayload) {
   const payload = typeof input === 'object' && input !== null ? input : {};
   const compressionProfile =
     payload.compressionProfile ?? payload.compression_profile;
-  const rawFrontCover = payload.includeFrontCover ?? payload.include_front_cover;
 
   return {
     bundleId: toBundleId(payload.bundleId ?? payload.id),
-    includeCover: toBoolean(payload.includeCover ?? payload.include_cover),
-    includeFrontCover:
-      rawFrontCover === undefined ? undefined : toBoolean(rawFrontCover),
-    includeBackCover: toBoolean(
-      payload.includeBackCover ?? payload.include_back_cover
-    ),
+    frontCoverPageId: payload.frontCoverPageId,
+    backCoverPageId: payload.backCoverPageId,
     includeIndex: toBoolean(
       payload.includeIndex ?? payload.include_index,
       true
     ),
     compress: toBoolean(
       payload.compress ??
-        (compressionProfile === undefined ? undefined : compressionProfile !== 'none')
+        (compressionProfile === undefined
+          ? undefined
+          : compressionProfile !== 'none')
     ),
     fileName: toFileName(payload.fileName ?? payload.file_name),
   };
@@ -236,7 +234,9 @@ function toBoolean(value: unknown, fallback = false): boolean {
 }
 
 function toFileName(value: unknown): string {
-  return typeof value === 'string' && value.trim() ? value.trim() : 'Bundle.pdf';
+  return typeof value === 'string' && value.trim()
+    ? value.trim()
+    : 'Bundle.pdf';
 }
 
 function ensurePdfFileName(value: string): string {

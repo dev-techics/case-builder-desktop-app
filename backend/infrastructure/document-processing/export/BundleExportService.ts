@@ -11,24 +11,26 @@ import type { PdfCompressor } from '../compression/pdfCompressor.js';
 import { createExportContext } from './context/createExportContext.js';
 import { ExportPipeline } from './ExportPipeline.js';
 import { buildExportBundle } from './buildExportBundle.js';
+import { CoverPageGenerator } from './services/CoverPageGenerator.js';
 
 type BundleExportServiceDependencies = {
   bundleRepository: BundleRepository;
   documentRepository: {
-    listByBundle(bundleId: string): Promise<import('../../../domain/document.js').StoredDocument[]>;
+    listByBundle(
+      bundleId: string
+    ): Promise<import('../../../domain/document.js').StoredDocument[]>;
   };
   highlightRepository: HighlightRepository;
   redactionRepository: RedactionRepository;
   documentsStorageRoot: string;
   pdfCompressor: PdfCompressor;
+  coverPageGenerator: CoverPageGenerator;
 };
 
 export class BundleExportService implements ExportService {
   constructor(private readonly deps: BundleExportServiceDependencies) {}
 
-  async exportBundle(
-    input: ExportBundleRequest
-  ): Promise<ExportBundleResult> {
+  async exportBundle(input: ExportBundleRequest): Promise<ExportBundleResult> {
     const bundle = await this.deps.bundleRepository.getById(input.bundleId);
     if (!bundle) {
       throw new ValidationError('Bundle not found.');
@@ -54,26 +56,25 @@ export class BundleExportService implements ExportService {
       throw new ValidationError('Bundle has no PDF documents to export.');
     }
 
-    const includeFrontCover = Boolean(
-      input.includeFrontCover ?? input.includeCover
-    );
-    const includeBackCover = Boolean(input.includeBackCover);
     const includeIndex = input.includeIndex ?? true;
 
     const ctx = createExportContext(
       exportBundle,
+      // Export options
       {
         outputPath: input.outputPath,
-        includeCover: input.includeCover,
-        includeFrontCover,
-        includeBackCover,
+        frontCoverPageId: input.frontCoverPageId, //bundleMetadata.frontCoverPageId
+        backCoverPageId: input.backCoverPageId, //bundleMetadata.backCoverPageId
         includeIndex,
         applyAnnotations: true,
         applyPageDecorations: true,
         injectIndexLinks: includeIndex,
         compress: input.compress ?? false,
       },
+      // onProgress
       undefined,
+      this.deps.coverPageGenerator,
+      // Extras
       {
         pageDecoration: {
           headerLeft:

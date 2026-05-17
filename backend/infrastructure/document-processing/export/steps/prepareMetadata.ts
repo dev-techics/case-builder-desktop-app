@@ -36,9 +36,7 @@ export async function prepareMetadata(ctx: ExportContext): Promise<void> {
   }
 
   // ── Pass 2: calculate 1-indexed start pages ───────────────────────────────
-  const coverPages = (ctx.options.includeFrontCover ?? ctx.options.includeCover)
-    ? 1
-    : 0;
+  const coverPages = ctx.options.frontCoverPageId ? 1 : 0;
   const indexPages = ctx.options.includeIndex
     ? IndexPageGenerator.estimatePageCount(documents.length)
     : 0;

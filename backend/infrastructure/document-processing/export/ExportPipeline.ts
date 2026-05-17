@@ -1,7 +1,6 @@
 import type { ExportContext } from './context/ExportContext.js';
 import { prepareMetadata } from './steps/prepareMetadata.js';
 import { generateCover } from './steps/generateCover.js';
-import { generateBackCover } from './steps/generateBackCover.js';
 import { generateIndex } from './steps/generateIndex.js';
 import { assembleDocuments } from './steps/assembleDocuments.js';
 import { applyAnnotations } from './steps/applyAnnotations.js';
@@ -56,8 +55,8 @@ export class ExportPipeline {
 
     return [
       prepareMetadata,
-      ...(shouldIncludeFrontCover(options) ? [generateCover] : []),
-      ...(options.includeBackCover ? [generateBackCover] : []),
+      ...(options.frontCoverPageId ? [generateCover] : []),
+      ...(options.backCoverPageId ? [generateCover] : []),
       ...(options.includeIndex ? [generateIndex] : []),
       assembleDocuments,
       ...(options.applyAnnotations ? [applyAnnotations] : []),
@@ -69,8 +68,4 @@ export class ExportPipeline {
       saveOutput,
     ];
   }
-}
-
-function shouldIncludeFrontCover(options: ExportContext['options']): boolean {
-  return Boolean(options.includeFrontCover ?? options.includeCover);
 }

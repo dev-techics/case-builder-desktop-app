@@ -1,26 +1,36 @@
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { CoverPageTemplate } from '../types';
+import type { DesktopCoverPageRecord } from '@/types/window-api';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
-const getDesktopApi = () =>
-  typeof window !== 'undefined' ? window.api : undefined;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const toIpcError = (error: unknown): FetchBaseQueryError => ({
   status: 'CUSTOM_ERROR',
   error: error instanceof Error ? error.message : 'IPC request failed',
 });
 
+const mapCoverPage = (record: DesktopCoverPageRecord): CoverPageTemplate => ({
+  id: record.id,
+  name: record.name,
+  description: record.description,
+  type: record.type,
+  isDefault: record.isDefault,
+  html: record.html,
+  builderState: record.designJson || null,
+  createdAt: record.createdAt,
+  updatedAt: record.updatedAt,
+});
+
+// ─── Payload Types ────────────────────────────────────────────────────────────
+
 type CoverPagePayload = {
-  templateKey?: string;
-  values?: Record<string, unknown>;
-  html?: string;
-  builderState?: string | null;
-  type?: 'front' | 'back';
-  name?: string;
+  name: string;
   description?: string;
+  type: 'front' | 'back';
   isDefault?: boolean;
+  html?: string;
+  designJson?: string;
 };
 
 type BundleMetadataPayload = {
@@ -28,184 +38,128 @@ type BundleMetadataPayload = {
   back_cover_page_id?: string | null;
 };
 
-const stripUndefined = <T extends Record<string, unknown>>(payload: T) => {
-  const cleaned = { ...payload };
-  Object.keys(cleaned).forEach(key => {
-    if (cleaned[key] === undefined) {
-      delete cleaned[key];
-    }
-  });
-  return cleaned;
-};
+// ─── API Slice ────────────────────────────────────────────────────────────────
 
-const toSnakeCoverPagePayload = (data: CoverPagePayload) =>
-  stripUndefined({
-    template_key: data.templateKey,
-    values: data.values,
-    html_content: data.html,
-    lexical_json: data.builderState,
-    type: data.type,
-    name: data.name,
-    description: data.description,
-    is_default: data.isDefault,
-  });
-
-const normalizeTemplate = (payload: unknown): CoverPageTemplate => {
-  const template = (payload ?? {}) as CoverPageTemplate & {
-    builder_state?: string | null;
-    builder_state_json?: string | null;
-    html_content?: string;
-    lexical_json?: string | null;
-    lexicalJson?: string | null;
-    template_key?: string;
-    is_default?: boolean;
-  };
-
-  return {
-    ...template,
-    html: template.html ?? template.html_content ?? '',
-    builderState:
-      template.builderState ??
-      template.builder_state ??
-      template.builder_state_json ??
-      template.lexicalJson ??
-      template.lexical_json ??
-      null,
-    templateKey: template.templateKey ?? template.template_key,
-    isDefault: template.isDefault ?? template.is_default ?? false,
-  };
-};
-
-const normalizeTemplateList = (response: unknown) => {
-  const payload = response as
-    | { coverPages?: CoverPageTemplate[] }
-    | CoverPageTemplate[];
-  const templates = Array.isArray(payload)
-    ? payload
-    : (payload?.coverPages ?? []);
-  return templates.map(template => normalizeTemplate(template));
-};
-
-const normalizeTemplateResponse = (response: unknown) => {
-  const payload = response as {
-    coverPage?: unknown;
-    cover_page?: unknown;
-  };
-  const template = payload?.coverPage ?? payload?.cover_page ?? response;
-  return normalizeTemplate(template);
-};
 const coverPageApi = createApi({
   reducerPath: 'coverPageApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: BASE_URL,
-    credentials: 'include',
-    prepareHeaders: headers => {
-      headers.set('accept', 'application/json');
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-  }),
+  baseQuery: fakeBaseQuery(),
   tagTypes: ['CoverPage'],
-  endpoints: build => ({
+  endpoints: (build) => ({
+
     /*------------------------------------
-        Fetch cover page template query
+        Fetch all cover page templates
     --------------------------------------*/
     getTemplates: build.query<CoverPageTemplate[], void>({
-      query: () => '/api/cover-pages',
-      transformResponse: normalizeTemplateList,
-      providesTags: result =>
+      queryFn: async () => {
+        try {
+          const coverPages = await window.api!.listCoverPages();
+          return { data: coverPages.map(mapCoverPage) };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
+      providesTags: (result) =>
         result
           ? [
               { type: 'CoverPage', id: 'LIST' },
-              ...result.map(template => ({
+              ...result.map((template) => ({
                 type: 'CoverPage' as const,
                 id: template.id,
               })),
             ]
           : [{ type: 'CoverPage', id: 'LIST' }],
     }),
-    /*-------------------------------------------
-        Fetch sigle cover page template by id
-    ---------------------------------------------*/
+
+    /*--------------------------------------
+        Fetch a single cover page by id
+    ----------------------------------------*/
     getTemplate: build.query<CoverPageTemplate, string>({
-      query: id => `/api/cover-pages/${id}`,
-      transformResponse: normalizeTemplateResponse,
+      queryFn: async (id) => {
+        try {
+          const coverPage = await window.api!.getCoverPageById(id);
+          return { data: mapCoverPage(coverPage) };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
       providesTags: (_result, _error, id) => [{ type: 'CoverPage', id }],
     }),
-    /*-------------------------------------------
+
+    /*-----------------------------
         Create a new cover page
-    ---------------------------------------------*/
+    -------------------------------*/
     createCoverPage: build.mutation<CoverPageTemplate, CoverPagePayload>({
-      query: payload => ({
-        url: '/api/cover-pages',
-        method: 'POST',
-        body: toSnakeCoverPagePayload(payload),
-      }),
-      transformResponse: normalizeTemplateResponse,
+      queryFn: async (payload) => {
+        try {
+          const coverPage = await window.api!.createCoverPage(payload);
+          return { data: mapCoverPage(coverPage) };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
       invalidatesTags: [{ type: 'CoverPage', id: 'LIST' }],
     }),
-    /*-------------------------------------------
+
+    /*--------------------------------
         Update an existing cover page
-    ---------------------------------------------*/
+    ----------------------------------*/
     updateCoverPage: build.mutation<
       CoverPageTemplate,
       { id: string; data: CoverPagePayload }
     >({
-      query: ({ id, data }) => ({
-        url: `/api/cover-pages/${id}`,
-        method: 'PATCH',
-        body: toSnakeCoverPagePayload(data),
-      }),
-      transformResponse: normalizeTemplateResponse,
-      invalidatesTags: (_result, _error, args) => [
-        { type: 'CoverPage', id: args.id },
+      queryFn: async ({ id, data }) => {
+        try {
+          await window.api!.updateCoverPage(id, data);
+          const updated = await window.api!.getCoverPageById(id);
+          return { data: mapCoverPage(updated) };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'CoverPage', id },
         { type: 'CoverPage', id: 'LIST' },
       ],
     }),
-    /*-------------------------------------------
+
+    /*--------------------------
         Delete a cover page
-    ---------------------------------------------*/
+    ----------------------------*/
     deleteCoverPage: build.mutation<void, string>({
-      query: id => ({
-        url: `/api/cover-pages/${id}`,
-        method: 'DELETE',
-      }),
+      queryFn: async (id) => {
+        try {
+          await window.api!.deleteCoverPage(id);
+          return { data: undefined };
+        } catch (error) {
+          return { error: toIpcError(error) };
+        }
+      },
       invalidatesTags: (_result, _error, id) => [
         { type: 'CoverPage', id },
         { type: 'CoverPage', id: 'LIST' },
       ],
     }),
-    /*-------------------------------------------
+
+    /*-----------------------------------------------
         Update bundle metadata with cover page ids
-    ---------------------------------------------*/
+    -------------------------------------------------*/
     updateBundleMetadata: build.mutation<
       unknown,
       { bundleId: string; metadata: BundleMetadataPayload }
     >({
-      async queryFn({ bundleId, metadata }) {
-        const desktopApi = getDesktopApi();
-
-        if (!desktopApi?.updateBundleMetadata) {
-          return {
-            error: toIpcError(new Error('Desktop API unavailable')),
-          };
-        }
-
+      queryFn: async ({ bundleId, metadata }) => {
         try {
-          const response = await desktopApi.updateBundleMetadata({
+          const response = await window.api!.updateBundleMetadata({
             bundleId,
             metadata,
           });
-
           return { data: response };
         } catch (error) {
           return { error: toIpcError(error) };
         }
       },
     }),
+
   }),
 });
 

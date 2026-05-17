@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import {
   useCreateCoverPageMutation,
-  useUpdateBundleMetadataMutation,
   useUpdateCoverPageMutation,
+  useUpdateBundleMetadataMutation,
 } from '../api';
 import { setCoverPageTemplate } from '../redux/coverPageSlice';
 import type { CoverPageTemplate } from '../types';
@@ -14,20 +14,18 @@ import {
   isPersistedBundleId,
 } from '../utils';
 
-const buildCoverPageSavePayload = (
-  template: CoverPageTemplate,
-  isDraft: boolean
-) => ({
-  templateKey:
-    template.templateKey ??
-    (isDraft ? `custom_${template.type}_${Date.now()}` : undefined),
-  html: template.html,
-  builderState: template.builderState,
-  type: template.type,
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const buildSavePayload = (template: CoverPageTemplate) => ({
   name: template.name.trim() || getDefaultCoverPageName(template.type),
   description: template.description,
+  type: template.type,
   isDefault: template.isDefault,
+  html: template.html,
+  designJson: template.builderState ?? '',
 });
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export const useCoverPageSave = (
   template: CoverPageTemplate | null,
@@ -35,25 +33,24 @@ export const useCoverPageSave = (
 ) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+
   const currentBundleId = useAppSelector(
-    state => state.coverPage.currentBundleId
+    (state) => state.coverPage.currentBundleId
   );
-  const [createCoverPage, { isLoading: isCreating }] =
-    useCreateCoverPageMutation();
-  const [updateCoverPage, { isLoading: isUpdating }] =
-    useUpdateCoverPageMutation();
+
+  const [createCoverPage, { isLoading: isCreating }] = useCreateCoverPageMutation();
+  const [updateCoverPage, { isLoading: isUpdating }] = useUpdateCoverPageMutation();
   const [updateBundleMetadata] = useUpdateBundleMetadataMutation();
 
   const handleSave = useCallback(async () => {
-    if (!template) {
-      return;
-    }
+    if (!template) return;
 
     try {
-      const payload = buildCoverPageSavePayload(template, isDraft);
+      const payload = buildSavePayload(template);
       const savedTemplate = isDraft
-        ? await createCoverPage(payload).unwrap()
-        : await updateCoverPage({ id: template.id, data: payload }).unwrap();
+      ? await createCoverPage(payload).unwrap()
+      : await updateCoverPage({ id: template.id, data: payload }).unwrap();
+      console.log(savedTemplate);
 
       dispatch(setCoverPageTemplate({ template: savedTemplate }));
 
@@ -76,14 +73,14 @@ export const useCoverPageSave = (
       console.error('Failed to save cover page:', error);
     }
   }, [
-    createCoverPage,
-    currentBundleId,
-    dispatch,
-    isDraft,
-    navigate,
     template,
-    updateBundleMetadata,
+    isDraft,
+    createCoverPage,
     updateCoverPage,
+    dispatch,
+    currentBundleId,
+    updateBundleMetadata,
+    navigate,
   ]);
 
   return {

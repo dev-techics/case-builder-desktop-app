@@ -26,6 +26,11 @@ import { DocumentRotateProcessor } from '../backend/infrastructure/document-proc
 import { registerCommentIpc } from './ipc/comment.controller.js';
 import { registerRedactionIpc } from './ipc/redaction.controller.js';
 import { SqliteRedactionRepository } from '../backend/infrastructure/repositories/sqliteRedactionRepository.js';
+import { SqliteCoverPageRepository } from '../backend/infrastructure/repositories/sqliteCoverPageRepository.js';
+import { registerCoverPageIpc } from './ipc/coverPage.controller.js';
+import { ElectronPdfGenerator } from './services/electronPdfGenerator.js';
+import { HtmlToPdfService } from '../backend/infrastructure/document-processing/coverpage/htmlToPdfService.js';
+import { CoverPageGenerator } from '../backend/infrastructure/document-processing/export/services/CoverPageGenerator.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
@@ -43,6 +48,7 @@ const registerIpc = () => {
   const highlightRepository = new SqliteHighlightRepository(db);
   const commentRepository = new SqliteCommentRepository(db);
   const redactionRepository = new SqliteRedactionRepository(db);
+  const coverPageRepository = new SqliteCoverPageRepository(db);
   const documentStorage = new LocalDocumentStorage(documentsStoragePath);
   const requireGhostscript =
     process.env.CASE_BUILDER_REQUIRE_GHOSTSCRIPT === 'true';
@@ -52,6 +58,13 @@ const registerIpc = () => {
     installDirectory: getGSInstallDir(),
     requireGhostscript,
   });
+  const pdfGenerator = new ElectronPdfGenerator();
+
+  const htmlToPdfService = new HtmlToPdfService(pdfGenerator);
+  const coverPageGenerator = new CoverPageGenerator(
+    coverPageRepository,
+    htmlToPdfService
+  );
   const pdfCompressor = new GhostscriptPdfCompressor({
     ghostscriptManager,
     requireGhostscript,
@@ -72,6 +85,7 @@ const registerIpc = () => {
     redactionRepository,
     documentsStorageRoot: documentsStoragePath,
     pdfCompressor,
+    coverPageGenerator,
   });
 
   registerBundleIpc({ bundleRepository, documentStorage, exportService });
@@ -88,6 +102,7 @@ const registerIpc = () => {
   });
   registerCommentIpc({ documentRepository, commentRepository });
   registerRedactionIpc({ documentRepository, redactionRepository });
+  registerCoverPageIpc({ coverPageRepository });
   registerDocumentProtocol({
     documentRepository,
     documentsStorageRoot: documentsStoragePath,

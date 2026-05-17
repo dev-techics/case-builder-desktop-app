@@ -50,7 +50,6 @@ export const createDraftCoverPageTemplate = (
 
   return {
     id: `draft-${type}-${now}`,
-    templateKey: `custom_${type}_${now}`,
     name: `Custom ${typeLabel} Cover Page`,
     description: 'Custom cover page template',
     type,

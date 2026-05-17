@@ -4,11 +4,25 @@ import type { CreateHighlightRequest } from "@/features/toolbar/types/types";
 
 export {};
 
+// ─── Shared Types ─────────────────────────────────────────────────────────────
+
 type DocumentImportStatus = {
   fileName: string;
   status: 'success' | 'failed';
   message?: string;
 };
+
+type DesktopBundleMetadata = {
+  [key: string]: unknown;
+};
+
+type DesktopExportBundleResponse = {
+  canceled: boolean;
+  outputPath?: string;
+  pageCount?: number;
+};
+
+// ─── Highlight Types ──────────────────────────────────────────────────────────
 
 type DesktopHighlightRecord = {
   id: string;
@@ -31,6 +45,8 @@ type DesktopHighlightRecord = {
   createdAt: string;
   updatedAt: string;
 };
+
+// ─── Comment Types ────────────────────────────────────────────────────────────
 
 type DesktopCommentRecord = {
   id: string;
@@ -57,20 +73,80 @@ type CreateCommentRequest = {
   page_y: number;
 };
 
-type DesktopBundleMetadata = {
-  [key: string]: unknown;
+// ─── Redaction Types ──────────────────────────────────────────────────────────
+
+type DesktopRedactionRecord = {
+  id: string;
+  bundleId: string;
+  documentId: string;
+  pageNumber: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  name: string;
+  fillHex: string;
+  opacity: number;
+  borderHex: string;
+  borderWidth: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
-type DesktopExportBundleResponse = {
-  canceled: boolean;
-  outputPath?: string;
-  pageCount?: number;
+type CreateRedactionRequest = {
+  document_id: string;
+  page_number: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  name: string;
+  fill_hex: string;
+  opacity: number;
+  border_hex: string;
+  border_width: number;
 };
+
+// ─── Cover Page Types ─────────────────────────────────────────────────────────
+
+export type DesktopCoverPageRecord = {
+  id: string;
+  name: string;
+  description: string;
+  type: 'front' | 'back';
+  isDefault: boolean;
+  html: string;
+  designJson: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type CreateCoverPageRequest = {
+  name: string;
+  description?: string;
+  type: 'front' | 'back';
+  isDefault?: boolean;
+  html?: string;
+  designJson?: string;
+};
+
+type UpdateCoverPageRequest = {
+  name?: string;
+  description?: string;
+  type?: 'front' | 'back';
+  isDefault?: boolean;
+  html?: string;
+  designJson?: string;
+};
+
+// ─── Window API ───────────────────────────────────────────────────────────────
 
 declare global {
   interface Window {
     api?: {
       isDesktop?: true;
+
+      // ─── Bundles ───────────────────────────────────────────────────────────
       createBundle: (
         input:
           | {
@@ -98,12 +174,14 @@ declare global {
       }) => Promise<DesktopBundleMetadata>;
       exportBundle: (input: {
         bundleId: string;
-        includeFrontCover?: boolean;
-        includeBackCover?: boolean;
+        frontCoverPageId?: string;
+        backCoverPageId?: string;
         includeIndex?: boolean;
         compress?: boolean;
         fileName?: string;
       }) => Promise<DesktopExportBundleResponse>;
+
+      // ─── Documents ─────────────────────────────────────────────────────────
       getDocumentsTree: (bundleId: string | number) => Promise<FileTree>;
       createFolder: (input: {
         bundleId: string | number;
@@ -117,10 +195,7 @@ declare global {
       }>;
       reorderDocuments: (input: {
         bundleId: string | number;
-        items: Array<{
-          id: string | number;
-          order: number;
-        }>;
+        items: Array<{ id: string | number; order: number }>;
       }) => Promise<FileTree>;
       moveDocument: (input: {
         id: string | number;
@@ -130,54 +205,13 @@ declare global {
       renameDocument: (input: {
         id: string | number;
         name: string;
-      }) => Promise<{
-        id: string;
-        name: string;
-      }>;
+      }) => Promise<{ id: string; name: string }>;
       rotateDocument: (input: {
         bundleId: string;
         documentId: string;
         pageNumber: number;
         rotation: number;
-      }) => Promise<{
-        documentUrl?: string;
-      }>;
-      getHighlights: (
-        bundleId: string | number
-      ) => Promise<DesktopHighlightRecord[]>;
-      createHighlight: (input: {
-        bundleId: string | number;
-        data: CreateHighlightRequest;
-      }) => Promise<DesktopHighlightRecord>;
-      deleteHighlight: (input: {
-        id: string | number;
-      }) => Promise<{
-        id: string;
-      }>;
-      getComments: (
-        bundleId: string | number
-      ) => Promise<DesktopCommentRecord[]>;
-      createComment: (input: {
-        bundleId: string | number;
-        data: CreateCommentRequest;
-      }) => Promise<DesktopCommentRecord>;
-      deleteComment: (input: {
-        id: string | number;
-      }) => Promise<{
-        id: string;
-      }>;
-        getRedactions: (
-        bundleId: string | number
-      ) => Promise<DesktopRedactionRecord[]>;
-      createRedaction: (input: {
-        bundleId: string | number;
-        data: CreateRedactionRequest;
-      }) => Promise<DesktopRedactionRecord>;
-      deleteRedaction: (input: {
-        id: string | number;
-      }) => Promise<{
-        id: string;
-      }>;
+      }) => Promise<{ documentUrl?: string }>;
       importDocuments: (input: {
         bundleId: string | number;
         parentId?: string | null;
@@ -197,6 +231,54 @@ declare global {
         conversionStatuses?: DocumentImportStatus[];
       }>;
       getPathForFile: (file: File) => string;
+
+      // ─── Highlights ────────────────────────────────────────────────────────
+      getHighlights: (
+        bundleId: string | number
+      ) => Promise<DesktopHighlightRecord[]>;
+      createHighlight: (input: {
+        bundleId: string | number;
+        data: CreateHighlightRequest;
+      }) => Promise<DesktopHighlightRecord>;
+      deleteHighlight: (input: {
+        id: string | number;
+      }) => Promise<{ id: string }>;
+
+      // ─── Comments ──────────────────────────────────────────────────────────
+      getComments: (
+        bundleId: string | number
+      ) => Promise<DesktopCommentRecord[]>;
+      createComment: (input: {
+        bundleId: string | number;
+        data: CreateCommentRequest;
+      }) => Promise<DesktopCommentRecord>;
+      deleteComment: (input: {
+        id: string | number;
+      }) => Promise<{ id: string }>;
+
+      // ─── Redactions ────────────────────────────────────────────────────────
+      getRedactions: (
+        bundleId: string | number
+      ) => Promise<DesktopRedactionRecord[]>;
+      createRedaction: (input: {
+        bundleId: string | number;
+        data: CreateRedactionRequest;
+      }) => Promise<DesktopRedactionRecord>;
+      deleteRedaction: (input: {
+        id: string | number;
+      }) => Promise<{ id: string }>;
+
+      // ─── Cover Pages ──────────────────────────────────────────────────────
+        listCoverPages: () => Promise<DesktopCoverPageRecord[]>;
+        getCoverPageById: (id: string) => Promise<DesktopCoverPageRecord>;
+        createCoverPage: (
+          payload: CreateCoverPageRequest
+        ) => Promise<DesktopCoverPageRecord>;
+        updateCoverPage: (
+          id: string,
+          data: UpdateCoverPageRequest
+        ) => Promise<void>;
+        deleteCoverPage: (id: string) => Promise<{ id: string }>;
     };
   }
 }

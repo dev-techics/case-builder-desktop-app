@@ -1,4 +1,5 @@
 import type { PdfCompressor } from '../../compression/pdfCompressor.js';
+import { CoverPageGenerator } from '../services/CoverPageGenerator.js';
 import type { ExportContext } from './ExportContext.js';
 import type {
   Bundle,
@@ -16,12 +17,14 @@ export function createExportContext(
   bundle: Bundle,
   options: ExportOptions,
   onProgress?: OnProgress,
+  coverPageGenerator?: CoverPageGenerator,
   extras: CreateExportContextExtras = {}
 ): ExportContext {
   return {
     bundle,
     options,
     onProgress,
+    coverPageGenerator,
     currentStep: 'idle',
     documentMetadata: [],
     coverPageCount: 0,

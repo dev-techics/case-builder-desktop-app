@@ -1,9 +1,8 @@
 export interface ExportBundleRequest {
   bundleId: string;
   outputPath: string;
-  includeCover?: boolean;
-  includeFrontCover?: boolean;
-  includeBackCover?: boolean;
+  frontCoverPageId?: string;
+  backCoverPageId?: string;
   includeIndex?: boolean;
   compress?: boolean;
 }

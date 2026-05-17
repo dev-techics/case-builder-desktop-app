@@ -2,7 +2,6 @@ export type CoverPageType = 'front' | 'back';
 
 export interface CoverPageTemplate {
   id: string;
-  templateKey?: string;
   name: string;
   description: string;
   type: CoverPageType;

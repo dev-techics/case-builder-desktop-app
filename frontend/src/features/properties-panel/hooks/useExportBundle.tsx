@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ExportCompressionProfile } from '../api';
+import { useAppSelector } from '@/app/hooks';
 
 type UseExportBundleProps = {
   hasFiles: boolean;
@@ -92,6 +93,8 @@ const useExportBundle = ({
   const resetTimerRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(
     null
   );
+  const frontCoverPageId = useAppSelector((state) => state.coverPage.frontCoverPage?.id);
+  const backCoverPageId = useAppSelector((state) => state.coverPage.backCoverPage?.id);
 
   useEffect(
     () => () => {
@@ -131,8 +134,8 @@ const useExportBundle = ({
     try {
       const exportResponse = await desktopApi.exportBundle({
         bundleId,
-        includeFrontCover: includeFrontCover && frontCoverAvailable,
-        includeBackCover: includeBackCover && backCoverAvailable,
+        frontCoverPageId,
+        backCoverPageId,
         includeIndex,
         compress: compressionProfile !== 'none',
         fileName: buildExportFileName(projectName),

@@ -141,8 +141,7 @@ const SQL_CREATE_COVER_PAGES_TABLE = `
     html        TEXT,
     design_json TEXT,
     created_at  TEXT,
-    updated_at  TEXT,
-    deleted_at  TEXT
+    updated_at  TEXT
   )
 `;
 
