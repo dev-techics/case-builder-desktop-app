@@ -1,16 +1,24 @@
-import { autoUpdater } from 'electron-updater';
-import log from 'electron-log';
+import { createRequire } from 'node:module';
 import { app, BrowserWindow } from 'electron';
 
-// Configure logging
+const require = createRequire(import.meta.url);
+const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
+
+// Module-level flag — ensures setup only runs once
+let isAutoUpdaterInitialized = false;
+
+// Configure logging once at module level — this is fine
 autoUpdater.logger = log;
 (autoUpdater.logger as any).transports.file.level = 'info';
 
 export function setupAutoUpdater(mainWindow: BrowserWindow) {
-  // Check for updates after app is ready (not on every launch in dev)
-  if (app.isPackaged) {
-    autoUpdater.checkForUpdatesAndNotify();
-  }
+  // Skip entirely in development
+  if (!app.isPackaged) return;
+
+  // Prevent listener accumulation on macOS across multiple createWindow calls
+  if (isAutoUpdaterInitialized) return;
+  isAutoUpdaterInitialized = true;
 
   autoUpdater.on('update-available', () => {
     mainWindow.webContents.send('update-available');
@@ -18,11 +26,13 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   autoUpdater.on('update-downloaded', () => {
     mainWindow.webContents.send('update-downloaded');
-    // Optionally auto-install
-    // autoUpdater.quitAndInstall();
+    // autoUpdater.quitAndInstall(); // uncomment to auto-install silently
   });
 
-  autoUpdater.on('error', err => {
+  autoUpdater.on('error', (err: Error) => {
     log.error('AutoUpdater error:', err);
   });
+
+  // Check after listeners are registered, not before
+  autoUpdater.checkForUpdatesAndNotify();
 }
