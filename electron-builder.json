@@ -2,7 +2,6 @@
   "appId": "com.casebuilder.desktop",
   "productName": "CaseBuilder",
   "copyright": "Copyright © 2026 Tech ICS",
-  "main": "dist-electron/main.js",
   "directories": {
     "output": "release",
     "buildResources": "build"

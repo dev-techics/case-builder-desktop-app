@@ -95,9 +95,9 @@ const IndexPreview = () => {
   }
 
   const activePageIndex =
-    paginationState.structureKey !== entryStructureKey
-      ? 0
-      : Math.min(paginationState.pageIndex, Math.max(pages.length - 1, 0));
+    paginationState.structureKey === entryStructureKey
+      ? Math.min(paginationState.pageIndex, Math.max(pages.length - 1, 0))
+      : 0;
   const currentPageEntries = pages[activePageIndex] ?? [];
   const hasMultiplePages = pages.length > 1;
   const canGoToPreviousPage = activePageIndex > 0;
@@ -147,11 +147,10 @@ const IndexPreview = () => {
                   key={`index-page-button-${pageIdx}`}
                   type="button"
                   aria-current={isActivePage ? 'page' : undefined}
-                  className={`h-9 min-w-9 rounded-full px-3 text-sm font-medium transition ${
-                    isActivePage
+                  className={`h-9 min-w-9 rounded-full px-3 text-sm font-medium transition ${isActivePage
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900'
-                  }`}
+                    }`}
                   onClick={() => goToPage(pageIdx)}
                 >
                   {pageIdx + 1}
