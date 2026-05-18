@@ -1,34 +1,66 @@
 {
-    "build": {
-    "appId": "com.casebuilder.desktop",
-    "productName": "CaseBuilder",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist-electron/**/*",
-      "dist-react/**/*",
-      "node_modules/**/*",
-      "package.json"
+  "appId": "com.casebuilder.desktop",
+  "productName": "CaseBuilder",
+  "copyright": "Copyright © 2026 Tech ICS",
+  "main": "dist-electron/main.js",
+  "directories": {
+    "output": "release",
+    "buildResources": "build"
+  },
+  "files": ["dist-electron/**/*", "dist-react/**/*", "package.json"],
+  "asarUnpack": ["**/*.node", "**/node_modules/better-sqlite3/**/*"],
+  "publish": {
+    "provider": "github",
+    "owner": "dev-techics",
+    "repo": "case-builder-desktop-app"
+  },
+  "win": {
+    "target": [
+      { "target": "nsis", "arch": ["x64"] },
+      { "target": "portable", "arch": ["x64"] }
     ],
-    "asarUnpack": [
-      "**/*.node"
+    "icon": "build/icon.ico",
+    "signingHashAlgorithms": ["sha256"]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "allowElevation": true,
+    "installerIcon": "build/icon.ico",
+    "uninstallerIcon": "build/icon.ico",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "CaseBuilder"
+  },
+  "mac": {
+    "target": [
+      { "target": "dmg", "arch": ["x64", "arm64"] },
+      { "target": "zip", "arch": ["x64", "arm64"] }
     ],
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ]
-    },
-    "linux": {
-      "target": [
-        "deb"
-      ],
-      "category": "Utility"
-    }
+    "icon": "build/icon.icns",
+    "category": "public.app-category.productivity",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "notarize": false
+  },
+  "dmg": {
+    "contents": [
+      { "x": 130, "y": 220 },
+      { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+    ],
+    "window": { "width": 540, "height": 380 }
+  },
+  "linux": {
+    "target": [
+      { "target": "deb", "arch": ["x64"] },
+      { "target": "rpm", "arch": ["x64"] },
+      { "target": "AppImage", "arch": ["x64"] }
+    ],
+    "icon": "build/icons",
+    "category": "Utility",
+    "maintainer": "Anik Dey <contact@anikdey.com>",
+    "synopsis": "Case Builder Desktop Application"
   }
 }

@@ -31,6 +31,7 @@ import { registerCoverPageIpc } from './ipc/coverPage.controller.js';
 import { ElectronPdfGenerator } from './services/electronPdfGenerator.js';
 import { HtmlToPdfService } from '../backend/infrastructure/document-processing/coverpage/htmlToPdfService.js';
 import { CoverPageGenerator } from '../backend/infrastructure/document-processing/export/services/CoverPageGenerator.js';
+import { setupAutoUpdater } from './autoUpdater.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
@@ -131,6 +132,10 @@ const createWindow = () => {
     win.loadURL(DEV_RENDERER_URL);
     win.webContents.openDevTools({ mode: 'detach' });
   }
+
+  win.webContents.on('did-finish-load', () => {
+    setupAutoUpdater(win);
+  });
 };
 
 // App Lifecycle
