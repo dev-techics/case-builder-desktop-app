@@ -14,7 +14,7 @@ const axiosInstance = axios.create({
   timeout: 0, // Increased timeout for PDF processing - 86400000
 });
 
-/*------------------------------------
+/*-------------------------------------
  Request interceptor to add auth token
  --------------------------------------*/
 axiosInstance.interceptors.request.use(

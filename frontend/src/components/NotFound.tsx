@@ -19,9 +19,9 @@ const NotFound = () => {
             >
               Go back home
             </Link>
-            <a href="#" className="text-sm font-semibold text-white">
+            <Link to="https://support.techics.com" target='blank'>
               Contact support <span aria-hidden="true">&rarr;</span>
-            </a>
+            </Link>
           </div>
         </div>
       </main>

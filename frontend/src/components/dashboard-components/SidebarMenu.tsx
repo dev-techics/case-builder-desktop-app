@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Home07Icon, Files02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
+import { Link } from 'react-router-dom';
 
 const iconColor = 'currentColor';
 const iconSize = 20;
@@ -32,10 +33,10 @@ const DashboardSidebarMenu = () => {
         {menuItems.map(item => (
           <SidebarMenuItem key={item.name} className="mb-2">
             <SidebarMenuButton asChild>
-              <a href={item.url}>
+              <Link to={item.url}>
                 <span>{item.icon}</span>
                 <span className="text-base text-[#4B4D4E]">{item.name}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
