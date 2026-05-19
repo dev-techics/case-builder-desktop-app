@@ -10,6 +10,7 @@ import {
   createTempDirectoryCleanup,
   removeProcessingTempDirectory,
 } from './stagingDirectory.js';
+import { normalizePdfToA4 } from './conversion/normalizePdfToA4.js';
 
 type PreparePdfImportOptions = {
   input: DocumentImportProcessingInput;
@@ -35,10 +36,16 @@ export async function preparePdfImport(
 ): Promise<DocumentImportPreprocessResult> {
   const { input, tempDirectory, pdfCompressor } = options;
   const pdfFileName = getPdfFileName(input.name);
-  const outputPath = path.join(tempDirectory, pdfFileName);
+
+  // Step 1: Normalize to A4
+  const a4PdfPath = path.join(tempDirectory, `a4-${pdfFileName}`);
+  await normalizePdfToA4(input.path, a4PdfPath);
+
+  // Step 2: Compress the normalized PDF
+  const compressedPdfPath = path.join(tempDirectory, pdfFileName);
   const compressionResult = await pdfCompressor.compress(
-    input.path,
-    outputPath
+    a4PdfPath,
+    compressedPdfPath
   );
 
   if (compressionResult.compressed) {

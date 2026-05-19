@@ -26,7 +26,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   autoUpdater.on('update-downloaded', () => {
     mainWindow.webContents.send('update-downloaded');
-    // autoUpdater.quitAndInstall(); // uncomment to auto-install silently
+    autoUpdater.quitAndInstall(); // uncomment to auto-install silently
   });
 
   autoUpdater.on('error', (err: Error) => {

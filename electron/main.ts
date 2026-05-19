@@ -7,7 +7,6 @@ import { registerHighlightIpc } from './ipc/highlight.controller.js';
 import { registerDocumentProtocol } from './document.protocol.js';
 import { createSqliteDatabase } from '../backend/infrastructure/database/sqlite.js';
 import { GhostscriptPdfCompressor } from '../backend/infrastructure/document-processing/compression/pdfCompressor.js';
-import { OfficeDocumentToPdfConverter } from '../backend/infrastructure/document-processing/conversion/docToPdf.js';
 import { DocumentImportPreprocessor } from '../backend/infrastructure/document-processing/documentImportPreprocessor.js';
 import { BundleExportService } from '../backend/infrastructure/document-processing/export/BundleExportService.js';
 import { GhostscriptManager } from '../backend/infrastructure/document-processing/ghostscript/ghostscriptManager.js';
@@ -32,6 +31,7 @@ import { ElectronPdfGenerator } from './services/electronPdfGenerator.js';
 import { HtmlToPdfService } from '../backend/infrastructure/document-processing/coverpage/htmlToPdfService.js';
 import { CoverPageGenerator } from '../backend/infrastructure/document-processing/export/services/CoverPageGenerator.js';
 import { setupAutoUpdater } from './autoUpdater.js';
+import { ElectronDocumentToPdfConverter } from './services/documentToPdfConverter.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
@@ -50,11 +50,11 @@ const registerIpc = () => {
   const commentRepository = new SqliteCommentRepository(db);
   const redactionRepository = new SqliteRedactionRepository(db);
   const coverPageRepository = new SqliteCoverPageRepository(db);
+  const documentToPdfConverter = new ElectronDocumentToPdfConverter();
+
   const documentStorage = new LocalDocumentStorage(documentsStoragePath);
   const requireGhostscript =
     process.env.CASE_BUILDER_REQUIRE_GHOSTSCRIPT === 'true';
-  const officeConverterCommand =
-    process.env.CASE_BUILDER_PDF_CONVERTER_PATH?.trim() || null;
   const ghostscriptManager = new GhostscriptManager({
     installDirectory: getGSInstallDir(),
     requireGhostscript,
@@ -69,9 +69,6 @@ const registerIpc = () => {
   const pdfCompressor = new GhostscriptPdfCompressor({
     ghostscriptManager,
     requireGhostscript,
-  });
-  const documentToPdfConverter = new OfficeDocumentToPdfConverter({
-    officeConverterCommand,
   });
   const documentProcessor = new DocumentImportPreprocessor({
     pdfCompressor,
