@@ -32,6 +32,7 @@ import { HtmlToPdfService } from '../backend/infrastructure/document-processing/
 import { CoverPageGenerator } from '../backend/infrastructure/document-processing/export/services/CoverPageGenerator.js';
 import { setupAutoUpdater } from './autoUpdater.js';
 import { ElectronDocumentToPdfConverter } from './services/documentToPdfConverter.js';
+import { registerAuthIpc } from './ipc/auth.controller.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
@@ -105,6 +106,7 @@ const registerIpc = () => {
     documentRepository,
     documentsStorageRoot: documentsStoragePath,
   });
+  registerAuthIpc();
 };
 
 /*-------------------

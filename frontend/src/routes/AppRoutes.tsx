@@ -10,10 +10,11 @@ import NotFound from '@/components/NotFound';
 import SignInPage from '@/pages/auth/SignInPage';
 import SignUpPage from '@/pages/auth/SignUpPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
-import ProtectedRoute, { PublicRoute } from './ProtectedRoutes';
+import ProtectedRoute, { PaywallRoute, PublicRoute } from './ProtectedRoutes';
 import useAuthInit from '@/features/auth/hooks/useAuthInit';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import { CoverPageEditor } from '@/features/cover-page/components/editor/CoverPageEditor';
+import PaywallPage from '@/pages/auth/PaywallPage';
 
 export default function AppRoutes() {
   useAuthInit();
@@ -31,6 +32,10 @@ export default function AppRoutes() {
       <Route path="/register" element={<SignUpPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      <Route element={<PaywallRoute />}>
+        <Route path="/paywall" element={<PaywallPage />} />
+      </Route>
 
       <Route element={<ProtectedRoute />}>
         {/* Protected routes - Editor layout */}

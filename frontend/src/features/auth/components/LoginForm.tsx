@@ -35,7 +35,7 @@ const LoginForm = () => {
     if (location.state?.fromRegister) {
       toast.success('Registration successful! Please log in.');
     }
-  }, []);
+  }, [location.state]);
 
   return (
     <div className="w-full max-w-md space-y-6">

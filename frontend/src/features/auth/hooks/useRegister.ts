@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRegisterMutation } from '../api';
 import type { RegisterCredentials } from '../types/types';
-import { useAppDispatch } from '@/app/hooks';
-import { setUser } from '../redux/authSlice';
 import { getErrorMessage } from '../utils/index';
 
 const isValidEmail = (value: string): boolean =>
@@ -19,9 +17,12 @@ const useRegister = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const dispatch = useAppDispatch();
+  const [desktopError, setDesktopError] = useState<string | null>(null);
+  const [isDesktopLoading, setIsDesktopLoading] = useState(false);
   const navigate = useNavigate();
   const [registerUser, { isLoading, error, reset }] = useRegisterMutation();
+  const desktopApi = window.api?.isDesktop ? window.api : null;
+  const isDesktop = !!desktopApi;
 
   const showPasswordMismatch =
     formData.password_confirmation !== '' &&
@@ -31,6 +32,11 @@ const useRegister = () => {
     if (validationError) {
       setValidationError(null);
     }
+
+    if (desktopError) {
+      setDesktopError(null);
+    }
+
     reset();
     setFormData(prev => ({
       ...prev,
@@ -51,6 +57,7 @@ const useRegister = () => {
     }
 
     setValidationError(null);
+    setDesktopError(null);
     reset();
 
     if (!isValidEmail(formData.email)) {
@@ -68,17 +75,35 @@ const useRegister = () => {
       return;
     }
 
+    if (isDesktop) {
+      setIsDesktopLoading(true);
+
+      try {
+        const result = await desktopApi.register({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          passwordConfirmation: formData.password_confirmation,
+        });
+
+        if (!result.success) {
+          setDesktopError(result.error ?? 'Unable to create your account.');
+          return;
+        }
+
+        navigate('/login', { replace: true, state: { fromRegister: true } });
+      } finally {
+        setIsDesktopLoading(false);
+      }
+
+      return;
+    }
+
     try {
-      const data = await registerUser(formData).unwrap();
-      if (data?.accessToken) {
-        localStorage.setItem('access_token', data.accessToken);
-      }
-      if (data?.user) {
-        dispatch(setUser(data.user));
-      }
-      navigate('/login', { state: { fromRegister: true } });
+      await registerUser(formData).unwrap();
+      navigate('/login', { replace: true, state: { fromRegister: true } });
     } catch {
-      // Error is handled via RTK Query state.
+      // Error is handled through RTK Query state.
     }
   };
 
@@ -90,8 +115,8 @@ const useRegister = () => {
     showConfirmPassword,
     setShowConfirmPassword,
     handleSubmit,
-    isLoading,
-    error: validationError ?? getErrorMessage(error),
+    isLoading: isDesktop ? isDesktopLoading : isLoading,
+    error: validationError ?? desktopError ?? getErrorMessage(error),
     showPasswordMismatch,
   };
 };

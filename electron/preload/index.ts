@@ -5,6 +5,7 @@ import { highlightsApi } from './highlights.js';
 import { commentsApi } from './comments.js';
 import { redactionsApi } from './redactions.js';
 import { coverPageApi } from './coverPage.js';
+import { authApi } from './auth.js';
 
 contextBridge.exposeInMainWorld('api', {
   isDesktop: true,
@@ -14,4 +15,5 @@ contextBridge.exposeInMainWorld('api', {
   ...commentsApi,
   ...redactionsApi,
   ...coverPageApi,
+  ...authApi,
 });

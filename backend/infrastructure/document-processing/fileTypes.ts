@@ -17,6 +17,9 @@ const IMAGE_MIME_TYPES = new Set([
   'image/bmp',
   'image/tiff',
   'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/x-adobe-dng',
 ]);
 
 const IMAGE_EXTENSIONS = new Set([
@@ -28,6 +31,9 @@ const IMAGE_EXTENSIONS = new Set([
   '.tif',
   '.tiff',
   '.webp',
+  '.heic',
+  '.heif',
+  '.dng',
 ]);
 
 const getNormalizedMimeType = (mimeType?: string | null) =>

@@ -1,13 +1,15 @@
-// features/auth/types.ts
+import type { LicenseCache } from '@/types/window-api';
 
 export interface User {
-  id: number;
+  id: string | number;
   name: string;
   email: string;
 }
 
 export interface AuthState {
   user: User | null;
+  license: LicenseCache | null;
+  isInitialized: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -25,19 +27,13 @@ export interface RegisterCredentials {
   password_confirmation: string;
 }
 
-/**
- * Authentication response returned from the login endpoint.
- *
- * @property `user` - Authenticated user details
- * @property `accessToken` - JWT access token for API authentication
- * @property `tokenType` - Token type used in Authorization header
- * @property `message` - Optional message from the backend
- */
 export interface AuthResponse {
-  user: User;
+  user?: User;
   message?: string;
-  accessToken: string; // Add this
-  tokenType: string;
+  accessToken?: string;
+  refreshToken?: string;
+  tokenType?: string;
+  license?: LicenseCache;
 }
 
 export interface ErrorResponse {

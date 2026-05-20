@@ -1,4 +1,5 @@
 import type { ErrorResponse } from '../types/types';
+import type { LicenseCache } from '@/types/window-api';
 
 export const getErrorMessage = (error: unknown): string | null => {
   if (!error) return null;
@@ -35,4 +36,18 @@ export const getErrorMessage = (error: unknown): string | null => {
 ------------------------------------------------------*/
 export const isAuthenticated = (): boolean => {
   return !!localStorage.getItem('access_token');
+};
+
+export const hasDesktopLicenseAccess = (
+  license: LicenseCache | null | undefined
+): boolean => {
+  if (!license) {
+    return false;
+  }
+
+  return (
+    license.status === 'active' ||
+    license.status === 'trialing' ||
+    license.status === 'offline_grace'
+  );
 };

@@ -139,6 +139,41 @@ type UpdateCoverPageRequest = {
   designJson?: string;
 };
 
+type LicenseStatus =
+  | 'trialing'
+  | 'active'
+  | 'expired'
+  | 'cancelled'
+  | 'none'
+  | 'offline_grace';
+
+type DesktopAuthUser = {
+  id: string | number;
+  name: string;
+  email: string;
+};
+
+type DesktopAuthResult = {
+  success: boolean;
+  user?: DesktopAuthUser;
+  license?: LicenseCache;
+  message?: string;
+  error?: string;
+};
+
+type DesktopCheckoutResult = {
+  success: boolean;
+  url?: string;
+  error?: string;
+};
+
+export interface LicenseCache {
+  status: LicenseStatus;
+  daysLeft?: number;
+  expiresAt?: string;
+  lastChecked: number;
+}
+
 // ─── Window API ───────────────────────────────────────────────────────────────
 
 declare global {
@@ -279,6 +314,34 @@ declare global {
           data: UpdateCoverPageRequest
         ) => Promise<void>;
         deleteCoverPage: (id: string) => Promise<{ id: string }>;
+        // Session
+        getSession: () => Promise<{ user: DesktopAuthUser } | null>;
+
+        // Auth actions
+        login: (input: {
+          email: string;
+          password: string;
+        }) => Promise<DesktopAuthResult>;
+
+        register: (input: {
+          name: string;
+          email: string;
+          password: string;
+          passwordConfirmation?: string;
+        }) => Promise<DesktopAuthResult>;
+
+        logout: () => Promise<{ success: boolean }>;
+
+        // License
+        checkLicense: () => Promise<LicenseCache>;
+
+        // Subscription
+        openCheckout: () => Promise<DesktopCheckoutResult>;
+
+        // Auto updater
+        onUpdateAvailable: (cb: () => void) => void;
+        onUpdateDownloaded: (cb: () => void) => void;
+        installUpdate: () => void;
     };
   }
 }

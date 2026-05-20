@@ -31,10 +31,10 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
   // Supported file types
   const SUPPORTED_FORMATS = {
     pdf: '.pdf',
-    images: '.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp',
+    images: '.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,.heic,.heif,dng',
     documents: '.doc,.docx,.txt,.rtf,.odt',
-    presentations: '.ppt,.pptx,.odp',
-    spreadsheets: '.xls,.xlsx,.ods',
+    // presentations: '.ppt,.pptx,.odp',
+    // spreadsheets: '.xls,.xlsx,.ods',
   };
 
   const ALL_SUPPORTED_FORMATS = Object.values(SUPPORTED_FORMATS).join(',');
@@ -55,9 +55,8 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
     <>
       <button
         type="button"
-        className={`block rounded-lg p-2 text-sm hover:bg-gray-200 ${
-          isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-        }`}
+        className={`block rounded-lg p-2 text-sm hover:bg-gray-200 ${isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+          }`}
         onClick={e => {
           e.stopPropagation();
           if (!isUploading) {

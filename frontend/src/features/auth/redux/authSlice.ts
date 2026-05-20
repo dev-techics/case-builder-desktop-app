@@ -1,13 +1,12 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '@/app/store';
 import type { AuthState, User } from '../types/types';
-import authApi from '../api';
+import type { LicenseCache } from '@/types/window-api';
 
-/*--------------------
-    Initial State
----------------------*/
 const initialState: AuthState = {
   user: null,
+  license: null,
+  isInitialized: false,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -17,38 +16,37 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    clearError: state => {
+    setLicense(state, action: PayloadAction<LicenseCache | null>) {
+      state.license = action.payload;
+    },
+    setInitialized(state) {
+      state.isInitialized = true;
+    },
+    clearError(state) {
       state.error = null;
     },
-    setUser: (state, action: PayloadAction<User | null>) => {
+    setUser(state, action: PayloadAction<User | null>) {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
     },
-  },
-  extraReducers: builder => {
-    // Logout via RTK Query
-    builder
-      .addMatcher(authApi.endpoints.logout.matchPending, state => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addMatcher(authApi.endpoints.logout.matchFulfilled, state => {
-        state.isLoading = false;
-        state.user = null;
-        state.isAuthenticated = false;
-        state.error = null;
-      })
-      .addMatcher(authApi.endpoints.logout.matchRejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.error?.message || 'Logout failed';
-      });
+    clearAuth(state) {
+      state.user = null;
+      state.license = null;
+      state.isInitialized = true;
+      state.isAuthenticated = false;
+      state.error = null;
+      state.isLoading = false;
+    },
   },
 });
 
-export const { clearError, setUser } = authSlice.actions;
+export const { clearError, setUser, setLicense, setInitialized, clearAuth } =
+  authSlice.actions;
 
-// Selectors
 export const selectUser = (state: RootState) => state.auth.user;
+export const selectLicense = (state: RootState) => state.auth.license;
+export const selectIsInitialized = (state: RootState) =>
+  state.auth.isInitialized;
 export const selectIsAuthenticated = (state: RootState) =>
   state.auth.isAuthenticated;
 

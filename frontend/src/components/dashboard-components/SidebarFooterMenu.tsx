@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { setUser } from '@/features/auth/redux/authSlice';
+import { clearAuth } from '@/features/auth/redux/authSlice';
 import { useLogoutMutation } from '@/features/auth/api';
 
 const SidebarFooterMenu = () => {
@@ -29,19 +29,19 @@ const SidebarFooterMenu = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [logout] = useLogoutMutation();
+  const desktopApi = window.api?.isDesktop ? window.api : null;
 
   const handleLogout = async () => {
-    if (!user) {
-      dispatch(setUser(null));
-      navigate('/login');
-      return;
-    }
-
     try {
-      await logout(user).unwrap();
+      if (desktopApi) {
+        await desktopApi.logout();
+      } else if (user) {
+        await logout(user).unwrap();
+      }
     } finally {
-      dispatch(setUser(null));
-      navigate('/login');
+      localStorage.removeItem('access_token');
+      dispatch(clearAuth());
+      navigate('/login', { replace: true });
     }
   };
 
