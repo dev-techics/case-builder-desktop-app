@@ -1,4 +1,5 @@
-const DEFAULT_API_BASE_URL = 'https://verify.techics.com';
+// const DEFAULT_API_BASE_URL = 'https://verify.techics.com';
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
 
 const API_BASE_URL = stripTrailingSlash(
   process.env.CASE_BUILDER_API_URL ??
@@ -51,8 +52,7 @@ export async function requestApi<T>(
   const response = await fetch(`${API_BASE_URL}${route}`, {
     method: options.method ?? (options.body === undefined ? 'GET' : 'POST'),
     headers,
-    body:
-      options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
 
   const rawBody = await response.text();

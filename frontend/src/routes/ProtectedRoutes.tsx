@@ -45,35 +45,6 @@ const ProtectedRoute = () => {
   return <Outlet />;
 };
 
-export const PublicRoute = () => {
-  const isDesktop = !!window.api?.isDesktop;
-  const isInitialized = useAppSelector(selectIsInitialized);
-  const isUserAuthenticated = useAppSelector(selectIsAuthenticated);
-  const license = useAppSelector(selectLicense);
-
-  if (!isInitialized) {
-    return <AuthLoader />;
-  }
-
-  if (isDesktop) {
-    if (!isUserAuthenticated) {
-      return <Outlet />;
-    }
-
-    return hasDesktopLicenseAccess(license) ? (
-      <Navigate to="/dashboard" replace />
-    ) : (
-      <Navigate to="/paywall" replace />
-    );
-  }
-
-  if (isUserAuthenticated || hasWebAccessToken()) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <Outlet />;
-};
-
 export const PaywallRoute = () => {
   const isDesktop = !!window.api?.isDesktop;
   const isInitialized = useAppSelector(selectIsInitialized);

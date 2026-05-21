@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLoginMutation } from '../api';
 import type { AuthCredentials } from '../types/types';
+import { useLoginMutation } from '../api';
 import { useAppDispatch } from '@/app/hooks';
 import { setLicense, setUser } from '../redux/authSlice';
 import { getErrorMessage, hasDesktopLicenseAccess } from '../utils/index';
@@ -14,13 +14,10 @@ const useLoginForm = () => {
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [desktopError, setDesktopError] = useState<string | null>(null);
-  const [isDesktopLoading, setIsDesktopLoading] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [login, { isLoading, error, reset }] = useLoginMutation();
-  const desktopApi = window.api?.isDesktop ? window.api : null;
-  const isDesktop = !!desktopApi;
+  const isDesktop = !!window.api?.isDesktop;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +27,6 @@ const useLoginForm = () => {
     }
 
     setValidationError(null);
-    setDesktopError(null);
     reset();
 
     const loginCredentials: AuthCredentials = {
@@ -48,44 +44,24 @@ const useLoginForm = () => {
       return;
     }
 
-    if (isDesktop) {
-      setIsDesktopLoading(true);
-
-      try {
-        const result = await desktopApi.login(loginCredentials);
-        if (!result.success || !result.user) {
-          setDesktopError(result.error ?? 'Unable to sign in.');
-          return;
-        }
-
-        dispatch(setUser(result.user));
-        dispatch(setLicense(result.license ?? null));
-
-        navigate(
-          hasDesktopLicenseAccess(result.license)
-            ? '/dashboard'
-            : '/paywall',
-          { replace: true }
-        );
-      } finally {
-        setIsDesktopLoading(false);
-      }
-
-      return;
-    }
-
     try {
-      const data = await login(loginCredentials).unwrap();
-      if (data.accessToken) {
-        localStorage.setItem('access_token', data.accessToken);
+      const result = await login(loginCredentials).unwrap();
+      if (!result.user) {
+        setValidationError('Unable to sign in.');
+        return;
       }
-      if (data.user) {
-        dispatch(setUser(data.user));
-      }
-      if (data.license) {
-        dispatch(setLicense(data.license));
-      }
-      navigate('/dashboard', { replace: true });
+      console.log(result);
+      dispatch(setUser(result.user));
+      dispatch(setLicense(result.license ?? null));
+
+      navigate(
+        isDesktop
+          ? hasDesktopLicenseAccess(result.license)
+            ? '/dashboard'
+            : '/paywall'
+          : '/dashboard',
+        { replace: true }
+      );
     } catch {
       // Error is handled through RTK Query state.
     }
@@ -95,20 +71,20 @@ const useLoginForm = () => {
     email,
     setEmail: (value: string) => {
       setValidationError(null);
-      setDesktopError(null);
+      reset();
       setEmail(value);
     },
     password,
     setPassword: (value: string) => {
       setValidationError(null);
-      setDesktopError(null);
+      reset();
       setPassword(value);
     },
     showPassword,
     setShowPassword,
     handleSubmit,
-    isLoading: isDesktop ? isDesktopLoading : isLoading,
-    error: validationError ?? desktopError ?? getErrorMessage(error),
+    isLoading,
+    error: validationError ?? getErrorMessage(error),
   };
 };
 

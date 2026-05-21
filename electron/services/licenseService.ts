@@ -8,8 +8,8 @@ import {
 import {
   secureStore,
   type LicenseCache,
-  type LicenseStatus,
 } from './secureStore.js';
+import { extractNormalizedLicense } from './licenseResponse.js';
 
 const OFFLINE_GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
 const EMPTY_LICENSE: LicenseCache = {
@@ -125,35 +125,7 @@ export const licenseService = {
 function normalizeLicenseResponse(
   value: unknown
 ): Omit<LicenseCache, 'lastChecked'> {
-  const response = getPrimaryRecord(value);
-  const source = isRecord(response.license)
-    ? response.license
-    : isRecord(response.subscription)
-      ? response.subscription
-      : response;
-
-  const status = normalizeLicenseStatus(
-    source.status ??
-      source.licenseStatus ??
-      source.license_status ??
-      source.subscriptionStatus ??
-      source.subscription_status
-  );
-  const expiresAt =
-    readString(source.expiresAt) ??
-    readString(source.expires_at) ??
-    readString(source.trialEndsAt) ??
-    readString(source.trial_ends_at);
-  const daysLeft =
-    readNumber(source.daysLeft) ??
-    readNumber(source.days_left) ??
-    calculateDaysLeft(expiresAt);
-
-  return {
-    status,
-    expiresAt: expiresAt ?? undefined,
-    daysLeft: daysLeft ?? undefined,
-  };
+  return extractNormalizedLicense(value) ?? EMPTY_LICENSE;
 }
 
 function extractCheckoutUrl(value: unknown): string | null {
@@ -190,42 +162,17 @@ function hasLicenseShape(value: Record<string, unknown>): boolean {
     'license_status' in value ||
     'subscriptionStatus' in value ||
     'subscription_status' in value ||
+    'stripeStatus' in value ||
+    'stripe_status' in value ||
     'license' in value ||
-    'subscription' in value
+    'subscription' in value ||
+    'currentSubscription' in value ||
+    'current_subscription' in value
   );
 }
 
 function hasCheckoutShape(value: Record<string, unknown>): boolean {
   return 'url' in value || 'checkoutUrl' in value || 'checkout_url' in value;
-}
-
-function normalizeLicenseStatus(value: unknown): LicenseStatus {
-  switch (value) {
-    case 'active':
-    case 'trialing':
-    case 'expired':
-    case 'cancelled':
-    case 'none':
-      return value;
-    default:
-      return 'none';
-  }
-}
-
-function calculateDaysLeft(expiresAt?: string | null): number | undefined {
-  if (!expiresAt) {
-    return undefined;
-  }
-
-  const expiresAtMs = Date.parse(expiresAt);
-  if (Number.isNaN(expiresAtMs)) {
-    return undefined;
-  }
-
-  return Math.max(
-    0,
-    Math.ceil((expiresAtMs - Date.now()) / (24 * 60 * 60 * 1000))
-  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -234,8 +181,4 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
-}
-
-function readNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

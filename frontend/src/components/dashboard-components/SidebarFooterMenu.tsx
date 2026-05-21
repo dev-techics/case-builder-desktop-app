@@ -29,17 +29,11 @@ const SidebarFooterMenu = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [logout] = useLogoutMutation();
-  const desktopApi = window.api?.isDesktop ? window.api : null;
 
   const handleLogout = async () => {
     try {
-      if (desktopApi) {
-        await desktopApi.logout();
-      } else if (user) {
-        await logout(user).unwrap();
-      }
+      await logout().unwrap();
     } finally {
-      localStorage.removeItem('access_token');
       dispatch(clearAuth());
       navigate('/login', { replace: true });
     }

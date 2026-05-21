@@ -1,8 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
-import LandingLayout from '../layouts/LandingPageLayout';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import EditorLayout from '../layouts/EditorLayout';
-import LandingPage from '../pages/landing/LandingPage';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import BundlesPage from '@/pages/dashboard/BundlesPage';
 import EditorPage from '../pages/editor/EditorPage';
@@ -10,7 +8,7 @@ import NotFound from '@/components/NotFound';
 import SignInPage from '@/pages/auth/SignInPage';
 import SignUpPage from '@/pages/auth/SignUpPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
-import ProtectedRoute, { PaywallRoute, PublicRoute } from './ProtectedRoutes';
+import ProtectedRoute, { PaywallRoute } from './ProtectedRoutes';
 import useAuthInit from '@/features/auth/hooks/useAuthInit';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import { CoverPageEditor } from '@/features/cover-page/components/editor/CoverPageEditor';
@@ -20,13 +18,6 @@ export default function AppRoutes() {
   useAuthInit();
   return (
     <Routes>
-      {/* Public routes - Landing page */}
-      <Route element={<PublicRoute />}>
-        <Route element={<LandingLayout />}>
-          <Route index element={<LandingPage />} path="/" />
-        </Route>
-      </Route>
-
       {/* Auth routes - Redirect to dashboard if already logged in */}
       <Route path="/login" element={<SignInPage />} />
       <Route path="/register" element={<SignUpPage />} />

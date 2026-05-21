@@ -25,6 +25,7 @@ import {
   selectUser,
   setLicense,
 } from '@/features/auth/redux/authSlice';
+import { useLogoutMutation } from '@/features/auth/api';
 import { hasDesktopLicenseAccess } from '@/features/auth/utils';
 
 const benefits = [
@@ -53,6 +54,7 @@ const PaywallPage = () => {
   const navigate = useNavigate();
   const user = useAppSelector(selectUser);
   const license = useAppSelector(selectLicense);
+  const [logout] = useLogoutMutation();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -150,11 +152,8 @@ const PaywallPage = () => {
     setIsSigningOut(true);
 
     try {
-      if (desktopApi) {
-        await desktopApi.logout();
-      }
+      await logout().unwrap();
     } finally {
-      localStorage.removeItem('access_token');
       dispatch(clearAuth());
       navigate('/login', { replace: true });
       setIsSigningOut(false);

@@ -17,12 +17,8 @@ const useRegister = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [desktopError, setDesktopError] = useState<string | null>(null);
-  const [isDesktopLoading, setIsDesktopLoading] = useState(false);
   const navigate = useNavigate();
   const [registerUser, { isLoading, error, reset }] = useRegisterMutation();
-  const desktopApi = window.api?.isDesktop ? window.api : null;
-  const isDesktop = !!desktopApi;
 
   const showPasswordMismatch =
     formData.password_confirmation !== '' &&
@@ -31,10 +27,6 @@ const useRegister = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (validationError) {
       setValidationError(null);
-    }
-
-    if (desktopError) {
-      setDesktopError(null);
     }
 
     reset();
@@ -57,7 +49,6 @@ const useRegister = () => {
     }
 
     setValidationError(null);
-    setDesktopError(null);
     reset();
 
     if (!isValidEmail(formData.email)) {
@@ -72,30 +63,6 @@ const useRegister = () => {
 
     if (formData.password !== formData.password_confirmation) {
       setValidationError('Passwords do not match.');
-      return;
-    }
-
-    if (isDesktop) {
-      setIsDesktopLoading(true);
-
-      try {
-        const result = await desktopApi.register({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          passwordConfirmation: formData.password_confirmation,
-        });
-
-        if (!result.success) {
-          setDesktopError(result.error ?? 'Unable to create your account.');
-          return;
-        }
-
-        navigate('/login', { replace: true, state: { fromRegister: true } });
-      } finally {
-        setIsDesktopLoading(false);
-      }
-
       return;
     }
 
@@ -115,8 +82,8 @@ const useRegister = () => {
     showConfirmPassword,
     setShowConfirmPassword,
     handleSubmit,
-    isLoading: isDesktop ? isDesktopLoading : isLoading,
-    error: validationError ?? desktopError ?? getErrorMessage(error),
+    isLoading,
+    error: validationError ?? getErrorMessage(error),
     showPasswordMismatch,
   };
 };
