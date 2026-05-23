@@ -1,5 +1,5 @@
 import type { ErrorResponse } from '../types/types';
-import type { LicenseCache } from '@/types/window-api';
+import type { LicenseCache } from '@/types';
 
 export const getErrorMessage = (error: unknown): string | null => {
   if (!error) return null;

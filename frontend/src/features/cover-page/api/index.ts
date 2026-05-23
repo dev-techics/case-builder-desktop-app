@@ -1,7 +1,7 @@
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { CoverPageTemplate } from '../types';
-import type { DesktopCoverPageRecord } from '@/types/window-api';
+import type { DesktopCoverPageRecord } from '@/types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

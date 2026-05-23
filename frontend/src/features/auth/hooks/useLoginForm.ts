@@ -50,7 +50,6 @@ const useLoginForm = () => {
         setValidationError('Unable to sign in.');
         return;
       }
-      console.log(result);
       dispatch(setUser(result.user));
       dispatch(setLicense(result.license ?? null));
 

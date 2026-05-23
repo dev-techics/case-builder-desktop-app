@@ -1,347 +1,124 @@
-import type { BundleStatus } from "@case-builder/ui";
-import type { FileTree } from "@/features/file-explorer/types/fileTree";
-import type { CreateHighlightRequest } from "@/features/toolbar/types/types";
+// frontend/src/types/window-api.d.ts
+
+import type {
+  DesktopAuthUser,
+  DesktopAuthSession,
+  DesktopAuthResult,
+  DesktopLoginInput,
+  DesktopRegisterInput,
+} from './desktop/auth.types';
+import type {
+  DesktopBundleMetadata,
+  DesktopCreateBundleInput,
+  DesktopUpdateBundleInput,
+  DesktopExportBundleInput,
+  DesktopExportBundleResponse,
+} from './desktop/bundle.types';
+import type {
+  DesktopCreateFolderInput,
+  DesktopCreateFolderResponse,
+  DesktopReorderDocumentsInput,
+  DesktopMoveDocumentInput,
+  DesktopDeleteDocumentInput,
+  DesktopRenameDocumentInput,
+  DesktopRenameDocumentResponse,
+  DesktopRotateDocumentInput,
+  DesktopRotateDocumentResponse,
+  DesktopImportDocumentsInput,
+  DesktopImportDocumentsResponse,
+  FileTree,
+} from './desktop/document.types';
+import type {
+  DesktopHighlightRecord,
+  DesktopCreateHighlightInput,
+  DesktopDeleteHighlightInput,
+} from './desktop/highlight.types';
+import type {
+  DesktopCommentRecord,
+  DesktopCreateCommentInput,
+  DesktopDeleteCommentInput,
+} from './desktop/comment.types';
+import type {
+  DesktopRedactionRecord,
+  DesktopCreateRedactionInput,
+  DesktopDeleteRedactionInput,
+} from './desktop/redaction.types';
+import type {
+  DesktopCoverPageRecord,
+  CreateCoverPageRequest,
+  UpdateCoverPageRequest,
+} from './desktop/cover-page.types';
+import type { LicenseCache } from './desktop/license.types';
+import type { UpdaterEventCallback } from './desktop/updater.types';
 
 export {};
-
-// ─── Shared Types ─────────────────────────────────────────────────────────────
-
-type DocumentImportStatus = {
-  fileName: string;
-  status: 'success' | 'failed';
-  message?: string;
-};
-
-type DesktopBundleMetadata = {
-  [key: string]: unknown;
-};
-
-type DesktopExportBundleResponse = {
-  canceled: boolean;
-  outputPath?: string;
-  pageCount?: number;
-};
-
-// ─── Highlight Types ──────────────────────────────────────────────────────────
-
-type DesktopHighlightRecord = {
-  id: string;
-  bundleId: string;
-  documentId: string;
-  pageNumber: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  text: string;
-  colorName: string;
-  colorHex: string;
-  colorRgb: {
-    r: number;
-    g: number;
-    b: number;
-  };
-  opacity: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-// ─── Comment Types ────────────────────────────────────────────────────────────
-
-type DesktopCommentRecord = {
-  id: string;
-  bundleId: string;
-  documentId: string;
-  pageNumber: number;
-  text: string;
-  selectedText: string;
-  x: number;
-  y: number;
-  pageY: number;
-  resolved: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type CreateCommentRequest = {
-  document_id: string;
-  page_number: number;
-  text: string;
-  selected_text?: string;
-  x: number;
-  y: number;
-  page_y: number;
-};
-
-// ─── Redaction Types ──────────────────────────────────────────────────────────
-
-type DesktopRedactionRecord = {
-  id: string;
-  bundleId: string;
-  documentId: string;
-  pageNumber: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  name: string;
-  fillHex: string;
-  opacity: number;
-  borderHex: string;
-  borderWidth: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type CreateRedactionRequest = {
-  document_id: string;
-  page_number: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  name: string;
-  fill_hex: string;
-  opacity: number;
-  border_hex: string;
-  border_width: number;
-};
-
-// ─── Cover Page Types ─────────────────────────────────────────────────────────
-
-export type DesktopCoverPageRecord = {
-  id: string;
-  name: string;
-  description: string;
-  type: 'front' | 'back';
-  isDefault: boolean;
-  html: string;
-  designJson: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type CreateCoverPageRequest = {
-  name: string;
-  description?: string;
-  type: 'front' | 'back';
-  isDefault?: boolean;
-  html?: string;
-  designJson?: string;
-};
-
-type UpdateCoverPageRequest = {
-  name?: string;
-  description?: string;
-  type?: 'front' | 'back';
-  isDefault?: boolean;
-  html?: string;
-  designJson?: string;
-};
-
-type LicenseStatus =
-  | 'trialing'
-  | 'active'
-  | 'expired'
-  | 'cancelled'
-  | 'none'
-  | 'offline_grace';
-
-type DesktopAuthUser = {
-  id: string | number;
-  name: string;
-  email: string;
-};
-
-type DesktopAuthResult = {
-  success: boolean;
-  user?: DesktopAuthUser;
-  license?: LicenseCache;
-  message?: string;
-  error?: string;
-};
-
-type DesktopCheckoutResult = {
-  success: boolean;
-  url?: string;
-  error?: string;
-};
-
-export interface LicenseCache {
-  status: LicenseStatus;
-  daysLeft?: number;
-  expiresAt?: string;
-  lastChecked: number;
-}
-
-// ─── Window API ───────────────────────────────────────────────────────────────
 
 declare global {
   interface Window {
     api?: {
       isDesktop?: true;
 
-      // ─── Bundles ───────────────────────────────────────────────────────────
-      createBundle: (
-        input:
-          | {
-              name: string;
-              caseNumber?: string;
-              status?: string;
-              description?: string;
-              tags?: string[];
-            }
-          | string
-      ) => Promise<unknown>;
+      // ─── Bundles ─────────────────────────────────────────────────
+      createBundle: (input: DesktopCreateBundleInput) => Promise<unknown>;
       getBundles: () => Promise<unknown[]>;
       deleteBundle: (id: string | number) => Promise<void>;
-      updateBundle: (input: {
-        id: string | number;
-        name?: string;
-        status?: BundleStatus;
-      }) => Promise<unknown>;
-      getBundleMetadata: (
-        bundleId: string | number
-      ) => Promise<DesktopBundleMetadata>;
+      updateBundle: (input: DesktopUpdateBundleInput) => Promise<unknown>;
+      getBundleMetadata: (bundleId: string | number) => Promise<DesktopBundleMetadata>;
       updateBundleMetadata: (input: {
         bundleId: string | number;
         metadata: DesktopBundleMetadata;
       }) => Promise<DesktopBundleMetadata>;
-      exportBundle: (input: {
-        bundleId: string;
-        frontCoverPageId?: string;
-        backCoverPageId?: string;
-        includeIndex?: boolean;
-        compress?: boolean;
-        fileName?: string;
-      }) => Promise<DesktopExportBundleResponse>;
+      exportBundle: (input: DesktopExportBundleInput) => Promise<DesktopExportBundleResponse>;
 
-      // ─── Documents ─────────────────────────────────────────────────────────
+      // ─── Documents ───────────────────────────────────────────────
       getDocumentsTree: (bundleId: string | number) => Promise<FileTree>;
-      createFolder: (input: {
-        bundleId: string | number;
-        name: string;
-        parentId?: string | null;
-      }) => Promise<{
-        id: string;
-        name: string;
-        type: 'folder';
-        parentId: string | null;
-      }>;
-      reorderDocuments: (input: {
-        bundleId: string | number;
-        items: Array<{ id: string | number; order: number }>;
-      }) => Promise<FileTree>;
-      moveDocument: (input: {
-        id: string | number;
-        newParentId: string | null;
-      }) => Promise<FileTree>;
-      deleteDocument: (input: { id: string | number }) => Promise<void>;
-      renameDocument: (input: {
-        id: string | number;
-        name: string;
-      }) => Promise<{ id: string; name: string }>;
-      rotateDocument: (input: {
-        bundleId: string;
-        documentId: string;
-        pageNumber: number;
-        rotation: number;
-      }) => Promise<{ documentUrl?: string }>;
-      importDocuments: (input: {
-        bundleId: string | number;
-        parentId?: string | null;
-        files: Array<{
-          name: string;
-          path: string;
-          mimeType?: string | null;
-        }>;
-      }) => Promise<{
-        documents: Array<{
-          id: string | number;
-          parentId: string | null;
-          name: string;
-          type: string;
-          url: string;
-        }>;
-        conversionStatuses?: DocumentImportStatus[];
-      }>;
+      createFolder: (input: DesktopCreateFolderInput) => Promise<DesktopCreateFolderResponse>;
+      reorderDocuments: (input: DesktopReorderDocumentsInput) => Promise<FileTree>;
+      moveDocument: (input: DesktopMoveDocumentInput) => Promise<FileTree>;
+      deleteDocument: (input: DesktopDeleteDocumentInput) => Promise<void>;
+      renameDocument: (input: DesktopRenameDocumentInput) => Promise<DesktopRenameDocumentResponse>;
+      rotateDocument: (input: DesktopRotateDocumentInput) => Promise<DesktopRotateDocumentResponse>;
+      importDocuments: (input: DesktopImportDocumentsInput) => Promise<DesktopImportDocumentsResponse>;
       getPathForFile: (file: File) => string;
 
-      // ─── Highlights ────────────────────────────────────────────────────────
-      getHighlights: (
-        bundleId: string | number
-      ) => Promise<DesktopHighlightRecord[]>;
-      createHighlight: (input: {
-        bundleId: string | number;
-        data: CreateHighlightRequest;
-      }) => Promise<DesktopHighlightRecord>;
-      deleteHighlight: (input: {
-        id: string | number;
-      }) => Promise<{ id: string }>;
+      // ─── Highlights ──────────────────────────────────────────────
+      getHighlights: (bundleId: string | number) => Promise<DesktopHighlightRecord[]>;
+      createHighlight: (input: DesktopCreateHighlightInput) => Promise<DesktopHighlightRecord>;
+      deleteHighlight: (input: DesktopDeleteHighlightInput) => Promise<{ id: string }>;
 
-      // ─── Comments ──────────────────────────────────────────────────────────
-      getComments: (
-        bundleId: string | number
-      ) => Promise<DesktopCommentRecord[]>;
-      createComment: (input: {
-        bundleId: string | number;
-        data: CreateCommentRequest;
-      }) => Promise<DesktopCommentRecord>;
-      deleteComment: (input: {
-        id: string | number;
-      }) => Promise<{ id: string }>;
+      // ─── Comments ────────────────────────────────────────────────
+      getComments: (bundleId: string | number) => Promise<DesktopCommentRecord[]>;
+      createComment: (input: DesktopCreateCommentInput) => Promise<DesktopCommentRecord>;
+      deleteComment: (input: DesktopDeleteCommentInput) => Promise<{ id: string }>;
 
-      // ─── Redactions ────────────────────────────────────────────────────────
-      getRedactions: (
-        bundleId: string | number
-      ) => Promise<DesktopRedactionRecord[]>;
-      createRedaction: (input: {
-        bundleId: string | number;
-        data: CreateRedactionRequest;
-      }) => Promise<DesktopRedactionRecord>;
-      deleteRedaction: (input: {
-        id: string | number;
-      }) => Promise<{ id: string }>;
+      // ─── Redactions ──────────────────────────────────────────────
+      getRedactions: (bundleId: string | number) => Promise<DesktopRedactionRecord[]>;
+      createRedaction: (input: DesktopCreateRedactionInput) => Promise<DesktopRedactionRecord>;
+      deleteRedaction: (input: DesktopDeleteRedactionInput) => Promise<{ id: string }>;
 
-      // ─── Cover Pages ──────────────────────────────────────────────────────
-        listCoverPages: () => Promise<DesktopCoverPageRecord[]>;
-        getCoverPageById: (id: string) => Promise<DesktopCoverPageRecord>;
-        createCoverPage: (
-          payload: CreateCoverPageRequest
-        ) => Promise<DesktopCoverPageRecord>;
-        updateCoverPage: (
-          id: string,
-          data: UpdateCoverPageRequest
-        ) => Promise<void>;
-        deleteCoverPage: (id: string) => Promise<{ id: string }>;
-        // Session
-        getSession: () => Promise<{ user: DesktopAuthUser } | null>;
+      // ─── Cover Pages ─────────────────────────────────────────────
+      listCoverPages: () => Promise<DesktopCoverPageRecord[]>;
+      getCoverPageById: (id: string) => Promise<DesktopCoverPageRecord>;
+      createCoverPage: (payload: CreateCoverPageRequest) => Promise<DesktopCoverPageRecord>;
+      updateCoverPage: (id: string, data: UpdateCoverPageRequest) => Promise<void>;
+      deleteCoverPage: (id: string) => Promise<{ id: string }>;
 
-        // Auth actions
-        login: (input: {
-          email: string;
-          password: string;
-        }) => Promise<DesktopAuthResult>;
+      // ─── Auth ────────────────────────────────────────────────────
+      getSession: () => Promise<DesktopAuthSession>;
+      login: (input: DesktopLoginInput) => Promise<DesktopAuthResult>;
+      register: (input: DesktopRegisterInput) => Promise<DesktopAuthResult>;
+      logout: () => Promise<{ success: boolean }>;
 
-        register: (input: {
-          name: string;
-          email: string;
-          password: string;
-          passwordConfirmation?: string;
-        }) => Promise<DesktopAuthResult>;
+      // ─── License ─────────────────────────────────────────────────
+      checkLicense: () => Promise<LicenseCache>;
 
-        logout: () => Promise<{ success: boolean }>;
+      // ─── Subscription ────────────────────────────────────────────
+      openCheckout: () => Promise<{ success: boolean; url?: string; error?: string }>;
 
-        // License
-        checkLicense: () => Promise<LicenseCache>;
-
-        // Subscription
-        openCheckout: () => Promise<DesktopCheckoutResult>;
-
-        // Auto updater
-        onUpdateAvailable: (cb: () => void) => void;
-        onUpdateDownloaded: (cb: () => void) => void;
-        installUpdate: () => void;
+      // ─── Auto Updater ────────────────────────────────────────────
+      onUpdateAvailable: (cb: UpdaterEventCallback) => void;
+      onUpdateDownloaded: (cb: UpdaterEventCallback) => void;
+      installUpdate: () => void;
     };
   }
 }

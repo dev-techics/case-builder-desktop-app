@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '@/app/store';
 import type { AuthState, User } from '../types/types';
-import type { LicenseCache } from '@/types/window-api';
+import type { LicenseCache } from '@/types';
 
 const initialState: AuthState = {
   user: null,

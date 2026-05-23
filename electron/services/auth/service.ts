@@ -7,7 +7,7 @@ import {
 import { licenseService } from '../licenseService.js';
 import { secureStore, type StoredUser } from '../secureStore.js';
 import {
-  extractAuthTokens,
+  extractAccessToken,
   extractLicenseFromResponse,
   extractMessage,
   extractUser,
@@ -52,22 +52,21 @@ export const authService = {
         body: input,
       });
 
-      const tokens = extractAuthTokens(response);
-      if (!tokens) {
+      const accessToken = extractAccessToken(response);
+      if (!accessToken) {
         throw new Error('Login response did not include an access token.');
       }
 
-      const user =
-        extractUser(response) ?? (await getCurrentUser(tokens.accessToken));
+      const user = extractUser(response) ?? (await getCurrentUser(accessToken));
       if (!user) {
         throw new Error('Login response did not include a valid user profile.');
       }
 
       const session = {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken,
         user,
       };
+      // Persist the desktop token and profile so the session can be restored.
       await secureStore.setSession(session);
 
       const license =
@@ -131,9 +130,6 @@ export const authService = {
         await requestApi(authApiRoutes.logout, {
           method: 'POST',
           accessToken: session.accessToken,
-          body: {
-            refreshToken: session.refreshToken,
-          },
         });
       } catch {
         // Ignore logout transport errors because local sign-out must still work.

@@ -1,6 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { Bundle, BundleStatus } from '../types';
-import type { CreateBundleDto } from '../types';
+import type { CreateBundleDto, Bundle, BundleStatus } from '../types';
 import {
   normalizeBundleListResponse,
   normalizeBundleResponse,

@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { authService } from '../services/authService.js';
+import { authService } from '../services/auth/index.js';
 import { licenseService } from '../services/licenseService.js';
 
 export function registerAuthIpc() {

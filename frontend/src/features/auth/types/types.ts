@@ -1,4 +1,4 @@
-import type { LicenseCache } from '@/types/window-api';
+import type { LicenseCache } from '@/types';
 
 export interface User {
   id: string | number;
@@ -31,7 +31,6 @@ export interface AuthResponse {
   user?: User;
   message?: string;
   accessToken?: string;
-  refreshToken?: string;
   tokenType?: string;
   license?: LicenseCache;
 }

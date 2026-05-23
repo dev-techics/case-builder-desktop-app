@@ -1,5 +1,6 @@
 import { shell } from 'electron';
 import {
+  ApiError,
   authApiRoutes,
   getServiceErrorMessage,
   isNetworkError,
@@ -12,8 +13,11 @@ import {
 import { extractNormalizedLicense } from './licenseResponse.js';
 
 const OFFLINE_GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
-const EMPTY_LICENSE: LicenseCache = {
+const EMPTY_LICENSE_STATE: Omit<LicenseCache, 'lastChecked'> = {
   status: 'none',
+};
+const EMPTY_LICENSE: LicenseCache = {
+  ...EMPTY_LICENSE_STATE,
   lastChecked: 0,
 };
 
@@ -41,13 +45,21 @@ export const licenseService = {
         return this.getCachedLicense();
       }
 
-      const cachedLicense = await secureStore.getLicenseCache();
-      return {
-        ...(cachedLicense ?? EMPTY_LICENSE),
-        status: 'expired',
-        daysLeft: 0,
-        lastChecked: Date.now(),
-      };
+      if (isUnauthorizedError(error)) {
+        await secureStore.clear();
+        throw new Error('Your session has expired. Please sign in again.');
+      }
+
+      if (isMissingLicenseError(error)) {
+        await secureStore.setLicenseCache(EMPTY_LICENSE_STATE);
+
+        return {
+          ...EMPTY_LICENSE_STATE,
+          lastChecked: Date.now(),
+        };
+      }
+
+      return this.getCachedLicense();
     }
   },
 
@@ -125,7 +137,7 @@ export const licenseService = {
 function normalizeLicenseResponse(
   value: unknown
 ): Omit<LicenseCache, 'lastChecked'> {
-  return extractNormalizedLicense(value) ?? EMPTY_LICENSE;
+  return extractNormalizedLicense(value) ?? EMPTY_LICENSE_STATE;
 }
 
 function extractCheckoutUrl(value: unknown): string | null {
@@ -181,4 +193,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function isUnauthorizedError(error: unknown): error is ApiError {
+  return error instanceof ApiError && [401, 403].includes(error.status);
+}
+
+function isMissingLicenseError(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 404;
 }

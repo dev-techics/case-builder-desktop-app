@@ -19,7 +19,6 @@ export interface StoredUser {
 
 export interface StoredSession {
   accessToken: string;
-  refreshToken?: string;
   user: StoredUser;
 }
 
@@ -63,11 +62,6 @@ export const secureStore = {
   async getAccessToken(): Promise<string | null> {
     const session = await this.getSession();
     return session?.accessToken ?? null;
-  },
-
-  async getRefreshToken(): Promise<string | null> {
-    const session = await this.getSession();
-    return session?.refreshToken ?? null;
   },
 
   async setLicenseCache(license: Omit<LicenseCache, 'lastChecked'>) {
@@ -165,7 +159,6 @@ function normalizeSession(value: unknown): StoredSession | null {
 
   return {
     accessToken,
-    refreshToken: readString(value.refreshToken) ?? undefined,
     user,
   };
 }

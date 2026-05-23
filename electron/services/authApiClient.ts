@@ -11,9 +11,8 @@ export const authApiRoutes = {
   login: '/api/login',
   register: '/api/register',
   logout: '/api/logout',
-  refresh: '/api/refresh',
   license: '/api/license/validate',
-  checkout: '/api/subscriptions/checkout',
+  checkout: '/api/subscription/checkout',
 } as const;
 
 type RequestApiOptions = {

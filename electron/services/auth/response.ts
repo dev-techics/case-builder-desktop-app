@@ -1,48 +1,12 @@
-import type {
-  LicenseCache,
-  StoredSession,
-  StoredUser,
-} from '../secureStore.js';
+import type { LicenseCache, StoredUser } from '../secureStore.js';
 import { extractNormalizedLicense } from '../licenseResponse.js';
-import { getUserFromToken } from './jwt.js';
 import { isRecord, readIdentifier, readString } from './readers.js';
 
-type AuthTokens = {
-  accessToken: string;
-  refreshToken?: string;
-};
-
-export function normalizeSessionResponse(value: unknown): StoredSession {
-  const tokens = extractAuthTokens(value);
-  if (!tokens) {
-    throw new Error('Login response did not include an access token.');
-  }
-
-  const user = extractUser(value) ?? getUserFromToken(tokens.accessToken);
-  if (!user) {
-    throw new Error('Login response did not include a valid user profile.');
-  }
-
-  return {
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
-    user,
-  };
-}
-
-export function extractAuthTokens(value: unknown): AuthTokens | null {
+export function extractAccessToken(value: unknown): string | null {
   const record = getPrimaryRecord(value);
   const accessToken = readToken(record, 'accessToken', 'access_token');
 
-  if (!accessToken) {
-    return null;
-  }
-
-  return {
-    accessToken,
-    refreshToken:
-      readToken(record, 'refreshToken', 'refresh_token') ?? undefined,
-  };
+  return accessToken ?? null;
 }
 
 export function extractLicenseFromResponse(
@@ -111,8 +75,6 @@ function hasAuthPayload(value: Record<string, unknown>): boolean {
   return (
     'accessToken' in value ||
     'access_token' in value ||
-    'refreshToken' in value ||
-    'refresh_token' in value ||
     'tokens' in value ||
     'user' in value ||
     'profile' in value
