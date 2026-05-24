@@ -13,6 +13,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\""
   },
   "dependencies": {
+    "@case-builder/ui": "github:dev-techics/case-builder-ui",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -33,11 +34,12 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@reduxjs/toolkit": "^2.9.0",
     "@tailwindcss/vite": "^4.1.13",
-    "@case-builder/ui": "github:dev-techics/case-builder-ui",
     "axios": "^1.13.2",
     "camelcase-keys": "^10.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.40.0",
+    "grapesjs": "^0.22.14",
     "lucide-react": "^0.544.0",
     "radix-ui": "^1.4.3",
     "react": "^19.1.1",
@@ -49,9 +51,7 @@
     "react-router-dom": "^7.9.3",
     "react-toastify": "^11.0.5",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.13",
-    "grapesjs": "^0.22.14"
-
+    "tailwindcss": "^4.1.13"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.0",

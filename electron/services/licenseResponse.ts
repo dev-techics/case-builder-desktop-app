@@ -1,4 +1,4 @@
-import type { LicenseCache, LicenseStatus } from './secureStore.js';
+import type { LicenseCache, LicenseStatus } from './secure-store/types.js';
 
 type NormalizedLicense = Omit<LicenseCache, 'lastChecked'>;
 
@@ -78,7 +78,9 @@ function getPrimaryRecord(value: unknown): Record<string, unknown> {
 function findLicenseSource(
   record: Record<string, unknown>
 ): Record<string, unknown> | null {
-  const candidates = NESTED_SOURCE_KEYS.map(key => record[key]).filter(isRecord);
+  const candidates = NESTED_SOURCE_KEYS.map(key => record[key]).filter(
+    isRecord
+  );
 
   for (const candidate of [...candidates, record]) {
     if (hasLicenseFields(candidate)) {
@@ -98,7 +100,9 @@ function hasLicenseFields(value: Record<string, unknown>): boolean {
   );
 }
 
-function readLicenseStatus(value: Record<string, unknown>): LicenseStatus | null {
+function readLicenseStatus(
+  value: Record<string, unknown>
+): LicenseStatus | null {
   const status = normalizeLicenseStatus(readFirstString(value, STATUS_KEYS));
   if (status) {
     return status;

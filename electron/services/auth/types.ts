@@ -1,4 +1,4 @@
-import type { LicenseCache, StoredUser } from '../secureStore.js';
+import type { LicenseCache, StoredUser } from '../secure-store/types.js';
 
 export type LoginInput = {
   email: string;

@@ -2,90 +2,17 @@ import { app, safeStorage } from 'electron';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {
+  StoreState,
+  PersistedStoreState,
+  StoredSession,
+  StoredUser,
+  LicenseCache,
+  LicenseStatus,
+} from './types.js';
+import { EMPTY_STORE_STATE } from './index.js';
 
-export type LicenseStatus =
-  | 'trialing'
-  | 'active'
-  | 'expired'
-  | 'cancelled'
-  | 'none'
-  | 'offline_grace';
-
-export interface StoredUser {
-  id: string | number;
-  name: string;
-  email: string;
-}
-
-export interface StoredSession {
-  accessToken: string;
-  user: StoredUser;
-}
-
-export interface LicenseCache {
-  status: LicenseStatus;
-  daysLeft?: number;
-  expiresAt?: string;
-  lastChecked: number;
-}
-
-interface StoreState {
-  session: StoredSession | null;
-  license: LicenseCache | null;
-}
-
-interface PersistedStoreState {
-  version: 1;
-  encrypted: boolean;
-  payload: string;
-}
-
-const EMPTY_STORE_STATE: StoreState = {
-  session: null,
-  license: null,
-};
-
-export const secureStore = {
-  async setSession(session: StoredSession) {
-    const state = await readStoreState();
-    await writeStoreState({
-      ...state,
-      session,
-    });
-  },
-
-  async getSession(): Promise<StoredSession | null> {
-    const state = await readStoreState();
-    return state.session;
-  },
-
-  async getAccessToken(): Promise<string | null> {
-    const session = await this.getSession();
-    return session?.accessToken ?? null;
-  },
-
-  async setLicenseCache(license: Omit<LicenseCache, 'lastChecked'>) {
-    const state = await readStoreState();
-    await writeStoreState({
-      ...state,
-      license: {
-        ...license,
-        lastChecked: Date.now(),
-      },
-    });
-  },
-
-  async getLicenseCache(): Promise<LicenseCache | null> {
-    const state = await readStoreState();
-    return state.license;
-  },
-
-  async clear() {
-    await writeStoreState(EMPTY_STORE_STATE);
-  },
-};
-
-async function readStoreState(): Promise<StoreState> {
+export async function readStoreState(): Promise<StoreState> {
   try {
     const serializedState = await fs.readFile(getStoreFilePath(), 'utf-8');
     const persistedState = JSON.parse(serializedState) as PersistedStoreState;
@@ -112,7 +39,7 @@ async function readStoreState(): Promise<StoreState> {
   }
 }
 
-async function writeStoreState(state: StoreState): Promise<void> {
+export async function writeStoreState(state: StoreState): Promise<void> {
   const encrypted = safeStorage.isEncryptionAvailable();
   const payload = JSON.stringify(state);
   const persistedState: PersistedStoreState = {
@@ -131,7 +58,7 @@ async function writeStoreState(state: StoreState): Promise<void> {
   );
 }
 
-function normalizeStoreState(value: unknown): StoreState {
+export function normalizeStoreState(value: unknown): StoreState {
   if (!isRecord(value)) {
     return EMPTY_STORE_STATE;
   }
@@ -142,7 +69,7 @@ function normalizeStoreState(value: unknown): StoreState {
   };
 }
 
-function normalizeSession(value: unknown): StoredSession | null {
+export function normalizeSession(value: unknown): StoredSession | null {
   if (!isRecord(value)) {
     return null;
   }
@@ -163,7 +90,7 @@ function normalizeSession(value: unknown): StoredSession | null {
   };
 }
 
-function normalizeUser(value: unknown): StoredUser | null {
+export function normalizeUser(value: unknown): StoredUser | null {
   if (!isRecord(value)) {
     return null;
   }
@@ -179,7 +106,7 @@ function normalizeUser(value: unknown): StoredUser | null {
   return { id, name, email };
 }
 
-function normalizeLicense(value: unknown): LicenseCache | null {
+export function normalizeLicense(value: unknown): LicenseCache | null {
   if (!isRecord(value)) {
     return null;
   }
@@ -205,7 +132,7 @@ function normalizeLicense(value: unknown): LicenseCache | null {
   };
 }
 
-function normalizeLicenseStatus(value: unknown): LicenseStatus | null {
+export function normalizeLicenseStatus(value: unknown): LicenseStatus | null {
   switch (value) {
     case 'trialing':
     case 'active':
@@ -219,7 +146,7 @@ function normalizeLicenseStatus(value: unknown): LicenseStatus | null {
   }
 }
 
-function decryptPayload(value: string): string | null {
+export function decryptPayload(value: string): string | null {
   if (!safeStorage.isEncryptionAvailable()) {
     return null;
   }
@@ -231,7 +158,7 @@ function decryptPayload(value: string): string | null {
   }
 }
 
-function getStoreDirectoryPath(): string {
+export function getStoreDirectoryPath(): string {
   if (process.platform === 'linux') {
     return path.join(os.homedir(), '.local', 'share', 'case-builder');
   }
@@ -239,27 +166,29 @@ function getStoreDirectoryPath(): string {
   return path.join(app.getPath('userData'), 'case-builder');
 }
 
-function getStoreFilePath(): string {
+export function getStoreFilePath(): string {
   return path.join(getStoreDirectoryPath(), 'auth.json');
 }
 
-function isFileMissingError(error: unknown): error is NodeJS.ErrnoException {
+export function isFileMissingError(
+  error: unknown
+): error is NodeJS.ErrnoException {
   return error instanceof Error && 'code' in error && error.code === 'ENOENT';
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function readString(value: unknown): string | null {
+export function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
-function readNumber(value: unknown): number | null {
+export function readNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function readIdentifier(value: unknown): string | number | null {
+export function readIdentifier(value: unknown): string | number | null {
   if (typeof value === 'string' && value.trim()) {
     return value;
   }

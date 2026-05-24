@@ -3,14 +3,20 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Outlet } from 'react-router';
 import { ToastContainer } from 'react-toastify';
 import DashboardSidebar from '@/components/dashboard-components/DashboardSidebar';
+import Header from '@/components/Header';
+import { ErrorBoundary } from 'react-error-boundary';
+import Fallback from '@/components/Fallback';
 
 const DashboardLayout = () => {
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
-      {/* Fixed Topbar */}
+      {/* Fixed Topbar*/}
       <div className="h-16 border-b bg-background flex items-center px-4 flex-shrink-0">
-        Case Bundler
+        <ErrorBoundary FallbackComponent={Fallback}>
+          <Header />
+        </ErrorBoundary>
       </div>
+
 
       {/* Content area with sidebar - starts below topbar */}
       <SidebarProvider>

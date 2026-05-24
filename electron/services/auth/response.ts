@@ -1,4 +1,4 @@
-import type { LicenseCache, StoredUser } from '../secureStore.js';
+import type { LicenseCache, StoredUser } from '../secure-store/types.js';
 import { extractNormalizedLicense } from '../licenseResponse.js';
 import { isRecord, readIdentifier, readString } from './readers.js';
 

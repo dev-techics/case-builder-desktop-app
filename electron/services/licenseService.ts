@@ -6,10 +6,8 @@ import {
   isNetworkError,
   requestApi,
 } from './authApiClient.js';
-import {
-  secureStore,
-  type LicenseCache,
-} from './secureStore.js';
+import { secureStore } from './secure-store/index.js';
+import type { LicenseCache } from './secure-store/types.js';
 import { extractNormalizedLicense } from './licenseResponse.js';
 
 const OFFLINE_GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
@@ -81,7 +79,10 @@ export const licenseService = {
       };
     }
 
-    if (cachedLicense.status === 'active' || cachedLicense.status === 'trialing') {
+    if (
+      cachedLicense.status === 'active' ||
+      cachedLicense.status === 'trialing'
+    ) {
       return {
         ...cachedLicense,
         status: 'expired',

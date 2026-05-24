@@ -6,6 +6,9 @@ import type { LicenseCache } from '@/types';
 const initialState: AuthState = {
   user: null,
   license: null,
+  // it's a "data is ready" gate. 
+  // it just prevents the router from 
+  // making redirect decisions on an empty store.
   isInitialized: false,
   isAuthenticated: false,
   isLoading: false,
