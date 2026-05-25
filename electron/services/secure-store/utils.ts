@@ -14,9 +14,19 @@ import { EMPTY_STORE_STATE } from './index.js';
 
 export async function readStoreState(): Promise<StoreState> {
   try {
-    const serializedState = await fs.readFile(getStoreFilePath(), 'utf-8');
-    const persistedState = JSON.parse(serializedState) as PersistedStoreState;
+    const filePath = getStoreFilePath();
+    const exists = await fs
+      .access(filePath)
+      .then(() => true)
+      .catch(() => false);
 
+    if (!exists) {
+      return EMPTY_STORE_STATE;
+    }
+
+    const serializedState = await fs.readFile(getStoreFilePath(), 'utf-8');
+
+    const persistedState = JSON.parse(serializedState) as PersistedStoreState;
     if (!persistedState.payload) {
       return EMPTY_STORE_STATE;
     }

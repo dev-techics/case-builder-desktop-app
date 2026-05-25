@@ -35,7 +35,6 @@ const authSlice = createSlice({
     clearAuth(state) {
       state.user = null;
       state.license = null;
-      state.isInitialized = true;
       state.isAuthenticated = false;
       state.error = null;
       state.isLoading = false;

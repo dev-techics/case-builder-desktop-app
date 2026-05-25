@@ -1,13 +1,12 @@
-import Footer from "@/components/Footer"
-import Header from "@/components/Header"
+import SubscriptionThemeProvider from "@/features/subscription/components/SubscriptionThemeProvider"
+import PricingSection from "@/features/subscription/components/PricingSection"
 
 const PlansPage = () => {
     return (
-        <>
-            <Header />
-            <div className="py-12">Content</div>
-            <Footer />
-        </>
+        <SubscriptionThemeProvider>
+
+            <PricingSection onNotify={() => { console.log("notify") }} onSelectPlan={() => { console.log("Plan A is selected") }} />
+        </SubscriptionThemeProvider>
     )
 }
 

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "file-upload-limit",
+    "question": "Is there a limit on file uploads during the Free Trial?",
+    "answer": "No, you can upload standard PDF, Word, and scan files. The only limit for the Trial is that you can generate up to 3 separate document bundles (cases) to test annotations and export capabilities."
+  },
+  {
+    "id": "trial-end",
+    "question": "What happens when my 14-day trial ends?",
+    "answer": "We do not request a credit card for the trial! At the end of the 14 days, your account will enter a read-only state. You can upgrade to the Pro plan at any time to resume editing."
+  },
+  {
+    "id": "ocr-bates",
+    "question": "How does 'Advanced OCR & Bates Stamping' work in the Pro Plan?",
+    "answer": "Our Advanced OCR automatically extracts searchable text from scanned PDFs and images, with full automatic language detection. Seamlessly insert customized, sequential Bates page stamps for secure courtroom filings."
+  },
+  {
+    "id": "team-members",
+    "question": "Can I invite team members to my Shared Workspaces?",
+    "answer": "Absolutely! The Pro Plan includes dynamic sharing controls. You can invite other legal counsels, paralegals, or clients with read-only view or full editor privileges."
+  },
+  {
+    "id": "data-security",
+    "question": "What is your data security and retention policy?",
+    "answer": "We understand legal files are highly confidential. Case Builder uses AES-256 enterprise encryption at-rest and TLS 1.3 in-transit. We strictly do not train external LLM models on your uploaded client files."
+  }
+]

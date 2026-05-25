@@ -18,7 +18,7 @@ export default function Header({ onNotify = () => { } }: Readonly<HeaderProps>) 
   };
 
   return (
-    <nav className="bg-surface border-b border-outline-variant/60 flex justify-between items-center w-full px-4 md:px-8 h-16 max-w-7xl mx-auto fixed top-0 left-0 right-0 z-50">
+    <nav className="bg-surface border-b border-outline-variant/60 flex justify-between items-center w-full px-4 md:px-8 h-16 max-w-7xl mx-auto sticky top-0 left-0 right-0 z-50">
       {/* Brand logo & Desktop navigation */}
       <div className="flex items-center gap-6">
         <a

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "free",
+    "name": "Free Trial",
+    "monthlyPrice": "$0",
+    "yearlyPrice": "$0",
+    "tagline": "14-day access",
+    "description": "Perfect for exploring Case Builder core features. No credit card required.",
+    "highlighted": false,
+    "badge": null,
+    "ctaLabel": "Start Free Trial",
+    "annualSavings": null,
+    "monthlySubtext": null,
+    "yearlySubtext": null,
+    "features": [
+      {
+        "id": "bundles_free",
+        "label": "Up to 3 active bundles",
+        "tooltip": "A bundle contains your loaded exhibits, indices, and stamping settings."
+      },
+      {
+        "id": "annotations",
+        "label": "Basic bookmarks & annotations",
+        "tooltip": null
+      },
+      {
+        "id": "export",
+        "label": "Standard export format (Indexed PDF)",
+        "tooltip": null
+      }
+    ]
+  },
+  {
+    "id": "pro",
+    "name": "Pro Plan",
+    "monthlyPrice": "$29",
+    "yearlyPrice": "$290",
+    "tagline": null,
+    "description": "Unleash the full power of your digital trial and legal document workspace.",
+    "highlighted": true,
+    "badge": "Most Popular",
+    "ctaLabel": "Continue to Payment",
+    "annualSavings": "$58",
+    "monthlySubtext": "Flexible pay-as-you-go indexing",
+    "yearlySubtext": "Billed annually ($290/year) — You save $58!",
+    "features": [
+      {
+        "id": "unlimited_bundles",
+        "label": "Unlimited bundles & storage",
+        "tooltip": null
+      },
+      {
+        "id": "ocr_bates",
+        "label": "Advanced OCR & Bates Stamping",
+        "tooltip": null
+      },
+      {
+        "id": "branding",
+        "label": "Custom firm branding templates",
+        "tooltip": null
+      },
+      {
+        "id": "support",
+        "label": "Priority 24/7 client support SLA",
+        "tooltip": null
+      },
+      {
+        "id": "workspaces",
+        "label": "Shared real-time workspaces",
+        "tooltip": null
+      }
+    ]
+  }
+]

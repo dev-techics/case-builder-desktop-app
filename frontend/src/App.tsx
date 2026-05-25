@@ -1,3 +1,4 @@
+//TODO: no loger used: remove
 import { RouterProvider } from 'react-router-dom';
 import { router } from './routes/router';
 

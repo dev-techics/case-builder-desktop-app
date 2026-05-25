@@ -25,6 +25,9 @@ export async function initAuth(): Promise<void> {
 
   } catch {
     store.dispatch(clearAuth());
+    
+  }finally{
+    store.dispatch(setInitialized());
   }
 }
 
