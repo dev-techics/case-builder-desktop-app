@@ -195,6 +195,53 @@
   --color-on-error-container: #93000a;
 }
 
+.case-dashboard-theme {
+  --background: #f8f9ff;
+  --foreground: #0b1c30;
+  --card: #ffffff;
+  --card-foreground: #0b1c30;
+  --popover: #ffffff;
+  --popover-foreground: #0b1c30;
+  --primary: #3525cd;
+  --primary-foreground: #ffffff;
+  --secondary: #eff4ff;
+  --secondary-foreground: #0b1c30;
+  --muted: #eff4ff;
+  --muted-foreground: #464555;
+  --accent: #e5eeff;
+  --accent-foreground: #0b1c30;
+  --destructive: #ba1a1a;
+  --border: #d6e1f4;
+  --input: #d3e4fe;
+  --ring: #4f46e5;
+  --sidebar: #eff4ff;
+  --sidebar-foreground: #0b1c30;
+  --sidebar-primary: #3525cd;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #dce9ff;
+  --sidebar-accent-foreground: #3525cd;
+  --sidebar-border: #d3e4fe;
+  --sidebar-ring: #4f46e5;
+  --dashboard-surface: #f8f9ff;
+  --dashboard-surface-dim: #cbdbf5;
+  --dashboard-surface-lowest: #ffffff;
+  --dashboard-surface-low: #eff4ff;
+  --dashboard-surface-base: #e5eeff;
+  --dashboard-surface-high: #dce9ff;
+  --dashboard-surface-highest: #d3e4fe;
+  --dashboard-on-surface: #0b1c30;
+  --dashboard-on-surface-variant: #464555;
+  --dashboard-outline: #777587;
+  --dashboard-outline-variant: #c7c4d8;
+  --dashboard-primary-container: #4f46e5;
+  --dashboard-primary-fixed: #e2dfff;
+  --dashboard-primary-fixed-dim: #c3c0ff;
+  --dashboard-secondary: #006591;
+  --dashboard-secondary-fixed: #c9e6ff;
+  --dashboard-tertiary: #7e3000;
+  --dashboard-tertiary-fixed: #ffdbcc;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

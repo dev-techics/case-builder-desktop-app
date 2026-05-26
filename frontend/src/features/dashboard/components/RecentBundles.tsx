@@ -1,89 +1,123 @@
-import { useMemo } from 'react';
+import { ArrowRight, FolderOpen } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+
 import { Button } from '@/components/ui/button';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { Folder02Icon, Share05Icon } from '@hugeicons/core-free-icons';
 import { useGetBundlesQuery } from '@/features/bundles-list/api';
+import type { BundleStatus } from '@/features/bundles-list/types';
 import { formatRelativeTime, getSortTimestamp } from '../utils';
-import { useNavigate } from 'react-router-dom';
+
+const statusClasses: Record<BundleStatus, string> = {
+  'In Progress': 'bg-[var(--dashboard-primary-fixed)] text-[var(--primary)]',
+  Complete: 'bg-[#e9f9ef] text-[#1e8e4f]',
+  Review: 'bg-[#fff0e8] text-[var(--dashboard-tertiary)]',
+  Archived:
+    'bg-[var(--dashboard-surface-low)] text-[var(--dashboard-on-surface-variant)]',
+};
 
 export const RecentBundles = () => {
   const { data: bundles = [], isLoading, error } = useGetBundlesQuery();
   const navigate = useNavigate();
 
-  const recentBundles = useMemo(
-    () =>
-      [...bundles]
-        .sort(
-          (a, b) =>
-            getSortTimestamp(b.updatedAt, b.createdAt) -
-            getSortTimestamp(a.updatedAt, a.createdAt)
-        )
-        .slice(0, 3),
-    [bundles]
-  );
-
-  if (isLoading && bundles.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">Loading recent bundles...</p>
-    );
-  }
-
-  if (error && bundles.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Failed to load recent bundles.
-      </p>
-    );
-  }
-
-  if (recentBundles.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">No recent bundles yet.</p>
-    );
-  }
+  const recentBundles = [...bundles]
+    .sort(
+      (a, b) =>
+        getSortTimestamp(b.updatedAt, b.createdAt) -
+        getSortTimestamp(a.updatedAt, a.createdAt)
+    )
+    .slice(0, 4);
 
   return (
-    <div className="space-y-4">
-      {recentBundles.map(bundle => (
-        <div
-          key={bundle.id}
-          className="flex items-center justify-between p-3 border rounded-lg transition-colors hover:bg-emerald-50/70 hover:border-emerald-200 dark:hover:bg-emerald-950/20 dark:hover:border-emerald-900/40"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-sm bg-emerald-500 text-emerald-50 dark:bg-emerald-500/20 dark:text-emerald-300">
-              {/* <HugeiconsIcon size={20} strokeWidth={2} icon={File02Icon} /> */}
-              <HugeiconsIcon size={20} strokeWidth={2} icon={Folder02Icon} />
-            </div>
-            <div>
-              <p className="text-sm font-medium">{bundle.name}</p>
-              <p className="text-xs text-muted-foreground">
-                Updated{' '}
-                {formatRelativeTime(bundle.updatedAt ?? bundle.createdAt)}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`editor/${bundle.id}`)}
-              className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:text-emerald-200 dark:hover:bg-emerald-950/30"
-            >
-              Continue
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() =>
-                window.open(`/dashboard/editor/${bundle.id}`, '_blank')
-              }
-              className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:text-emerald-200 dark:hover:bg-emerald-950/30"
-            >
-              <HugeiconsIcon size={18} icon={Share05Icon} />
-            </Button>
-          </div>
+    <section className="rounded-[28px] border border-[var(--border)] bg-[var(--dashboard-surface-lowest)] shadow-[0_10px_28px_rgba(11,28,48,0.05)]">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-6 py-5">
+        <div>
+          <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[var(--dashboard-on-surface)]">
+            Recent Bundles
+          </h2>
+          <p className="mt-1 text-[13px] text-[var(--dashboard-on-surface-variant)]">
+            Pick up where your latest case work left off.
+          </p>
         </div>
-      ))}
-    </div>
+
+        <Button
+          asChild
+          variant="ghost"
+          className="h-9 rounded-full px-3 text-[13px] font-medium text-[var(--primary)] hover:bg-[var(--dashboard-surface-low)] hover:text-[var(--primary)]"
+        >
+          <Link to="/dashboard/bundles">
+            View all bundles
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+      </div>
+
+      <div className="p-4">
+        {isLoading && bundles.length === 0 ? (
+          <p className="px-2 py-8 text-center text-[13px] text-[var(--dashboard-on-surface-variant)]">
+            Loading recent bundles...
+          </p>
+        ) : null}
+
+        {error && bundles.length === 0 ? (
+          <p className="px-2 py-8 text-center text-[13px] text-[var(--dashboard-on-surface-variant)]">
+            Failed to load recent bundles.
+          </p>
+        ) : null}
+
+        {!isLoading && !error && recentBundles.length === 0 ? (
+          <p className="px-2 py-8 text-center text-[13px] text-[var(--dashboard-on-surface-variant)]">
+            No recent bundles yet.
+          </p>
+        ) : null}
+
+        <div className="space-y-3">
+          {recentBundles.map(bundle => (
+            <button
+              key={bundle.id}
+              type="button"
+              onClick={() => navigate(`/dashboard/editor/${bundle.id}`)}
+              className="group flex w-full items-center justify-between gap-4 rounded-3xl border border-[var(--border)] bg-white px-4 py-4 text-left transition-all hover:border-[var(--dashboard-primary-fixed-dim)] hover:bg-[var(--dashboard-surface-low)]"
+            >
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--dashboard-primary-fixed)] text-[var(--primary)]">
+                  <FolderOpen className="size-5" />
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-[14px] font-semibold text-[var(--dashboard-on-surface)]">
+                      {bundle.name}
+                    </p>
+                    {bundle.caseNumber ? (
+                      <span className="rounded-full bg-[var(--dashboard-surface-low)] px-2.5 py-1 text-[11px] font-medium text-[var(--dashboard-on-surface-variant)]">
+                        Case {bundle.caseNumber}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <p className="mt-1 text-[13px] text-[var(--dashboard-on-surface-variant)]">
+                    Updated {formatRelativeTime(bundle.updatedAt ?? bundle.createdAt)}{' '}
+                    • {bundle.totalDocuments} document
+                    {bundle.totalDocuments === 1 ? '' : 's'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-3">
+                <span
+                  className={`hidden rounded-full px-3 py-1 text-[11px] font-semibold sm:inline-flex ${statusClasses[bundle.status]}`}
+                >
+                  {bundle.status}
+                </span>
+
+                <span className="inline-flex items-center gap-1 text-[13px] font-medium text-[var(--primary)]">
+                  Open
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 };

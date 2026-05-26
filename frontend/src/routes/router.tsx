@@ -13,8 +13,8 @@ import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import PaywallPage from '@/pages/auth/PaywallPage';
 import { CoverPageEditor } from '@/features/cover-page/components/editor/CoverPageEditor';
 import { getAuthSnapshot } from '@/features/auth/utils/authState';
-import PlansPage from '@/pages/plan/PlansPage';
-import PlansLayout from '@/layouts/PlansLayout';
+// import PlansPage from '@/pages/plan/PlansPage';
+// import PlansLayout from '@/layouts/PlansLayout';
 
 
 // Guard: must be logged in + have a license
@@ -23,7 +23,7 @@ async function requireAuthAndLicense() {
 
   if (!initialized) return null;
   if (!isAuthenticated) throw redirect('/login');
-  if (!hasLicense) throw redirect('/plans');   // logged in, no license
+  if (!hasLicense) throw redirect('/paywall');   // logged in, no license
 
   return null;
 }
@@ -45,7 +45,7 @@ async function redirectIfAuthenticated() {
 
   if (!snap.initialized) return null;
   if (snap.isAuthenticated && snap.hasLicense) throw redirect('/dashboard');
-  if (snap.isAuthenticated && !snap.hasLicense) throw redirect('/plans');
+  if (snap.isAuthenticated && !snap.hasLicense) throw redirect('/paywall');
 
   return null;
 }
@@ -63,16 +63,16 @@ export const router = createHashRouter([
     ],
   },
   //  ── Plans ──────────────────────────────────────────────────────────────
-  {
-    loader: requireAuthNoLicense,
-    element: <PlansLayout />,
-    children: [
-      {
-        path: '/plans',
-        element: <PlansPage />
-      }
-    ]
-  },
+  // {
+  //   loader: requireAuthNoLicense,
+  //   element: <PlansLayout />,
+  //   children: [
+  //     {
+  //       path: '/plans',
+  //       element: <PlansPage />
+  //     }
+  //   ]
+  // },
   //── Paywall ──────────────────────────────────────────────────────────────
   {
     loader: requireAuthNoLicense,
