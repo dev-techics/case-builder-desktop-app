@@ -1,26 +1,10 @@
-/**
- * This is the entry point of the main bundle list feature
- *
- * Responsibilites: renders all the components required for the bundle list page and crud operations
- *
- * Notes:
- *
- * Author: Anik Dey
- */
-import { useState } from 'react';
-import {
-  BundleCard,
-  BundleRow,
-  BundlesFilterBar,
-  BundlesHeader,
-  CreateBundleDialog,
-  BundleRenameDialog,
-} from '@case-builder/ui';
-import { Button } from '@/components/ui/button';
-import { FileStack, Plus } from 'lucide-react';
-import type { Bundle, BundleStatus, SortOption, ViewMode } from './types';
+import { useMemo, useState } from 'react';
+import { BundleRenameDialog, CreateBundleDialog } from '@case-builder/ui';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+
 import { useAppDispatch } from '@/app/hooks';
+import { getSortTimestamp } from '../dashboard/utils';
 import {
   bundleListApi,
   useCreateBundleMutation,
@@ -28,15 +12,15 @@ import {
   useGetBundlesQuery,
   useUpdateBundleStatusMutation,
 } from './api';
-import { toast } from 'react-toastify';
+import { BundleListContent } from './components/BundleListContent';
+import {
+  BundleListControls,
+  BundleListHero,
+} from './components/BundleListControls';
 import { useCreateBundleDialog, useRenameBundle } from './hooks';
+import type { Bundle, BundleStatus, SortOption, ViewMode } from './types';
 import { formatBundleTimestamp } from './utils/formatBundleTimestamp';
 
-/*--------------------------------------------------
-  Duplication is still local-only, so we mirror the
-  previous behavior by inserting a cloned item into
-  the RTK Query cache.
-----------------------------------------------------*/
 const createDuplicateBundle = (bundle: Bundle): Bundle => ({
   ...bundle,
   id: crypto.randomUUID(),
@@ -51,12 +35,42 @@ type BundleListItem = {
   lastModifiedTitle?: string;
 };
 
+const sortBundles = (items: BundleListItem[], sortBy: SortOption) => {
+  return [...items].sort((a, b) => {
+    if (sortBy === 'oldest') {
+      return (
+        getSortTimestamp(a.bundle.updatedAt, a.bundle.createdAt) -
+        getSortTimestamp(b.bundle.updatedAt, b.bundle.createdAt)
+      );
+    }
+
+    if (sortBy === 'name-asc') return a.bundle.name.localeCompare(b.bundle.name);
+    if (sortBy === 'name-desc') return b.bundle.name.localeCompare(a.bundle.name);
+    if (sortBy === 'documents') {
+      return b.bundle.totalDocuments - a.bundle.totalDocuments;
+    }
+
+    return (
+      getSortTimestamp(b.bundle.updatedAt, b.bundle.createdAt) -
+      getSortTimestamp(a.bundle.updatedAt, a.bundle.createdAt)
+    );
+  });
+};
+
 const BundleList = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
+  const [updatingStatusBundleId, setUpdatingStatusBundleId] = useState<
+    Bundle['id'] | null
+  >(null);
   const [createBundle] = useCreateBundleMutation();
-  /*---------- Create new bundle hook call -------------- */
+  const [deleteBundle] = useDeleteBundleMutation();
+  const [updateBundleStatus] = useUpdateBundleStatusMutation();
+  const { data: bundles = [], isLoading, error } = useGetBundlesQuery();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+
   const {
     bundleName,
     canSubmit: canCreateBundle,
@@ -73,7 +87,7 @@ const BundleList = () => {
   } = useCreateBundleDialog({
     createBundle: payload => createBundle(payload).unwrap(),
   });
-  /*------------ Rename bundle hook call ----------------- */
+
   const {
     bundleToRename,
     closeRenameDialog,
@@ -82,19 +96,37 @@ const BundleList = () => {
     openRenameDialog,
     submitRename,
   } = useRenameBundle();
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const [updatingStatusBundleId, setUpdatingStatusBundleId] = useState<
-    Bundle['id'] | null
-  >(null);
-  const { data: bundles = [], isLoading, error } = useGetBundlesQuery();
-  const [deleteBundle] = useDeleteBundleMutation();
-  const [updateBundleStatus] = useUpdateBundleStatusMutation();
-  // Handle opening a bundle in the editor
+
+  const filteredBundles: BundleListItem[] = useMemo(() => {
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const visibleBundles = bundles.filter(bundle => {
+      if (!bundle?.name || !bundle?.caseNumber) return false;
+
+      return (
+        bundle.name.toLowerCase().includes(normalizedSearchTerm) ||
+        bundle.caseNumber.toLowerCase().includes(normalizedSearchTerm)
+      );
+    });
+
+    return sortBundles(
+      visibleBundles.map(bundle => {
+        const lastModifiedLabel = formatBundleTimestamp(bundle.updatedAt);
+
+        return {
+          bundle,
+          lastModifiedLabel,
+          lastModifiedTitle:
+            lastModifiedLabel !== '—' ? lastModifiedLabel : undefined,
+        };
+      }),
+      sortBy
+    );
+  }, [bundles, searchTerm, sortBy]);
+
   const handleOpenBundle = (bundle: Bundle) => {
     navigate(`/dashboard/editor/${bundle.id}`);
   };
-  // Handle bundle delete
+
   const handleBundleDelete = async (id: string | number) => {
     try {
       await deleteBundle(id).unwrap();
@@ -103,6 +135,7 @@ const BundleList = () => {
       toast.error('Failed to delete bundle');
     }
   };
+
   const handleBundleDuplicate = (bundle: Bundle) => {
     const duplicatedBundle = createDuplicateBundle(bundle);
 
@@ -112,39 +145,23 @@ const BundleList = () => {
           item => item.id === bundle.id
         );
 
-        if (originalBundleIndex === -1) {
-          draft.unshift(duplicatedBundle);
-          return;
-        }
-
-        draft.splice(originalBundleIndex + 1, 0, duplicatedBundle);
+        if (originalBundleIndex === -1) draft.unshift(duplicatedBundle);
+        else draft.splice(originalBundleIndex + 1, 0, duplicatedBundle);
       })
     );
 
     toast.success('Bundle Duplicated Successfully');
   };
 
-  const handleRenameDialogOpenChange = (open: boolean) => {
-    if (!open) {
-      closeRenameDialog();
-    }
-  };
-
   const handleBundleStatusChange = async (
     bundle: Bundle,
     status: BundleStatus
   ) => {
-    if (status === bundle.status) {
-      return;
-    }
+    if (status === bundle.status) return;
 
     setUpdatingStatusBundleId(bundle.id);
-
     try {
-      await updateBundleStatus({
-        bundleId: bundle.id,
-        status,
-      }).unwrap();
+      await updateBundleStatus({ bundleId: bundle.id, status }).unwrap();
       toast.success(`Bundle status updated to ${status}`);
     } catch {
       toast.error('Failed to update bundle status');
@@ -154,133 +171,44 @@ const BundleList = () => {
       );
     }
   };
-  const filteredBundles: BundleListItem[] = bundles
-    .filter(bundle => {
-      if (!bundle?.name || !bundle?.caseNumber) return false;
 
-      return (
-        bundle.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        bundle.caseNumber.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    })
-    .map(bundle => {
-      const lastModifiedLabel = formatBundleTimestamp(bundle.updatedAt);
-
-      return {
-        bundle,
-        lastModifiedLabel,
-        lastModifiedTitle:
-          lastModifiedLabel !== '—' ? lastModifiedLabel : undefined,
-      };
-    });
+  const handleRenameDialogOpenChange = (open: boolean) => {
+    if (!open) closeRenameDialog();
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <BundlesHeader onCreateNew={openCreateDialog} />
-      <BundlesFilterBar
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-      />
+    <div className="space-y-6">
+      <BundleListHero onCreateBundle={openCreateDialog} />
 
-      <div className="p-6">
-        {isLoading ? (
-          <div className="text-center py-12 text-gray-500">
-            Loading bundles...
-          </div>
-        ) : error && bundles.length === 0 ? (
-          <div className="text-center py-12 text-red-500">
-            Failed to load bundles. Please try again.
-          </div>
-        ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredBundles.map(
-              ({ bundle, lastModifiedLabel, lastModifiedTitle }) => (
-                <BundleCard
-                  key={bundle.id}
-                  bundle={bundle}
-                  lastModifiedLabel={lastModifiedLabel}
-                  lastModifiedTitle={lastModifiedTitle}
-                  onOpen={() => handleOpenBundle(bundle)}
-                  onStatusChange={status =>
-                    void handleBundleStatusChange(bundle, status)
-                  }
-                  onDelete={handleBundleDelete}
-                  onDuplicate={handleBundleDuplicate}
-                  onRename={openRenameDialog}
-                  isStatusUpdating={updatingStatusBundleId === bundle.id}
-                />
-              )
-            )}
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bundle Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Documents
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Modified
-                  </th>
-                  <th className="w-12 px-6 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredBundles.map(
-                  ({ bundle, lastModifiedLabel, lastModifiedTitle }) => (
-                    <BundleRow
-                      key={bundle.id}
-                      bundle={bundle}
-                      lastModifiedLabel={lastModifiedLabel}
-                      lastModifiedTitle={lastModifiedTitle}
-                      onOpen={() => handleOpenBundle(bundle)}
-                      onStatusChange={status =>
-                        void handleBundleStatusChange(bundle, status)
-                      }
-                      onDelete={handleBundleDelete}
-                      onDuplicate={handleBundleDuplicate}
-                      onRename={openRenameDialog}
-                      isStatusUpdating={updatingStatusBundleId === bundle.id}
-                    />
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <section className="rounded-[28px] border border-[var(--border)] bg-[var(--dashboard-surface-lowest)] shadow-[0_10px_28px_rgba(11,28,48,0.05)] animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
+        <BundleListControls
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          setSortBy={setSortBy}
+          setViewMode={setViewMode}
+          sortBy={sortBy}
+          viewMode={viewMode}
+        />
 
-        {!isLoading &&
-          !(error && bundles.length === 0) &&
-          filteredBundles.length === 0 && (
-            <div className="text-center py-12">
-              <FileStack className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No bundles found
-              </h3>
-              <p className="text-gray-500 mb-4">
-                Try adjusting your search or create a new bundle
-              </p>
-              <Button
-                onClick={openCreateDialog}
-                className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Create Your First Bundle
-              </Button>
-            </div>
-          )}
-      </div>
+        <div className="p-5">
+          <BundleListContent
+            bundles={filteredBundles}
+            error={error}
+            isLoading={isLoading}
+            onCreateBundle={openCreateDialog}
+            onDelete={handleBundleDelete}
+            onDuplicate={handleBundleDuplicate}
+            onOpen={handleOpenBundle}
+            onRename={openRenameDialog}
+            onStatusChange={(bundle, status) =>
+              void handleBundleStatusChange(bundle, status)
+            }
+            sourceBundleCount={bundles.length}
+            updatingStatusBundleId={updatingStatusBundleId}
+            viewMode={viewMode}
+          />
+        </div>
+      </section>
 
       <CreateBundleDialog
         bundleName={bundleName}
@@ -295,7 +223,6 @@ const BundleList = () => {
         onOpenChange={handleCreateDialogOpenChange}
         onSubmit={handleCreateBundleSubmit}
       />
-      {/* --------- Rename Dialog ----------- */}
       <BundleRenameDialog
         key={bundleToRename?.id ?? 'rename-dialog'}
         bundle={bundleToRename}

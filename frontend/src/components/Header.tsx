@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Settings, Menu, X, ChevronDown, User, LogOut, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onNotify?: (message: string) => void;
@@ -9,12 +10,12 @@ interface HeaderProps {
 export default function Header({ onNotify = () => { } }: Readonly<HeaderProps>) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-
+  const navigate = useNavigate();
   const navItems = ['Documents', 'Cases', 'Templates', 'Archive'];
 
   const handleNavClick = (e: React.MouseEvent, item: string) => {
     e.preventDefault();
-    onNotify(`Navigation to ${item} is simulated in this preview.`);
+    navigate('/dashboard');
   };
 
   return (

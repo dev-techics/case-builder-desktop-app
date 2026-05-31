@@ -13,20 +13,20 @@ import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import PaywallPage from '@/pages/auth/PaywallPage';
 import { CoverPageEditor } from '@/features/cover-page/components/editor/CoverPageEditor';
 import { getAuthSnapshot } from '@/features/auth/utils/authState';
-// import PlansPage from '@/pages/plan/PlansPage';
-// import PlansLayout from '@/layouts/PlansLayout';
+import PlansPage from '@/pages/plan/PlansPage';
+import PlansLayout from '@/layouts/PlansLayout';
 
 
 // Guard: must be logged in + have a license
-async function requireAuthAndLicense() {
-  const { isAuthenticated, hasLicense, initialized } = getAuthSnapshot();
+// async function requireAuthAndLicense() {
+//   const { isAuthenticated, hasLicense, initialized } = getAuthSnapshot();
 
-  if (!initialized) return null;
-  if (!isAuthenticated) throw redirect('/login');
-  if (!hasLicense) throw redirect('/paywall');   // logged in, no license
+//   if (!initialized) return null;
+//   if (!isAuthenticated) throw redirect('/login');
+//   if (!hasLicense) throw redirect('/plans');   // logged in, no license
 
-  return null;
-}
+//   return null;
+// }
 
 // Guard: paywall page — must be logged in, but must NOT have a license
 async function requireAuthNoLicense() {
@@ -45,7 +45,7 @@ async function redirectIfAuthenticated() {
 
   if (!snap.initialized) return null;
   if (snap.isAuthenticated && snap.hasLicense) throw redirect('/dashboard');
-  if (snap.isAuthenticated && !snap.hasLicense) throw redirect('/paywall');
+  if (snap.isAuthenticated && !snap.hasLicense) throw redirect('/plans');
 
   return null;
 }
@@ -63,16 +63,16 @@ export const router = createHashRouter([
     ],
   },
   //  ── Plans ──────────────────────────────────────────────────────────────
-  // {
-  //   loader: requireAuthNoLicense,
-  //   element: <PlansLayout />,
-  //   children: [
-  //     {
-  //       path: '/plans',
-  //       element: <PlansPage />
-  //     }
-  //   ]
-  // },
+  {
+    loader: requireAuthNoLicense,
+    element: <PlansLayout />,
+    children: [
+      {
+        path: '/plans',
+        element: <PlansPage />
+      }
+    ]
+  },
   //── Paywall ──────────────────────────────────────────────────────────────
   {
     loader: requireAuthNoLicense,
@@ -83,7 +83,7 @@ export const router = createHashRouter([
 
   // ── Protected routes ─────────────────────────────────────────────────────
   {
-    loader: requireAuthAndLicense,
+    // loader: requireAuthAndLicense,
     children: [
       {
         element: <EditorLayout />,
