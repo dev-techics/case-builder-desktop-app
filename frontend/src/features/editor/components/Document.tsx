@@ -1,6 +1,7 @@
 // src/features/editor/components/Document.tsx
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Document as ReactPdfDocument, Page } from 'react-pdf';
+import { Document as ReactPdfDocument, Page, pdfjs } from 'react-pdf';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useRotateDocumentPageMutation } from '@/features/editor/api';
 import { setDocumentPageCount } from '@/features/properties-panel/redux/propertiesPanelSlice';
@@ -11,6 +12,8 @@ import type {
   TextHighlightableDocumentProps,
 } from '../types/types';
 import { useDocumentMouseUp, useDocumentPages } from '@/features/editor/hooks';
+
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const ROTATION_STEP_DEGREES = 90;
 

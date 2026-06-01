@@ -22,6 +22,7 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       external: [],
     },
-    outDir: "../dist-react"
+    outDir: '../dist-react',
+    emptyOutDir: true,
   },
 }));
