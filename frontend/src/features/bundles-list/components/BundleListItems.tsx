@@ -77,6 +77,7 @@ const BundleActions = ({
     <DropdownMenuContent
       align="end"
       className="rounded-2xl border-[var(--border)] bg-white p-1.5"
+      onClick={event => event.stopPropagation()}
     >
       <DropdownMenuItem onClick={() => onOpen(bundle)} className="rounded-xl">
         <FolderOpen className="size-4" />

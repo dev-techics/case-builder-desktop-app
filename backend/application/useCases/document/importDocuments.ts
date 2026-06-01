@@ -10,6 +10,7 @@ import type {
 } from '../../ports/documents/documentProcessor.js';
 import type { DocumentStorage } from '../../ports/documents/documentStorage.js';
 
+/*--------------------------- Types and Interfaces ----------------------------*/
 export interface ImportableDocumentFile {
   name: string;
   path: string;
@@ -34,6 +35,28 @@ export interface ImportDocumentsResult {
   conversionStatuses?: DocumentImportStatus[];
 }
 
+type ValidatedImportDocumentsInput = {
+  bundleId: string;
+  parentId: string | null;
+  files: ImportableDocumentFile[];
+};
+
+type ValidatedImportFile = {
+  name: string;
+  path: string;
+  mimeType: string | null;
+};
+
+type ImportFileValidationResult =
+  | {
+      isValid: true;
+      file: ValidatedImportFile;
+    }
+  | {
+      isValid: false;
+      status: DocumentImportStatus;
+    };
+
 const PDF_MIME_TYPES = new Set([
   'application/pdf',
   'application/x-pdf',
@@ -43,13 +66,52 @@ const PDF_MIME_TYPES = new Set([
   'text/x-pdf',
 ]);
 
+/*--------------------------- Validation and Utility Functions ----------------------------*/
 const isPdfFile = (file: ImportableDocumentFile) => {
-  const normalizedMimeType = file.mimeType?.trim().toLowerCase();
+  const normalizedMimeType =
+    typeof file.mimeType === 'string' ? file.mimeType.trim().toLowerCase() : '';
+
   if (normalizedMimeType && PDF_MIME_TYPES.has(normalizedMimeType)) {
     return true;
   }
 
   return path.extname(file.name).toLowerCase() === '.pdf';
+};
+
+const getTrimmedString = (value: unknown) =>
+  typeof value === 'string' ? value.trim() : '';
+
+const normalizeMimeType = (mimeType: unknown) => {
+  const normalizedMimeType = getTrimmedString(mimeType);
+
+  return normalizedMimeType || null;
+};
+
+const validateImportFile = (
+  file: Partial<ImportableDocumentFile> | null | undefined
+): ImportFileValidationResult => {
+  const fileName = getTrimmedString(file?.name);
+  const filePath = getTrimmedString(file?.path);
+
+  if (!fileName || !filePath) {
+    return {
+      isValid: false,
+      status: {
+        fileName: fileName || 'Unknown file',
+        status: 'failed',
+        message: 'Invalid file payload.',
+      },
+    };
+  }
+
+  return {
+    isValid: true,
+    file: {
+      name: fileName,
+      path: filePath,
+      mimeType: normalizeMimeType(file?.mimeType),
+    },
+  };
 };
 
 export class ImportDocumentsUseCase {
@@ -61,26 +123,7 @@ export class ImportDocumentsUseCase {
 
   async execute(input: ImportDocumentsInput): Promise<ImportDocumentsResult> {
     /* ------------ Validate inputs ---------------- */
-    const bundleId = input.bundleId?.trim();
-    if (!bundleId) {
-      throw new ValidationError('Bundle id is required.');
-    }
-
-    const files = Array.isArray(input.files) ? input.files : [];
-    if (files.length === 0) {
-      throw new ValidationError('At least one file is required.');
-    }
-
-    const parentId = input.parentId?.trim() || null;
-    if (parentId) {
-      const parentDocument = await this.documentRepository.getById(parentId);
-      if (parentDocument?.bundleId !== bundleId) {
-        throw new ValidationError('Parent folder not found.');
-      }
-      if (parentDocument.type !== 'folder') {
-        throw new ValidationError('Files can only be imported into folders.');
-      }
-    }
+    const { bundleId, parentId, files } = await this.validateInput(input);
 
     /* ------------ Validate inputs ends ---------------- */
 
@@ -91,24 +134,21 @@ export class ImportDocumentsUseCase {
 
     try {
       for (const file of files) {
-        const fileName = typeof file?.name === 'string' ? file.name.trim() : '';
-        const filePath = typeof file?.path === 'string' ? file.path.trim() : '';
+        const fileValidation = validateImportFile(file);
 
-        if (!fileName || !filePath) {
-          conversionStatuses.push({
-            fileName: fileName || 'Unknown file',
-            status: 'failed',
-            message: 'Invalid file payload.',
-          });
+        if (!fileValidation.isValid) {
+          conversionStatuses.push(fileValidation.status);
           continue;
         }
+
+        const validatedFile = fileValidation.file;
 
         if (this.documentImportPreprocessor) {
           const preparedResult =
             await this.documentImportPreprocessor.preprocess({
-              name: fileName,
-              path: filePath,
-              mimeType: file.mimeType ?? null,
+              name: validatedFile.name,
+              path: validatedFile.path,
+              mimeType: validatedFile.mimeType,
             });
 
           if (preparedResult.status) {
@@ -124,9 +164,9 @@ export class ImportDocumentsUseCase {
           continue;
         }
 
-        if (!isPdfFile(file)) {
+        if (!isPdfFile(validatedFile)) {
           conversionStatuses.push({
-            fileName,
+            fileName: validatedFile.name,
             status: 'failed',
             message: 'Desktop import currently supports PDF files only.',
           });
@@ -134,9 +174,9 @@ export class ImportDocumentsUseCase {
         }
 
         acceptedFiles.push({
-          name: fileName,
-          path: filePath,
-          mimeType: file.mimeType ?? 'application/pdf',
+          name: validatedFile.name,
+          path: validatedFile.path,
+          mimeType: validatedFile.mimeType ?? 'application/pdf',
           cleanup: async () => {},
         });
       }
@@ -206,5 +246,41 @@ export class ImportDocumentsUseCase {
         preparedFilesToCleanup.map(file => file.cleanup().catch(() => {}))
       );
     }
+  }
+  /* ------------ Private helper methods ---------------- */
+  private async validateInput(
+    input: ImportDocumentsInput
+  ): Promise<ValidatedImportDocumentsInput> {
+    const bundleId = getTrimmedString(input.bundleId);
+    const files = Array.isArray(input.files) ? input.files : [];
+    const parentId = getTrimmedString(input.parentId) || null;
+
+    if (!bundleId) {
+      throw new ValidationError('Bundle id is required.');
+    }
+
+    if (!files.length) {
+      throw new ValidationError('At least one file is required.');
+    }
+
+    const bundleName = await this.documentRepository.getBundleName(bundleId);
+
+    if (!bundleName) {
+      throw new ValidationError('Bundle not found.');
+    }
+
+    if (parentId) {
+      const parentDocument = await this.documentRepository.getById(parentId);
+
+      if (parentDocument?.bundleId !== bundleId) {
+        throw new ValidationError('Parent folder not found.');
+      }
+
+      if (parentDocument.type !== 'folder') {
+        throw new ValidationError('Files can only be imported into folders.');
+      }
+    }
+
+    return { bundleId, parentId, files };
   }
 }

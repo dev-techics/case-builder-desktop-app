@@ -13,7 +13,7 @@ export default function Header({ onNotify = () => { } }: Readonly<HeaderProps>) 
   const navigate = useNavigate();
   const navItems = ['Documents', 'Cases', 'Templates', 'Archive'];
 
-  const handleNavClick = (e: React.MouseEvent, item: string) => {
+  const handleNavClick = (e: React.MouseEvent, _item: string) => {
     e.preventDefault();
     navigate('/dashboard');
   };

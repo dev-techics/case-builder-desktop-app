@@ -57,7 +57,7 @@ const useLoginForm = () => {
         isDesktop
           ? hasDesktopLicenseAccess(result.license)
             ? '/dashboard'
-            : '/plans'
+            : '/dashboard'
           : '/dashboard',
         { replace: true }
       );
