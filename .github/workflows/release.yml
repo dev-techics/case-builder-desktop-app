@@ -130,7 +130,12 @@ jobs:
           jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu)"
           (
             cd "$source_dir"
-            ./configure --prefix="$destination" --without-x --disable-cups
+            ./configure \
+              --prefix="$destination" \
+              --without-x \
+              --without-tesseract \
+              --disable-cups \
+              --disable-fontconfig
             make -j"$jobs"
             make install
           )
