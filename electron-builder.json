@@ -7,6 +7,13 @@
     "buildResources": "build"
   },
   "files": ["dist-electron/**/*", "dist-react/**/*", "package.json"],
+  "extraResources": [
+    {
+      "from": "build/ghostscript",
+      "to": "ghostscript",
+      "filter": ["**/*"]
+    }
+  ],
   "asarUnpack": ["**/*.node", "**/node_modules/better-sqlite3/**/*"],
   "publish": {
     "provider": "github",
@@ -19,7 +26,9 @@
       { "target": "portable", "arch": ["x64"] }
     ],
     "icon": "build/icon.ico",
-    "signingHashAlgorithms": ["sha256"]
+    "signtoolOptions": {
+      "signingHashAlgorithms": ["sha256"]
+    }
   },
   "nsis": {
     "oneClick": false,

@@ -37,3 +37,22 @@ export const buildDocumentUrl = (documentId: string) =>
 export function getGSInstallDir() {
   return path.join(app.getPath('userData'), 'bin', 'ghostscript');
 }
+
+/**------------------------------
+ * Get bundled gs binary path
+ --------------------------------*/
+export function getBundledGSBinaryPath() {
+  const executableName = process.platform === 'win32' ? 'gswin64c.exe' : 'gs';
+  const relativePath = path.join(
+    'ghostscript',
+    process.platform,
+    'bin',
+    executableName
+  );
+
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, relativePath);
+  }
+
+  return path.join(process.cwd(), 'build', relativePath);
+}

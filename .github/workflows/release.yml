@@ -5,6 +5,13 @@ on:
     tags:
       - 'v*' # Triggers on version tags like v1.0.0
 
+env:
+  GHOSTSCRIPT_VERSION: '10.07.1'
+  GHOSTSCRIPT_TAG: 'gs10071'
+  GHOSTSCRIPT_SOURCE_SHA256: '1cdb766de8db8f1e589c817f09c5855ea5f65dfc8540e465a69ac14c18416025'
+  GHOSTSCRIPT_WINDOWS_INSTALLER: 'gs10071w64.exe'
+  GHOSTSCRIPT_WINDOWS_SHA256: '3a4c28d0aac47aa7cccd35a5932c55110376e9dbd966898dde388b7faba444a4'
+
 jobs:
   build:
     strategy:
@@ -13,10 +20,13 @@ jobs:
         include:
           - os: windows-latest
             platform: win
+            runtimePlatform: win32
           - os: macos-latest
             platform: mac
+            runtimePlatform: darwin
           - os: ubuntu-latest
             platform: linux
+            runtimePlatform: linux
 
     runs-on: ${{ matrix.os }}
 
@@ -36,18 +46,110 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            build-essential \
+            ca-certificates \
+            curl \
             libgtk-3-dev \
             libwebkit2gtk-4.1-dev \
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
-            rpm
+            rpm \
+            xz-utils
 
       - name: Install dependencies
         run: npm ci
 
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
+
+      - name: Download bundled Ghostscript (Windows)
+        if: matrix.platform == 'win'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $downloadUrl = "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/$env:GHOSTSCRIPT_TAG/$env:GHOSTSCRIPT_WINDOWS_INSTALLER"
+          $installerPath = Join-Path $env:RUNNER_TEMP $env:GHOSTSCRIPT_WINDOWS_INSTALLER
+          $extractRoot = Join-Path $env:RUNNER_TEMP 'ghostscript-win32'
+          $destination = Join-Path $PWD 'build/ghostscript/win32'
+
+          Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath
+          $actualHash = (Get-FileHash $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $env:GHOSTSCRIPT_WINDOWS_SHA256) {
+            throw "Ghostscript installer checksum mismatch. Expected $env:GHOSTSCRIPT_WINDOWS_SHA256, got $actualHash."
+          }
+
+          New-Item -ItemType Directory -Force -Path $extractRoot | Out-Null
+          & 7z x $installerPath "-o$extractRoot" -y
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Ghostscript installer extraction failed.'
+          }
+
+          $binary = Get-ChildItem -Path $extractRoot -Recurse -Filter 'gswin64c.exe' | Select-Object -First 1
+          if (-not $binary) {
+            throw 'Ghostscript installer was extracted, but gswin64c.exe was not found.'
+          }
+
+          $runtimeRoot = Split-Path (Split-Path $binary.FullName -Parent) -Parent
+          if (Test-Path $destination) {
+            Remove-Item -LiteralPath $destination -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force -Path (Split-Path $destination -Parent) | Out-Null
+          Copy-Item -LiteralPath $runtimeRoot -Destination $destination -Recurse
+
+          & (Join-Path $destination 'bin/gswin64c.exe') --version
+
+      - name: Build bundled Ghostscript (macOS/Linux)
+        if: matrix.platform != 'win'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="$RUNNER_TEMP/ghostscript-${GHOSTSCRIPT_VERSION}.tar.xz"
+          source_dir="$RUNNER_TEMP/ghostscript-${GHOSTSCRIPT_VERSION}"
+          destination="$PWD/build/ghostscript/${{ matrix.runtimePlatform }}"
+          download_url="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/${GHOSTSCRIPT_TAG}/ghostscript-${GHOSTSCRIPT_VERSION}.tar.xz"
+
+          curl -fsSL "$download_url" -o "$archive"
+          actual_hash="$(shasum -a 256 "$archive" | awk '{print $1}')"
+          if [[ "$actual_hash" != "$GHOSTSCRIPT_SOURCE_SHA256" ]]; then
+            echo "Ghostscript source checksum mismatch. Expected $GHOSTSCRIPT_SOURCE_SHA256, got $actual_hash." >&2
+            exit 1
+          fi
+
+          rm -rf "$source_dir" "$destination"
+          mkdir -p "$destination"
+          tar -xJf "$archive" -C "$RUNNER_TEMP"
+
+          if [[ "${{ matrix.runtimePlatform }}" == "darwin" ]]; then
+            export CFLAGS="-arch x86_64 -arch arm64"
+            export LDFLAGS="-arch x86_64 -arch arm64"
+          fi
+
+          jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu)"
+          (
+            cd "$source_dir"
+            ./configure --prefix="$destination" --without-x --disable-cups
+            make -j"$jobs"
+            make install
+          )
+
+          mv "$destination/bin/gs" "$destination/bin/gs.bin"
+          cat > "$destination/bin/gs" <<EOF
+          #!/usr/bin/env sh
+          SCRIPT_DIR=\$(CDPATH= cd -- "\$(dirname -- "\$0")" && pwd)
+          ROOT_DIR=\$(CDPATH= cd -- "\$SCRIPT_DIR/.." && pwd)
+          VERSION_DIR="\$ROOT_DIR/share/ghostscript/${GHOSTSCRIPT_VERSION}"
+          export GS_LIB="\$VERSION_DIR/Resource/Init:\$VERSION_DIR/lib:\$ROOT_DIR/share/ghostscript/fonts\${GS_LIB:+:\$GS_LIB}"
+          export LD_LIBRARY_PATH="\$ROOT_DIR/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+          export DYLD_LIBRARY_PATH="\$ROOT_DIR/lib\${DYLD_LIBRARY_PATH:+:\$DYLD_LIBRARY_PATH}"
+          exec "\$SCRIPT_DIR/gs.bin" "\$@"
+          EOF
+          chmod +x "$destination/bin/gs" "$destination/bin/gs.bin"
+
+          "$destination/bin/gs" --version
+          file "$destination/bin/gs.bin"
 
       - name: Build project
         run: npm run build

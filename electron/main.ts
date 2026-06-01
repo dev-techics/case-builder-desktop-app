@@ -17,6 +17,7 @@ import { SqliteCommentRepository } from '../backend/infrastructure/repositories/
 import { LocalDocumentStorage } from '../backend/infrastructure/storage/localDocumentStorage.js';
 import {
   buildDocumentUrl,
+  getBundledGSBinaryPath,
   getDatabasePath,
   getDocumentsStoragePath,
   getGSInstallDir,
@@ -38,10 +39,20 @@ const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 
+const configureBundledGhostscript = () => {
+  if (process.env.CASE_BUILDER_GHOSTSCRIPT_BINARY_PATH) {
+    return;
+  }
+
+  process.env.CASE_BUILDER_GHOSTSCRIPT_BINARY_PATH = getBundledGSBinaryPath();
+};
+
 /*----------------------
   Register IPC Handlers
 ------------------------*/
 const registerIpc = () => {
+  configureBundledGhostscript();
+
   const databasePath = getDatabasePath();
   const documentsStoragePath = getDocumentsStoragePath();
   const db = createSqliteDatabase(databasePath);
