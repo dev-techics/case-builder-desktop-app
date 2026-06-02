@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, BadgeCheck, HelpCircle, Star, Sparkles } from 'lucide-react';
 import type { BillingInterval, Plan } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 interface PricingCardProps {
     plan: Plan;
@@ -17,13 +18,14 @@ export default function PricingCard({
     onNotify,
 }: Readonly<PricingCardProps>) {
     const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
-
+    const navigate = useNavigate();
     const isYearly = billingInterval === 'yearly';
     const activePrice = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
     const activeSubtext = isYearly ? plan.yearlySubtext : plan.monthlySubtext;
 
     function handleCta() {
         onSelectPlan(plan.name, activePrice, billingInterval);
+        navigate('/dashboard');
     }
 
     return (

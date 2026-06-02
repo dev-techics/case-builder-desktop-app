@@ -1,5 +1,5 @@
 import { Bell, BriefcaseBusiness, LifeBuoy, Search } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+// import { useNavigate, useLocation } from 'react-router-dom';
 
 import { useAppSelector } from '@/app/hooks';
 import { selectUser } from '@/features/auth/redux/authSlice';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
-const createBundleEvent = 'dashboard:create-bundle';
+// const createBundleEvent = 'dashboard:create-bundle';
 
 const getInitials = (name?: string | null) => {
   if (!name) {
@@ -25,17 +25,17 @@ const getInitials = (name?: string | null) => {
 
 const DashboardHeader = () => {
   const user = useAppSelector(selectUser);
-  const navigate = useNavigate();
-  const location = useLocation();
+  // const navigate = useNavigate();
+  // const location = useLocation();
 
-  const handleCreateBundle = () => {
-    if (location.pathname !== '/dashboard') {
-      navigate('/dashboard?createBundle=1');
-      return;
-    }
+  // const handleCreateBundle = () => {
+  //   if (location.pathname !== '/dashboard') {
+  //     navigate('/dashboard?createBundle=1');
+  //     return;
+  //   }
 
-    window.dispatchEvent(new Event(createBundleEvent));
-  };
+  //   window.dispatchEvent(new Event(createBundleEvent));
+  // };
 
   return (
     <header className="relative z-20 h-[72px] border-b border-[var(--sidebar-border)] bg-[color:rgba(255,255,255,0.92)] backdrop-blur">
@@ -99,12 +99,12 @@ const DashboardHeader = () => {
               <span className="absolute right-3 top-3 size-2 rounded-full bg-[var(--dashboard-primary-container)]" />
             </Button>
 
-            <Button
+            {/* <Button
               onClick={handleCreateBundle}
               className="hidden h-10 rounded-full bg-[var(--dashboard-primary-container)] px-5 text-[13px] font-semibold text-white shadow-[0_14px_30px_rgba(53,37,205,0.22)] hover:bg-[var(--primary)] sm:inline-flex"
             >
               Create New Bundle
-            </Button>
+            </Button> */}
 
             <Avatar className="size-10 border border-[var(--sidebar-border)] bg-white">
               <AvatarImage src="" alt={user?.name ?? 'Case Builder user'} />
