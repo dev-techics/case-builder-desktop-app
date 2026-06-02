@@ -1,31 +1,41 @@
 import { app } from 'electron';
 import path from 'node:path';
+import { secureStore } from '../services/secure-store/index.js';
 
 export const DOCUMENT_PROTOCOL = 'case-builder-document';
 
 /*-------------------
   Get Database Path
 ---------------------*/
-export const getDatabasePath = () => {
-  if (app.isPackaged) {
-    return path.join(
-      app.getPath('userData'),
-      'case-builder',
-      'case-builder.db'
-    );
+export const getDatabasePath = async () => {
+  const session = await secureStore.getSession();
+  const userId = session?.user.id.toString();
+  if (!userId) {
+    throw new Error('No authenticated user — cannot resolve database path');
   }
-  return path.join(process.cwd(), 'storage', 'case-builder.db');
+
+  const base = app.isPackaged
+    ? app.getPath('userData')
+    : path.join(process.cwd(), 'storage');
+
+  return path.join(base, 'users', userId, 'case-builder.db');
 };
 
 /*--------------------------
   Get Documents Storage Root
 ----------------------------*/
-export const getDocumentsStoragePath = () => {
-  if (app.isPackaged) {
-    return path.join(app.getPath('userData'), 'case-builder', 'bundles');
+export const getDocumentsStoragePath = async () => {
+  const session = await secureStore.getSession();
+  const userId = session?.user.id.toString();
+  if (!userId) {
+    throw new Error('No authenticated user — cannot resolve database path');
   }
 
-  return path.join(process.cwd(), 'storage', 'bundles');
+  const base = app.isPackaged
+    ? app.getPath('userData')
+    : path.join(process.cwd(), 'storage');
+
+  return path.join(base, 'users', userId, 'bundles');
 };
 
 export const buildDocumentUrl = (documentId: string) =>

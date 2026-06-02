@@ -34,6 +34,7 @@ import { CoverPageGenerator } from '../backend/infrastructure/document-processin
 import { setupAutoUpdater } from './autoUpdater.js';
 import { ElectronDocumentToPdfConverter } from './services/documentToPdfConverter.js';
 import { registerAuthIpc } from './ipc/auth.controller.js';
+import { secureStore } from './services/secure-store/index.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
@@ -50,11 +51,11 @@ const configureBundledGhostscript = () => {
 /*----------------------
   Register IPC Handlers
 ------------------------*/
-const registerIpc = () => {
+const registerIpc = async () => {
   configureBundledGhostscript();
 
-  const databasePath = getDatabasePath();
-  const documentsStoragePath = getDocumentsStoragePath();
+  const databasePath = await getDatabasePath();
+  const documentsStoragePath = await getDocumentsStoragePath();
   const db = createSqliteDatabase(databasePath);
   const bundleRepository = new SqliteBundleRepository(db);
   const documentRepository = new SqliteDocumentRepository(db);
@@ -117,7 +118,7 @@ const registerIpc = () => {
     documentRepository,
     documentsStorageRoot: documentsStoragePath,
   });
-  registerAuthIpc();
+  // registerAuthIpc();
 };
 
 /*-------------------
@@ -140,7 +141,7 @@ const createWindow = () => {
     win.loadFile(path.join(appDir, '../../dist-react/index.html'));
   } else {
     win.loadURL(DEV_RENDERER_URL);
-    win.webContents.openDevTools({ mode: 'detach' });
+    win.webContents.openDevTools({ mode: 'right' });
   }
 
   win.webContents.on('did-finish-load', () => {
@@ -150,7 +151,15 @@ const createWindow = () => {
 
 // App Lifecycle
 app.whenReady().then(async () => {
-  registerIpc();
+  // Auth IPC must ALWAYS be registered — even before login
+  registerAuthIpc();
+
+  // Only register data IPC if a user session exists
+  const session = await secureStore.getSession();
+  if (session?.user) {
+    await registerIpc();
+  }
+
   createWindow();
 });
 
