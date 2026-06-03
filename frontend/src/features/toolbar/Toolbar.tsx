@@ -10,7 +10,6 @@ import { cancelHighlight } from './redux';
  * 3. Creates the final highlight when a color is selected
  * 4. Clears the text selection after highlight creation
  * 5. Scrolls with the page content
- * 6. On comment click its create a component in the side to write a comment
  */
 
 export function Toolbar() {

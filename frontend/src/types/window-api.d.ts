@@ -24,6 +24,8 @@ import type {
   DesktopRenameDocumentResponse,
   DesktopRotateDocumentInput,
   DesktopRotateDocumentResponse,
+  DesktopMergeDocumentsInput,
+  DesktopMergeDocumentsResponse,
   DesktopImportDocumentsInput,
   DesktopImportDocumentsResponse,
   FileTree,
@@ -78,6 +80,7 @@ declare global {
       deleteDocument: (input: DesktopDeleteDocumentInput) => Promise<void>;
       renameDocument: (input: DesktopRenameDocumentInput) => Promise<DesktopRenameDocumentResponse>;
       rotateDocument: (input: DesktopRotateDocumentInput) => Promise<DesktopRotateDocumentResponse>;
+      mergeDocuments: (input: DesktopMergeDocumentsInput) => Promise<DesktopMergeDocumentsResponse>;
       importDocuments: (input: DesktopImportDocumentsInput) => Promise<DesktopImportDocumentsResponse>;
       getPathForFile: (file: File) => string;
 

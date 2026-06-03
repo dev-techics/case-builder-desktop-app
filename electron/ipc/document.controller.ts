@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import type {
   DocumentProcessor,
+  MergeDocumentProcessor,
   RotateDocumentProcessor,
 } from '../../backend/application/ports/documents/documentProcessor.js';
 import type { DocumentStorage } from '../../backend/application/ports/documents/documentStorage.js';
@@ -9,6 +10,7 @@ import { CreateFolderUseCase } from '../../backend/application/useCases/document
 import { DeleteDocumentUseCase } from '../../backend/application/useCases/document/deleteDocument.js';
 import { ImportDocumentsUseCase } from '../../backend/application/useCases/document/importDocuments.js';
 import { ListBundleDocumentsTreeUseCase } from '../../backend/application/useCases/document/listBundleDocumentsTree.js';
+import { MergeDocumentsUseCase } from '../../backend/application/useCases/document/mergeDocuments.js';
 import { MoveDocumentUseCase } from '../../backend/application/useCases/document/moveDocument.js';
 import { ReorderDocumentsUseCase } from '../../backend/application/useCases/document/reorderDocuments.js';
 import { RenameDocumentUseCase } from '../../backend/application/useCases/document/renameDocument.js';
@@ -67,11 +69,19 @@ type RotateDocumentPayload = {
   rotation?: 0 | 90 | 180 | 270;
 };
 
+type MergeDocumentsPayload = {
+  bundleId?: string | number;
+  documentIds?: Array<string | number>;
+  name?: string;
+  parentId?: string | null;
+};
+
 type RegDocIpcControllerType = {
   documentRepository: DocumentRepository;
   documentStorage: DocumentStorage;
   documentProcessor: DocumentProcessor;
   rotateProcessor: RotateDocumentProcessor;
+  mergeProcessor: MergeDocumentProcessor;
   buildDocumentUrl: (documentId: string) => string;
 };
 
@@ -92,6 +102,11 @@ export function registerDocumentIpc(deps: RegDocIpcControllerType) {
   const moveDocument = new MoveDocumentUseCase(deps.documentRepository);
   const reorderDocuments = new ReorderDocumentsUseCase(deps.documentRepository);
   const renameDocument = new RenameDocumentUseCase(deps.documentRepository);
+  const mergeDocuments = new MergeDocumentsUseCase(
+    deps.documentRepository,
+    deps.documentStorage,
+    deps.mergeProcessor
+  );
 
   // Instance of document rotate usecase class
   const rotateDocument = new RotateDocumentUseCase(
@@ -221,6 +236,41 @@ export function registerDocumentIpc(deps: RegDocIpcControllerType) {
       });
 
       return getTreeWithDocumentUrls(bundleId);
+    }
+  );
+
+  /*-----------------------------
+    Document merge IPC handler
+  -------------------------------*/
+  ipcMain.handle(
+    'document:merge',
+    async (_, payload: MergeDocumentsPayload) => {
+      const bundleId =
+        typeof payload?.bundleId === 'string'
+          ? payload.bundleId
+          : String(payload?.bundleId ?? '');
+      const parentId =
+        typeof payload?.parentId === 'string' && payload.parentId.trim()
+          ? payload.parentId
+          : null;
+      const documentIds = Array.isArray(payload?.documentIds)
+        ? payload.documentIds.map(documentId => String(documentId ?? ''))
+        : [];
+
+      const result = await mergeDocuments.execute({
+        bundleId,
+        documentIds,
+        name: typeof payload?.name === 'string' ? payload.name : '',
+        parentId,
+      });
+
+      return {
+        document: {
+          ...result.document,
+          url: deps.buildDocumentUrl(result.document.id),
+        },
+        tree: await getTreeWithDocumentUrls(bundleId),
+      };
     }
   );
 

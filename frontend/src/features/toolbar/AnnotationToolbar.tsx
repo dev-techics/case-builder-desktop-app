@@ -121,6 +121,7 @@ const AnnotationToolbar = () => {
     clearSelection();
   };
 
+  /*-------------------- Redaction Target Change Handler -------------------------*/
   const handleRedactionTargetChange = (target: 'fill' | 'border') => {
     setRedactionTarget(target);
 

@@ -14,33 +14,6 @@ import type {
 } from '@/features/toolbar/types/types';
 import { toolbarApi } from '../api';
 
-// type DesktopApi = NonNullable<Window['api']>;
-
-// type DesktopHighlightRecord = Awaited<
-//   ReturnType<DesktopApi['getHighlights']>
-// >[number];
-
-
-// const mapDesktopHighlight = (highlight: DesktopHighlightRecord): Highlight => ({
-//   id: highlight.id,
-//   fileId: highlight.documentId,
-//   pageNumber: highlight.pageNumber,
-//   coordinates: {
-//     x: highlight.x,
-//     y: highlight.y,
-//     width: highlight.width,
-//     height: highlight.height,
-//   },
-//   text: highlight.text,
-//   color: {
-//     name: highlight.colorName,
-//     hex: highlight.colorHex,
-//     rgb: highlight.colorRgb,
-//     opacity: highlight.opacity,
-//   },
-//   createdAt: highlight.createdAt,
-// });
-
 const initialState: EditorState = {
   activeTool: 'select',
   redactionStyle: {
@@ -69,29 +42,6 @@ const initialState: EditorState = {
   commentError: null,
 };
 
-/*=============================================
-=            Async Thunks                     =
-=============================================*/
-
-// const mapRedactionFromApi = (r: RedactionApiResponse): Redaction => ({
-//   id: String(r.id),
-//   fileId: String(r.documentId),
-//   pageNumber: r.pageNumber,
-//   coordinates: {
-//     x: r.x,
-//     y: r.y,
-//     width: r.width,
-//     height: r.height,
-//   },
-//   style: {
-//     name: r.name || 'Custom',
-//     fillHex: r.opacity === 0 ? null : r.fillHex,
-//     opacity: r.opacity ?? 1,
-//     borderHex: r.borderHex || '#000000',
-//     borderWidth: r.borderWidth ?? 2,
-//   },
-//   createdAt: r.createdAt,
-// });
 
 /*=============================================
 =            Redux Slice                      =

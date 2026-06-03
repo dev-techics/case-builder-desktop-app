@@ -9,6 +9,12 @@ export interface DocumentStorage {
     sourcePath: string;
     originalName: string;
   }): Promise<StoredFileReference>;
+  writeBytes(input: {
+    bundleId: string;
+    documentId: string;
+    fileName: string;
+    bytes: Uint8Array;
+  }): Promise<StoredFileReference>;
   deleteBundleStorage(bundleId: string): Promise<void>;
   deleteByStoragePath(storagePath: string): Promise<void>;
   getFilePath(bundleId: string, documentId: string): Promise<string>;

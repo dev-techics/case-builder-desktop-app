@@ -48,88 +48,6 @@ type MergeDocumentsMutationResponse = {
   mergedDocumentName?: string;
 };
 
-type MergeDocumentRecord = {
-  id?: string | number;
-  name?: string;
-};
-
-type MergeDocumentsApiResponse = {
-  document?: MergeDocumentRecord;
-  mergedDocument?: MergeDocumentRecord;
-  tree?: FileTree;
-  data?: {
-    document?: MergeDocumentRecord;
-    mergedDocument?: MergeDocumentRecord;
-    tree?: FileTree;
-  };
-};
-
-const parseTextResponse = (response: unknown) => {
-  if (typeof response !== 'string') {
-    return response;
-  }
-
-  try {
-    return JSON.parse(response);
-  } catch {
-    return response;
-  }
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const getMergeDocumentMetadata = (
-  response: unknown
-): Pick<
-  MergeDocumentsMutationResponse,
-  'mergedDocumentId' | 'mergedDocumentName'
-> => {
-  if (!isRecord(response)) {
-    return {};
-  }
-
-  const nestedData = isRecord(response.data) ? response.data : null;
-  const documentCandidate = [
-    response.document,
-    response.mergedDocument,
-    nestedData?.document,
-    nestedData?.mergedDocument,
-  ].find(isRecord);
-
-  if (!documentCandidate) {
-    return {};
-  }
-
-  return {
-    mergedDocumentId:
-      typeof documentCandidate.id === 'string' ||
-      typeof documentCandidate.id === 'number'
-        ? String(documentCandidate.id)
-        : undefined,
-    mergedDocumentName:
-      typeof documentCandidate.name === 'string'
-        ? documentCandidate.name
-        : undefined,
-  };
-};
-
-const getTreeFromMergeResponse = (response: unknown): FileTree | null => {
-  if (!isRecord(response)) {
-    return null;
-  }
-
-  if (isRecord(response.tree)) {
-    return response.tree as unknown as FileTree;
-  }
-
-  if (isRecord(response.data) && isRecord(response.data.tree)) {
-    return response.data.tree as unknown as FileTree;
-  }
-
-  return null;
-};
-
 export const fileTreeApi = createApi({
   reducerPath: 'fileTreeApi',
   baseQuery: fetchBaseQuery({
@@ -426,55 +344,34 @@ export const fileTreeApi = createApi({
       }
     >({
       async queryFn(
-        { bundleId, documentIds, name, parentId },
-        _api,
-        _extraOptions,
-        baseQuery
+        { bundleId, documentIds, name, parentId }
       ) {
-        const mergeResult = await baseQuery({
-          url: `/api/bundles/${bundleId}/documents/merge`,
-          method: 'POST',
-          body: {
-            document_ids: documentIds,
-            name,
-            parent_id: parentId,
-          },
-          responseHandler: 'text',
-        });
+        const desktopApi = getDesktopApi();
 
-        if ('error' in mergeResult) {
-          return { error: mergeResult.error as FetchBaseQueryError };
-        }
-
-        const mergeResponse = parseTextResponse(mergeResult.data) as
-          | MergeDocumentsApiResponse
-          | string;
-        const mergeMetadata = getMergeDocumentMetadata(mergeResponse);
-        const responseTree = getTreeFromMergeResponse(mergeResponse);
-
-        if (responseTree) {
+        if (!desktopApi?.mergeDocuments) {
           return {
-            data: {
-              tree: responseTree,
-              ...mergeMetadata,
-            },
+            error: toIpcError(new Error('Desktop API unavailable')),
           };
         }
 
-        const treeResult = await baseQuery(
-          `/api/bundles/${bundleId}/documents`
-        );
+        try {
+          const mergeResult = await desktopApi.mergeDocuments({
+            bundleId,
+            documentIds,
+            name,
+            parentId,
+          });
 
-        if ('error' in treeResult) {
-          return { error: treeResult.error as FetchBaseQueryError };
+          return {
+            data: {
+              tree: mergeResult.tree,
+              mergedDocumentId: String(mergeResult.document.id),
+              mergedDocumentName: mergeResult.document.name,
+            },
+          };
+        } catch (error) {
+          return { error: toIpcError(error) };
         }
-
-        return {
-          data: {
-            tree: treeResult.data as FileTree,
-            ...mergeMetadata,
-          },
-        };
       },
     }),
   }),
