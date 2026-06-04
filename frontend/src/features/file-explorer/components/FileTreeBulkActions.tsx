@@ -42,7 +42,6 @@ const FileTreeBulkActions = ({ bundleId }: FileTreeBulkActionsProps) => {
     previewFiles,
     isMergeDisabled,
     isMerging,
-    files,
     parentLabel,
     reason,
     handleClearSelection,
