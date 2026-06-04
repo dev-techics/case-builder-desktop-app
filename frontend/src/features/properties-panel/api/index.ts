@@ -1,4 +1,4 @@
-import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
+import { toIpcError } from '@/utils';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import camelcaseKeys from 'camelcase-keys';
 
@@ -6,11 +6,6 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const getDesktopApi = () =>
   typeof window === 'undefined' ? undefined : window.api;
-
-const toIpcError = (error: unknown): FetchBaseQueryError => ({
-  status: 'CUSTOM_ERROR',
-  error: error instanceof Error ? error.message : 'IPC request failed',
-});
 
 export type ExportCompressionProfile =
   | 'none'

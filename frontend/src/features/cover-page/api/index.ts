@@ -1,14 +1,9 @@
-import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { CoverPageTemplate } from '../types';
 import type { DesktopCoverPageRecord } from '@/types';
+import { toIpcError } from '@/utils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const toIpcError = (error: unknown): FetchBaseQueryError => ({
-  status: 'CUSTOM_ERROR',
-  error: error instanceof Error ? error.message : 'IPC request failed',
-});
 
 const mapCoverPage = (record: DesktopCoverPageRecord): CoverPageTemplate => ({
   id: record.id,

@@ -4,16 +4,12 @@ import {
   normalizeBundleListResponse,
   normalizeBundleResponse,
 } from '../utils/normalizers';
+import { toIpcError } from '@/utils';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const getDesktopApi = () =>
   typeof window !== 'undefined' && window.api?.isDesktop ? window.api : undefined;
-
-const toIpcError = (error: unknown) => ({
-  status: 'CUSTOM_ERROR' as const,
-  error: error instanceof Error ? error.message : 'IPC request failed',
-});
 
 type RenameBundleRequest = {
   bundleId: string | number;

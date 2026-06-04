@@ -1,3 +1,4 @@
+import { toIpcError } from '@/utils';
 import type { FileTree, ServerFileTreeNode } from '../types/fileTree';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
@@ -5,11 +6,6 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 const BaseQuery = import.meta.env.VITE_BASE_URL;
 const getDesktopApi = () =>
   typeof window !== 'undefined' && window.api?.isDesktop ? window.api : undefined;
-
-const toIpcError = (error: unknown) => ({
-  status: 'CUSTOM_ERROR' as const,
-  error: error instanceof Error ? error.message : 'IPC request failed',
-});
 
 type DesktopFileInput = {
   name: string;
@@ -44,8 +40,8 @@ type CreateFolderDesktopResponse = {
 
 type MergeDocumentsMutationResponse = {
   tree: FileTree;
-  mergedDocumentId?: string;
-  mergedDocumentName?: string;
+  mergedDocumentId: string;
+  mergedDocumentName: string;
 };
 
 export const fileTreeApi = createApi({

@@ -106,17 +106,31 @@ export type FileMergeSelectionContext = {
   reason: string | null;
 };
 
+/**
+ * This selector computes the context for merging files based on the current file tree and the selected file IDs.
+ * It checks if the selected files can be merged (e.g., they must all be files and share the same parent folder).
+ * It returns the ordered list of selected file IDs, the corresponding file nodes, the common parent ID and label (or root if no parent),
+ * and a reason message if merging is not possible.
+ */
 export const selectMergeSelectionContext = createSelector(
   [selectFileTree, selectOrderedSelectedFileIds],
   (tree, orderedSelectedFileIds): FileMergeSelectionContext => {
+
+    /* It maps each selected ID to its actual node object, 
+     - then filters out anything that isn't a file (e.g. folders that somehow ended up in the selection). 
+     - The result is an ordered array of only file nodes. 
+     */
     const files = orderedSelectedFileIds
       .map(fileId => tree.nodes[fileId])
       .filter((node): node is MergeSelectionFile =>
-        Boolean(node && node.type === 'file')
+        Boolean(node?.type === 'file')
       );
 
     const rootLabel = tree.projectName || tree.name;
 
+    /* Early return if no files are selected, 
+     - since we can't merge anything in that case.
+    */
     if (files.length === 0) {
       return {
         canMerge: false,
@@ -127,7 +141,9 @@ export const selectMergeSelectionContext = createSelector(
         reason: 'Select files to merge.',
       };
     }
-
+    /* If there's only one file, we also can't merge, 
+     - and we can skip the more complex logic around parent folders.
+     */
     if (files.length < 2) {
       return {
         canMerge: false,
@@ -142,6 +158,11 @@ export const selectMergeSelectionContext = createSelector(
       };
     }
 
+    /* This is the key check. It collects the parentId of every selected file,
+     - deduplicates them, and asks: do all selected files share exactly one parent folder?
+     - If yes, we can merge and we return the common parentId and its label (or root if parentId is null).
+     - If not, we can't merge and we return a reason explaining that all files must be from the same folder.
+     */
     const parentKeys = dedupeOrdered(
       files.map(file => file.parentId ?? ROOT_PARENT_KEY)
     );
