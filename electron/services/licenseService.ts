@@ -19,6 +19,13 @@ const EMPTY_LICENSE: LicenseCache = {
   lastChecked: 0,
 };
 
+type BillingInterval = 'monthly' | 'yearly';
+
+type CheckoutInput = {
+  planId?: string;
+  billingInterval?: BillingInterval;
+};
+
 export const licenseService = {
   async checkLicense(): Promise<LicenseCache> {
     const accessToken = await secureStore.getAccessToken();
@@ -93,7 +100,45 @@ export const licenseService = {
     return cachedLicense;
   },
 
-  async openCheckout() {
+  async startTrial() {
+    const accessToken = await secureStore.getAccessToken();
+    if (!accessToken) {
+      return {
+        success: false,
+        error: 'Please sign in before starting your trial.',
+      };
+    }
+
+    try {
+      const response = await requestApi<unknown>(authApiRoutes.startTrial, {
+        method: 'POST',
+        accessToken,
+        body: { source: 'desktop' },
+      });
+
+      const normalizedLicense = normalizeLicenseResponse(response);
+      await secureStore.setLicenseCache(normalizedLicense);
+
+      return {
+        success: true,
+        license: {
+          ...normalizedLicense,
+          lastChecked: Date.now(),
+        },
+        message: extractMessage(response) ?? undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: getServiceErrorMessage(
+          error,
+          'Unable to start the free trial right now.'
+        ),
+      };
+    }
+  },
+
+  async openCheckout(input: CheckoutInput = {}) {
     const accessToken = await secureStore.getAccessToken();
     if (!accessToken) {
       return {
@@ -106,7 +151,11 @@ export const licenseService = {
       const response = await requestApi<unknown>(authApiRoutes.checkout, {
         method: 'POST',
         accessToken,
-        body: { source: 'desktop' },
+        body: {
+          source: 'desktop',
+          planId: input.planId ?? 'pro',
+          billingInterval: input.billingInterval ?? 'monthly',
+        },
       });
 
       const checkoutUrl = extractCheckoutUrl(response);
@@ -194,6 +243,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function extractMessage(value: unknown): string | null {
+  const response = getPrimaryRecord(value);
+
+  return (
+    readString(response.message) ??
+    readString(response.statusText) ??
+    (isRecord(response.data) ? extractMessage(response.data) : null)
+  );
 }
 
 function isUnauthorizedError(error: unknown): error is ApiError {

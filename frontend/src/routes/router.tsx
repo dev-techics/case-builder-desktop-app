@@ -18,15 +18,15 @@ import PlansLayout from '@/layouts/PlansLayout';
 
 
 // Guard: must be logged in + have a license
-// async function requireAuthAndLicense() {
-//   const { isAuthenticated, hasLicense, initialized } = getAuthSnapshot();
+async function requireAuthAndLicense() {
+  const { isAuthenticated, hasLicense, initialized } = getAuthSnapshot();
+  console.log(isAuthenticated, hasLicense, initialized);
+  if (!initialized) return null;
+  if (!isAuthenticated) throw redirect('/login');
+  if (!hasLicense) throw redirect('/plans');   
 
-//   if (!initialized) return null;
-//   if (!isAuthenticated) throw redirect('/login');
-//   if (!hasLicense) throw redirect('/plans');   // logged in, no license
-
-//   return null;
-// }
+  return null;
+}
 
 // Guard: paywall page — must be logged in, but must NOT have a license
 async function requireAuthNoLicense() {
@@ -34,7 +34,7 @@ async function requireAuthNoLicense() {
 
   if (!initialized) return null;
   if (!isAuthenticated) throw redirect('/login');
-  if (hasLicense) throw redirect('/dashboard'); // already licensed, skip paywall
+  if (hasLicense) throw redirect('/dashboard'); 
 
   return null;
 }
@@ -83,7 +83,7 @@ export const router = createHashRouter([
 
   // ── Protected routes ─────────────────────────────────────────────────────
   {
-    // loader: requireAuthAndLicense,
+    loader: requireAuthAndLicense,
     children: [
       {
         element: <EditorLayout />,

@@ -29,7 +29,8 @@ export function registerAuthIpc() {
     return result;
   });
   ipcMain.handle('license:check', () => licenseService.checkLicense());
-  ipcMain.handle('subscription:openCheckout', () =>
-    licenseService.openCheckout()
+  ipcMain.handle('subscription:startTrial', () => licenseService.startTrial());
+  ipcMain.handle('subscription:openCheckout', (_, input) =>
+    licenseService.openCheckout(input)
   );
 }

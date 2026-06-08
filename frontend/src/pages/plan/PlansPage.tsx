@@ -1,12 +1,8 @@
-import SubscriptionThemeProvider from "@/features/subscription/components/SubscriptionThemeProvider"
-import PricingSection from "@/features/subscription/components/PricingSection"
+import Subscription from "@/features/subscription/Subscription";
 
 const PlansPage = () => {
     return (
-        <SubscriptionThemeProvider>
-
-            <PricingSection onNotify={() => { console.log("notify") }} onSelectPlan={() => { console.log("Plan A is selected") }} />
-        </SubscriptionThemeProvider>
+        <Subscription />
     )
 }
 

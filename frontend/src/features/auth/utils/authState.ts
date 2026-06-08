@@ -34,6 +34,7 @@ export async function initAuth(): Promise<void> {
 // Loaders call these — no hooks, just plain store reads
 export function getAuthSnapshot() {
    const state = store.getState().auth;
+   console.log('License in snapshot:', state.license);
   return {
     isAuthenticated: state.isAuthenticated, 
     hasLicense: hasDesktopLicenseAccess(state.license),

@@ -144,7 +144,7 @@ const createWindow = () => {
     win.loadFile(path.join(appDir, '../../dist-react/index.html'));
   } else {
     win.loadURL(DEV_RENDERER_URL);
-    win.webContents.openDevTools({ mode: 'right' });
+    win.webContents.openDevTools({ mode: 'detach' });
   }
 
   win.webContents.on('did-finish-load', () => {

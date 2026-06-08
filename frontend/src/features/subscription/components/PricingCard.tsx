@@ -2,30 +2,30 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, BadgeCheck, HelpCircle, Star, Sparkles } from 'lucide-react';
 import type { BillingInterval, Plan } from '../types';
-import { useNavigate } from 'react-router-dom';
+import { getPlanPrice, getPlanSubtext } from '../utils/plans';
 
 interface PricingCardProps {
     plan: Plan;
     billingInterval: BillingInterval;
-    onSelectPlan: (planName: string, price: string, interval: BillingInterval) => void;
-    onNotify: (message: string) => void;
+    isDisabled?: boolean;
+    isLoading?: boolean;
+    onSelectPlan: (plan: Plan, interval: BillingInterval) => void;
 }
 
 export default function PricingCard({
     plan,
     billingInterval,
+    isDisabled = false,
+    isLoading = false,
     onSelectPlan,
-    onNotify,
 }: Readonly<PricingCardProps>) {
     const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
-    const navigate = useNavigate();
     const isYearly = billingInterval === 'yearly';
-    const activePrice = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
-    const activeSubtext = isYearly ? plan.yearlySubtext : plan.monthlySubtext;
+    const activePrice = getPlanPrice(plan, billingInterval);
+    const activeSubtext = getPlanSubtext(plan, billingInterval);
 
     function handleCta() {
-        onSelectPlan(plan.name, activePrice, billingInterval);
-        navigate('/dashboard');
+        onSelectPlan(plan, billingInterval);
     }
 
     return (
@@ -131,8 +131,9 @@ export default function PricingCard({
                                     <button
                                         onMouseEnter={() => setHoveredTooltip(feature.id)}
                                         onMouseLeave={() => setHoveredTooltip(null)}
-                                        onClick={() => onNotify(feature.tooltip!)}
+                                        type="button"
                                         className="text-outline hover:text-primary focus:outline-none transition-colors"
+                                        title={feature.tooltip}
                                         aria-label={`More info about ${feature.label}`}
                                     >
                                         <HelpCircle size={14} />
@@ -153,17 +154,21 @@ export default function PricingCard({
             {/* CTA button */}
             {plan.highlighted ? (
                 <button
+                    type="button"
                     onClick={handleCta}
+                    disabled={isDisabled}
                     className="w-full py-3.5 px-4 bg-primary text-on-primary font-bold text-sm tracking-wide rounded-xl hover:bg-primary-container transition-all shadow-md cursor-pointer hover:shadow-primary/20 hover:scale-[1.01] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-primary/20 whitespace-nowrap duration-150"
                 >
-                    {plan.ctaLabel}
+                    {isLoading ? 'Opening checkout...' : plan.ctaLabel}
                 </button>
             ) : (
                 <button
+                    type="button"
                     onClick={handleCta}
+                    disabled={isDisabled}
                     className="w-full py-3.5 px-4 border-2 border-primary text-primary font-bold text-sm tracking-wide rounded-xl hover:bg-primary-fixed transition-all cursor-pointer focus:outline-none focus:ring-4 focus:ring-primary/10 whitespace-nowrap active:scale-[0.98]"
                 >
-                    {plan.ctaLabel}
+                    {isLoading ? 'Starting trial...' : plan.ctaLabel}
                 </button>
             )}
         </motion.div>

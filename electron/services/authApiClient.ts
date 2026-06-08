@@ -1,5 +1,5 @@
-const DEFAULT_API_BASE_URL = 'https://verify.techics.com';
-// const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
+// const DEFAULT_API_BASE_URL = 'https://verify.techics.com';
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
 
 const API_BASE_URL = stripTrailingSlash(
   process.env.CASE_BUILDER_API_URL ??
@@ -12,6 +12,7 @@ export const authApiRoutes = {
   register: '/api/register',
   logout: '/api/logout',
   license: '/api/license/validate',
+  startTrial: '/api/license/start-trial',
   checkout: '/api/subscription/checkout',
 } as const;
 
