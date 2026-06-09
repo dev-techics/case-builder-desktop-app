@@ -17,7 +17,6 @@ const useLoginForm = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [login, { isLoading, error, reset }] = useLoginMutation();
-  const isDesktop = !!window.api?.isDesktop;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

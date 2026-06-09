@@ -5,9 +5,9 @@ import {
   getServiceErrorMessage,
   isNetworkError,
   requestApi,
-} from './authApiClient.js';
-import { secureStore } from './secure-store/index.js';
-import type { LicenseCache } from './secure-store/types.js';
+} from '../authApiClient.js';
+import { secureStore } from '../secure-store/index.js';
+import type { LicenseCache } from '../secure-store/types.js';
 import { extractNormalizedLicense } from './licenseResponse.js';
 
 const OFFLINE_GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
@@ -26,6 +26,12 @@ type CheckoutInput = {
   billingInterval?: BillingInterval;
 };
 
+type StartTrialResponse = {
+  message: string;
+  license?: Omit<LicenseCache, 'lastChecked'> | null;
+  status?: string;
+};
+
 export const licenseService = {
   async checkLicense(): Promise<LicenseCache> {
     const accessToken = await secureStore.getAccessToken();
@@ -37,7 +43,7 @@ export const licenseService = {
       const response = await requestApi<unknown>(authApiRoutes.license, {
         accessToken,
       });
-
+      console.log('License check response:', response);
       const normalizedLicense = normalizeLicenseResponse(response);
       await secureStore.setLicenseCache(normalizedLicense);
 
@@ -110,22 +116,26 @@ export const licenseService = {
     }
 
     try {
-      const response = await requestApi<unknown>(authApiRoutes.startTrial, {
-        method: 'POST',
-        accessToken,
-        body: { source: 'desktop' },
-      });
-
+      const response = await requestApi<StartTrialResponse>(
+        authApiRoutes.startTrial,
+        {
+          method: 'POST',
+          accessToken,
+          body: { source: 'desktop' },
+        }
+      );
+      console.log('Start trial response:', response.status);
       const normalizedLicense = normalizeLicenseResponse(response);
       await secureStore.setLicenseCache(normalizedLicense);
 
       return {
         success: true,
+        status: response.status,
         license: {
           ...normalizedLicense,
           lastChecked: Date.now(),
         },
-        message: extractMessage(response) ?? undefined,
+        message: response?.message ?? undefined,
       };
     } catch (error) {
       return {
@@ -243,16 +253,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
-}
-
-function extractMessage(value: unknown): string | null {
-  const response = getPrimaryRecord(value);
-
-  return (
-    readString(response.message) ??
-    readString(response.statusText) ??
-    (isRecord(response.data) ? extractMessage(response.data) : null)
-  );
 }
 
 function isUnauthorizedError(error: unknown): error is ApiError {

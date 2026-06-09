@@ -117,7 +117,7 @@ declare global {
 
       // ─── Subscription ────────────────────────────────────────────
       openCheckout: () => Promise<{ success: boolean; url?: string; error?: string }>;
-      startTrial: () => Promise<{ success: boolean; message: string; license?: string; error?: string }>;
+      startTrial: () => Promise<{ success: boolean; status?: string; message: string; license?: LicenseCache | null; error?: string }>;
 
       // ─── Auto Updater ────────────────────────────────────────────
       onUpdateAvailable: (cb: UpdaterEventCallback) => void;

@@ -21,6 +21,8 @@ import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { useLogoutMutation } from '@/features/auth/api';
 import { clearAuth, selectUser } from '@/features/auth/redux/authSlice';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { AiMagicIcon } from '@hugeicons/core-free-icons';
 
 const getInitials = (name?: string | null) => {
   if (!name) {
@@ -105,7 +107,19 @@ const SidebarFooterMenu = () => {
           </DropdownMenuLabel>
 
           <DropdownMenuSeparator className="bg-[var(--border)]" />
-
+          <DropdownMenuItem
+            onClick={() =>
+              navigate('/plans', {
+                state: {
+                  from: "/dashboard",
+                },
+              })
+            }
+            className="rounded-xl cursor-pointer text-[13px] text-[var(--dashboard-on-surface)] focus:bg-[var(--dashboard-surface-low)] focus:text-[var(--dashboard-on-surface)]"
+          >
+            <HugeiconsIcon icon={AiMagicIcon} className="size-4" />
+            Upgrade Plan
+          </DropdownMenuItem>
           <DropdownMenuItem className="rounded-xl text-[13px] text-[var(--dashboard-on-surface)] focus:bg-[var(--dashboard-surface-low)] focus:text-[var(--dashboard-on-surface)]">
             <UserCircle2 className="size-4" />
             Account

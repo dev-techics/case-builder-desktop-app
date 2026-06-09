@@ -30,11 +30,11 @@ async function requireAuthAndLicense() {
 
 // Guard: paywall page — must be logged in, but must NOT have a license
 async function requireAuthNoLicense() {
-  const { isAuthenticated, hasLicense, initialized } = getAuthSnapshot();
+  const { isAuthenticated, initialized } = getAuthSnapshot();
 
   if (!initialized) return null;
   if (!isAuthenticated) throw redirect('/login');
-  if (hasLicense) throw redirect('/dashboard'); 
+  // if (hasLicense) throw redirect('/dashboard'); 
 
   return null;
 }

@@ -1,4 +1,4 @@
-import type { LicenseCache, LicenseStatus } from './secure-store/types.js';
+import type { LicenseCache, LicenseStatus } from '../secure-store/types.js';
 
 type NormalizedLicense = Omit<LicenseCache, 'lastChecked'>;
 
@@ -63,6 +63,7 @@ export function extractNormalizedLicense(
   };
 }
 
+//
 function getPrimaryRecord(value: unknown): Record<string, unknown> {
   if (!isRecord(value)) {
     return {};

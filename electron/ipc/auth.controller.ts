@@ -1,6 +1,6 @@
 import { ipcMain, app } from 'electron';
 import { authService } from '../services/auth/index.js';
-import { licenseService } from '../services/licenseService.js';
+import { licenseService } from '../services/license/licenseService.js';
 
 export function registerAuthIpc() {
   ipcMain.handle('auth:getSession', () => authService.getSession());

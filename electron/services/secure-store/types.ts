@@ -20,7 +20,9 @@ export interface StoredSession {
 export interface LicenseCache {
   status: LicenseStatus;
   daysLeft?: number;
+  days_left?: number;
   expiresAt?: string;
+  expires_at?: string;
   lastChecked: number;
 }
 

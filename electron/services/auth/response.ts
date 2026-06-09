@@ -1,5 +1,5 @@
 import type { LicenseCache, StoredUser } from '../secure-store/types.js';
-import { extractNormalizedLicense } from '../licenseResponse.js';
+import { extractNormalizedLicense } from '../license/licenseResponse.js';
 import { isRecord, readIdentifier, readString } from './readers.js';
 
 export function extractAccessToken(value: unknown): string | null {
