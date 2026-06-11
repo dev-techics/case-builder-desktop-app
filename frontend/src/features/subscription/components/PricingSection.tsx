@@ -86,8 +86,7 @@ const PricingSection = () => {
         /*----------------------------------------------- 
         Check for a valid license through the desktop API 
         -------------------------------------------------*/
-        /* TODO:-------------------------------
-        * Logic
+        /*-------------------------------
          Call the license check IPC here
          If a valid license is found. 
              1. set it to the redux state

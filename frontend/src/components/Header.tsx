@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, Settings, Menu, X, ChevronDown, User, LogOut, Shield } from 'lucide-react';
+import { HelpCircle, Settings, Menu, X, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import UserAccountMenu from '@/components/UserAccountMenu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface HeaderProps {
   onNotify?: (message: string) => void;
@@ -9,7 +11,6 @@ interface HeaderProps {
 
 export default function Header({ onNotify = () => { } }: Readonly<HeaderProps>) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const navItems = ['Documents', 'Cases', 'Templates', 'Archive'];
 
@@ -63,80 +64,25 @@ export default function Header({ onNotify = () => { } }: Readonly<HeaderProps>) 
           <Settings size={20} />
         </button>
 
-        {/* User profile dropdown trigger */}
-        <div className="relative">
-          <button
-            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-            className="flex items-center gap-1 p-0.5 rounded-full hover:bg-surface-container transition-all focus:outline-none focus:ring-2 focus:ring-primary/35"
-            aria-label="User menu"
-          >
-            <div className="w-8 h-8 rounded-full border border-primary/20 overflow-hidden active:scale-95 transition-transform flex items-center justify-center bg-surface-container-highest">
-              <img
-                alt="User Profile"
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-i3LLERO84_t7DcGoIK9r4IXGZ00ugk1cTzRgIcf7oXrp1aLs0rWDvIzHbbUQcDKiOuSryAY8SfAykQiU1epsoj092Ux5Uvzv-nxmGw69VauGXAviRGTlmQ4eJpasFUrVbR2kKXnP1RbfzCLgrPKUpNKzxhcITSMF6d0ngogXqBdNQhuADeF2RwdFHVMUDzHwgT67lszGUcuPvMfpSK-lfWfBq-PrGcUfdagPZ9rkY3aTu-c_8EbSBUdXa3q8ZIV1errIGNvKfoTd"
-                onError={(e) => {
-                  // Fallback if image fails to load
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
+        <UserAccountMenu sideOffset={10}>
+          {({ initials, isOpen, user }) => (
+            <button
+              className="flex items-center gap-1 rounded-full p-0.5 transition-all hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary/35"
+              aria-label="User menu"
+            >
+              <Avatar className="size-8 border border-primary/20 bg-surface-container-highest">
+                <AvatarImage src="" alt={user?.name ?? 'Case Builder user'} />
+                <AvatarFallback className="bg-surface-container-highest text-[11px] font-semibold text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <ChevronDown
+                size={14}
+                className={`text-on-surface-variant transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
               />
-            </div>
-            <ChevronDown size={14} className={`text-on-surface-variant transition-transform duration-200 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-
-          <AnimatePresence>
-            {isProfileDropdownOpen && (
-              <>
-                {/* Backdrop overlay to close */}
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setIsProfileDropdownOpen(false)}
-                />
-
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 w-56 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg p-1.5 z-[9999]"
-                >
-                  <div className="px-3 py-2 border-b border-outline-variant/40 mb-1">
-                    <p className="text-xs font-semibold text-outline">CURRENT USER</p>
-                    <p className="text-sm font-bold text-on-surface truncate">anikdey@gmail.com</p>
-                    <p className="text-[11px] text-primary font-medium mt-0.5">Workspace Creator</p>
-                  </div>
-
-                  <button
-                    onClick={() => { setIsProfileDropdownOpen(false); onNotify('Profile details viewed.'); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors text-left focus:outline-none"
-                  >
-                    <User size={16} />
-                    <span>My Account</span>
-                  </button>
-
-                  <button
-                    onClick={() => { setIsProfileDropdownOpen(false); onNotify('Security and logs are in read-only status in this preview.'); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors text-left focus:outline-none"
-                  >
-                    <Shield size={16} />
-                    <span>Security Settings</span>
-                  </button>
-
-                  <div className="border-t border-outline-variant/40 my-1" />
-
-                  <button
-                    onClick={() => { setIsProfileDropdownOpen(false); onNotify('Standard logout trigger.'); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-error hover:bg-error-container/20 rounded-lg transition-colors text-left font-medium focus:outline-none"
-                  >
-                    <LogOut size={16} />
-                    <span>Log Out</span>
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
+            </button>
+          )}
+        </UserAccountMenu>
 
         {/* Mobile menu trigger */}
         <button

@@ -114,6 +114,11 @@ function readLicenseStatus(
     return 'trialing';
   }
 
+  const expiresAt = readFirstString(value, EXPIRY_KEYS);
+  if (expiresAt && isPastDate(expiresAt)) {
+    return 'expired';
+  }
+
   return null;
 }
 
@@ -166,6 +171,11 @@ function calculateDaysLeft(expiresAt?: string | null): number | null {
 function isFutureDate(value: string): boolean {
   const time = Date.parse(value);
   return !Number.isNaN(time) && time > Date.now();
+}
+
+function isPastDate(value: string): boolean {
+  const time = Date.parse(value);
+  return !Number.isNaN(time) && time <= Date.now();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

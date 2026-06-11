@@ -80,6 +80,14 @@ export const licenseService = {
       return EMPTY_LICENSE;
     }
 
+    if (isExpiredByDate(cachedLicense.expiresAt)) {
+      return {
+        ...cachedLicense,
+        status: 'expired',
+        daysLeft: 0,
+      };
+    }
+
     const isEligibleForGracePeriod =
       cachedLicense.status === 'active' || cachedLicense.status === 'trialing';
     const isWithinGracePeriod =
@@ -253,6 +261,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function isExpiredByDate(value: string | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+
+  const expiresAtMs = Date.parse(value);
+  return !Number.isNaN(expiresAtMs) && expiresAtMs <= Date.now();
 }
 
 function isUnauthorizedError(error: unknown): error is ApiError {
