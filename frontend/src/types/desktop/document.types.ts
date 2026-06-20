@@ -1,5 +1,6 @@
 // frontend/src/types/desktop/document.types.ts
 
+import type { FileTree } from '@/features/file-explorer/types/fileTree';
 
 
 export type DocumentImportStatus = {
@@ -56,6 +57,24 @@ export type DesktopRotateDocumentResponse = {
   documentUrl?: string;
 };
 
+export type DesktopMergeDocumentsInput = {
+  bundleId: string | number;
+  documentIds: Array<string | number>;
+  name: string;
+  parentId: string | null;
+};
+
+export type DesktopMergeDocumentsResponse = {
+  document: {
+    id: string | number;
+    parentId: string | null;
+    name: string;
+    type: 'file';
+    url: string;
+  };
+  tree: FileTree;
+};
+
 export type DesktopImportDocumentsInput = {
   bundleId: string | number;
   parentId?: string | null;
@@ -78,4 +97,4 @@ export type DesktopImportDocumentsResponse = {
 };
 
 
-export {type FileTree} from '@/features/file-explorer/types/fileTree';
+export type { FileTree } from '@/features/file-explorer/types/fileTree';

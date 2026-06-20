@@ -17,7 +17,6 @@ const useLoginForm = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [login, { isLoading, error, reset }] = useLoginMutation();
-  const isDesktop = !!window.api?.isDesktop;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,15 +51,11 @@ const useLoginForm = () => {
       }
       dispatch(setUser(result.user));
       dispatch(setLicense(result.license ?? null));
-
-      navigate(
-        isDesktop
-          ? hasDesktopLicenseAccess(result.license)
-            ? '/dashboard'
-            : '/dashboard'
-          : '/dashboard',
-        { replace: true }
-      );
+      console.log('Login result:', result);
+      hasDesktopLicenseAccess(result.license)
+        ? navigate('/dashboard', { replace: true })
+        : navigate('/plans', { replace: true });
+      
     } catch {
       // Error is handled through RTK Query state.
     }

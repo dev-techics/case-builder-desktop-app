@@ -1,8 +1,16 @@
+/**
+ * Component: File tree bulk actions:
+ * - Displays bulk action options when multiple files are selected in the file explorer.
+ * - Currently supports merging multiple files into a single PDF. Shows a dialog to confirm the merge action,
+ * - allowing the user to specify the name of the merged file and preview the files being merged.
+ *
+ * Props:
+ *
+ * Authors: @anikdey13
+ */
+/*================== File Imports ==================*/
 import { Layers2, LoaderCircle, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { toast } from 'react-toastify';
 
-import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,225 +23,35 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { useMergeDocumentsMutation } from '../api';
-import {
-  clearMultiFileSelection,
-  selectFile,
-  setScrollToFile,
-} from '../redux/fileTreeSlice';
-import {
-  selectFileTree,
-  selectIsMergingDocuments,
-  selectMergeSelectionContext,
-} from '../redux/selectors';
-import type { FileTree } from '../types/fileTree';
+import { useFileTreeBulkActions } from '../hooks/useMergeDocuments';
+/*=================================================*/
+
+const DEFAULT_MERGED_FILE_NAME = 'Merged document';
 
 type FileTreeBulkActionsProps = {
   bundleId: string;
 };
 
-const DEFAULT_MERGED_FILE_NAME = 'Merged document';
-const MAX_PREVIEW_FILES = 6;
-
-const stripFileExtension = (fileName: string) =>
-  fileName.replace(/\.[^.]+$/, '');
-
-const ensurePdfExtension = (fileName: string) =>
-  /\.pdf$/i.test(fileName) ? fileName : `${fileName}`;
-
-const buildDefaultMergedFileName = (fileNames: string[]) => {
-  if (fileNames.length === 0) {
-    return DEFAULT_MERGED_FILE_NAME;
-  }
-
-  const baseName = stripFileExtension(fileNames[0]).trim();
-  if (!baseName) {
-    return DEFAULT_MERGED_FILE_NAME;
-  }
-
-  return ensurePdfExtension(`${baseName} merged`);
-};
-
-const resolveMutationErrorMessage = (error: unknown) => {
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  if (error && typeof error === 'object') {
-    const payload = error as {
-      data?: unknown;
-      error?: unknown;
-      message?: unknown;
-    };
-
-    if (typeof payload.data === 'string') {
-      return payload.data;
-    }
-
-    if (payload.data && typeof payload.data === 'object') {
-      const nestedData = payload.data as { message?: unknown; error?: unknown };
-      if (typeof nestedData.message === 'string') {
-        return nestedData.message;
-      }
-      if (typeof nestedData.error === 'string') {
-        return nestedData.error;
-      }
-    }
-
-    if (typeof payload.error === 'string') {
-      return payload.error;
-    }
-
-    if (typeof payload.message === 'string') {
-      return payload.message;
-    }
-  }
-
-  return 'Failed to merge files.';
-};
-
-const findMergedFileId = ({
-  previousTree,
-  nextTree,
-  parentId,
-  expectedName,
-  excludedIds,
-}: {
-  previousTree: FileTree;
-  nextTree: FileTree;
-  parentId: string | null;
-  expectedName: string;
-  excludedIds: string[];
-}) => {
-  const excludedIdSet = new Set(excludedIds);
-  const previousChildIds =
-    parentId === null
-      ? previousTree.rootIds
-      : (previousTree.children[parentId] ?? []);
-  const previousChildIdSet = new Set(previousChildIds);
-  const nextChildIds =
-    parentId === null ? nextTree.rootIds : (nextTree.children[parentId] ?? []);
-
-  const candidates = nextChildIds
-    .map(nodeId => nextTree.nodes[nodeId])
-    .filter(
-      (node): node is Extract<FileTree['nodes'][string], { type: 'file' }> =>
-        Boolean(node && node.type === 'file' && !excludedIdSet.has(node.id))
-    );
-
-  const newlyInsertedCandidates = candidates.filter(
-    node => !previousChildIdSet.has(node.id)
-  );
-  const newlyInsertedExactNameMatches = newlyInsertedCandidates.filter(
-    node => node.name === expectedName
-  );
-  if (newlyInsertedExactNameMatches.length > 0) {
-    return newlyInsertedExactNameMatches[
-      newlyInsertedExactNameMatches.length - 1
-    ].id;
-  }
-
-  const exactNameMatches = candidates.filter(
-    node => node.name === expectedName
-  );
-  if (exactNameMatches.length > 0) {
-    return exactNameMatches[exactNameMatches.length - 1].id;
-  }
-
-  if (newlyInsertedCandidates.length > 0) {
-    return newlyInsertedCandidates[newlyInsertedCandidates.length - 1].id;
-  }
-
-  return candidates.length > 0 ? candidates[candidates.length - 1].id : null;
-};
-
 const FileTreeBulkActions = ({ bundleId }: FileTreeBulkActionsProps) => {
-  const dispatch = useAppDispatch();
-  const tree = useAppSelector(selectFileTree);
-  const isMerging = useAppSelector(selectIsMergingDocuments);
   const {
-    canMerge,
-    files,
-    orderedSelectedFileIds,
-    parentId,
+    isDialogOpen,
+    setIsDialogOpen,
+    mergedFileName,
+    setMergedFileName,
+    selectedCount,
+    previewFiles,
+    isMergeDisabled,
+    isMerging,
     parentLabel,
     reason,
-  } = useAppSelector(selectMergeSelectionContext);
-
-  const [mergeDocuments] = useMergeDocumentsMutation();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [mergedFileName, setMergedFileName] = useState(
-    DEFAULT_MERGED_FILE_NAME
-  );
-
-  const selectedCount = files.length;
-  const previewFiles = useMemo(
-    () => files.slice(0, MAX_PREVIEW_FILES),
-    [files]
-  );
+    handleClearSelection,
+    handleOpenMergeDialog,
+    handleConfirmMerge,
+  } = useFileTreeBulkActions(bundleId);
 
   if (selectedCount < 2) {
     return null;
   }
-
-  const isMergeDisabled =
-    !bundleId || !canMerge || selectedCount < 2 || isMerging;
-
-  const handleClearSelection = () => {
-    dispatch(clearMultiFileSelection());
-  };
-
-  const handleOpenMergeDialog = () => {
-    setMergedFileName(buildDefaultMergedFileName(files.map(file => file.name)));
-    setIsDialogOpen(true);
-  };
-
-  const handleConfirmMerge = async () => {
-    if (isMergeDisabled) {
-      return;
-    }
-
-    const normalizedFileName = ensurePdfExtension(
-      mergedFileName.trim() ||
-        buildDefaultMergedFileName(files.map(file => file.name))
-    );
-    const previousTree = tree;
-
-    try {
-      const mergeResult = await mergeDocuments({
-        bundleId,
-        documentIds: orderedSelectedFileIds,
-        name: normalizedFileName,
-        parentId,
-      }).unwrap();
-      const nextTree = mergeResult.tree;
-
-      dispatch(clearMultiFileSelection());
-
-      const mergedFileId =
-        mergeResult.mergedDocumentId &&
-        nextTree.nodes[mergeResult.mergedDocumentId]?.type === 'file'
-          ? mergeResult.mergedDocumentId
-          : findMergedFileId({
-              previousTree,
-              nextTree,
-              parentId,
-              expectedName:
-                mergeResult.mergedDocumentName ?? normalizedFileName,
-              excludedIds: orderedSelectedFileIds,
-            });
-
-      if (mergedFileId) {
-        dispatch(selectFile(mergedFileId));
-        dispatch(setScrollToFile(mergedFileId));
-      }
-
-      setIsDialogOpen(false);
-      toast.success(`Merged ${orderedSelectedFileIds.length} files.`);
-    } catch (error) {
-      toast.error(resolveMutationErrorMessage(error));
-    }
-  };
 
   return (
     <>
@@ -246,13 +64,8 @@ const FileTreeBulkActions = ({ bundleId }: FileTreeBulkActionsProps) => {
                 {selectedCount} file{selectedCount === 1 ? '' : 's'} selected
               </span>
             </div>
-            <p
-              className={`mt-1 text-xs ${
-                reason ? 'text-red-600' : 'text-gray-500'
-              }`}
-            >
-              {reason ??
-                `Merge order follows the explorer order in ${parentLabel}.`}
+            <p className={`mt-1 text-xs ${reason ? 'text-red-600' : 'text-gray-500'}`}>
+              {reason ?? `Merge order follows the explorer order in ${parentLabel}.`}
             </p>
           </div>
 
@@ -283,6 +96,7 @@ const FileTreeBulkActions = ({ bundleId }: FileTreeBulkActionsProps) => {
           </div>
         </div>
       </div>
+
       {/* --------- Merge confirmation dialog ------------ */}
       <Dialog
         open={selectedCount >= 2 && isDialogOpen}
@@ -292,8 +106,7 @@ const FileTreeBulkActions = ({ bundleId }: FileTreeBulkActionsProps) => {
           <DialogHeader>
             <DialogTitle>Merge files</DialogTitle>
             <DialogDescription>
-              Combine {selectedCount} files from {parentLabel} into a single
-              PDF.
+              Combine {selectedCount} files from {parentLabel} into a single PDF.
             </DialogDescription>
           </DialogHeader>
 

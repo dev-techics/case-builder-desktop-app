@@ -4,7 +4,7 @@ import {
   isNetworkError,
   requestApi,
 } from '../authApiClient.js';
-import { licenseService } from '../licenseService.js';
+import { licenseService } from '../license/licenseService.js';
 import { secureStore } from '../secure-store/index.js';
 import { type StoredUser } from '../secure-store/types.js';
 import {

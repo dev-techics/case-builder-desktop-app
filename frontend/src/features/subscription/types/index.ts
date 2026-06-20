@@ -15,6 +15,7 @@ export interface PlanFeature {
 export interface Plan {
     id: string;
     name: string;
+    type: 'free' | 'paid';
     monthlyPrice: string;
     yearlyPrice: string;
     /** Short line shown below the price (e.g. "14-day access"). Null for plans that use dynamic subtext. */
@@ -32,4 +33,9 @@ export interface Plan {
     /** Subtext shown when billing is yearly. */
     yearlySubtext: string | null;
     features: PlanFeature[];
+}
+
+export interface SelectedPlan {
+    plan: Plan;
+    billingInterval: BillingInterval;
 }

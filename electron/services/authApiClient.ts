@@ -12,6 +12,7 @@ export const authApiRoutes = {
   register: '/api/register',
   logout: '/api/logout',
   license: '/api/license/validate',
+  startTrial: '/api/license/start-trial',
   checkout: '/api/subscription/checkout',
 } as const;
 

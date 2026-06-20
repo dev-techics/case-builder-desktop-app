@@ -23,6 +23,7 @@ import {
   getGSInstallDir,
 } from './utils/index.js';
 import { DocumentRotateProcessor } from '../backend/infrastructure/document-processing/pdf-lib-processor/rotate.js';
+import { DocumentMergeProcessor } from '../backend/infrastructure/document-processing/pdf-lib-processor/merge.js';
 import { registerCommentIpc } from './ipc/comment.controller.js';
 import { registerRedactionIpc } from './ipc/redaction.controller.js';
 import { SqliteRedactionRepository } from '../backend/infrastructure/repositories/sqliteRedactionRepository.js';
@@ -89,6 +90,7 @@ const registerIpc = async () => {
   });
   // Instance of document rotate processor class
   const rotateProcessor = new DocumentRotateProcessor();
+  const mergeProcessor = new DocumentMergeProcessor();
   const exportService = new BundleExportService({
     bundleRepository,
     documentRepository,
@@ -105,6 +107,7 @@ const registerIpc = async () => {
     documentStorage,
     documentProcessor,
     rotateProcessor,
+    mergeProcessor,
     buildDocumentUrl,
   });
   registerHighlightIpc({
@@ -141,7 +144,7 @@ const createWindow = () => {
     win.loadFile(path.join(appDir, '../../dist-react/index.html'));
   } else {
     win.loadURL(DEV_RENDERER_URL);
-    win.webContents.openDevTools({ mode: 'right' });
+    win.webContents.openDevTools({ mode: 'detach' });
   }
 
   win.webContents.on('did-finish-load', () => {

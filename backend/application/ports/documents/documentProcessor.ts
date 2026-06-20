@@ -36,3 +36,7 @@ export interface RotateDocumentProcessor {
     rotation: 0 | 90 | 180 | 270;
   }): Promise<void>;
 }
+
+export interface MergeDocumentProcessor {
+  mergePdfs(filePaths: string[]): Promise<Uint8Array>;
+}

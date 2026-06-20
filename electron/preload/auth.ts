@@ -21,7 +21,12 @@ export const authApi = {
   checkLicense: () => ipcRenderer.invoke('license:check'),
 
   // Subscription — opens Stripe checkout in system browser
-  openCheckout: () => ipcRenderer.invoke('subscription:openCheckout'),
+  startTrial: () => ipcRenderer.invoke('subscription:startTrial'),
+
+  openCheckout: (input?: {
+    planId?: string;
+    billingInterval?: 'monthly' | 'yearly';
+  }) => ipcRenderer.invoke('subscription:openCheckout', input),
 
   // Update notifications (from your autoUpdater setup)
   onUpdateAvailable: (cb: () => void) =>

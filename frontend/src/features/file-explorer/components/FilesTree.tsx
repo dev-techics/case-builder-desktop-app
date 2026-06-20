@@ -20,8 +20,7 @@ import {
 import { GripVertical } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
-import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { toggleFolder } from '../redux/fileTreeSlice';
+import { useAppSelector } from '../../../app/hooks';
 import FileTreeBulkActions from './FileTreeBulkActions';
 import FileTreeHeader from './FileTreeHeader';
 import TreeChildren from './TreeChildren';
@@ -31,15 +30,8 @@ import {
 } from '../hooks/useFileTreeInteractions';
 import { resolveBundleId } from '@/lib/bundleId';
 
-type FilesTreeProps = {
-  level: number;
-};
-
-const FilesTree: React.FC<FilesTreeProps> = ({ level }) => {
-  const dispatch = useAppDispatch();
+const FilesTree: React.FC = () => {
   const tree = useAppSelector(state => state.fileTree.tree);
-  const expanded = useAppSelector(state => state.fileTree.expanded);
-  const rootExpanded = Boolean(expanded[tree.id]);
 
   const { bundleId: routeBundleId } = useParams<{ bundleId: string }>();
   const extractedBundleId =
@@ -68,17 +60,9 @@ const FilesTree: React.FC<FilesTreeProps> = ({ level }) => {
     bundleId: extractedBundleId,
   });
 
-  const rootLabel = tree.projectName || tree.name;
-
   return (
     <>
-      <FileTreeHeader
-        folderId={tree.id}
-        label={rootLabel}
-        level={level}
-        isExpanded={rootExpanded}
-        onToggle={() => dispatch(toggleFolder(tree.id))}
-      />
+      <FileTreeHeader folderId={tree.id} />
       <FileTreeBulkActions bundleId={extractedBundleId} />
 
       <DndContext
@@ -90,23 +74,21 @@ const FilesTree: React.FC<FilesTreeProps> = ({ level }) => {
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
       >
-        {rootExpanded && (
-          <div
-            ref={setRootDropRef}
-            className={`min-h-[16px] ${isRootOver ? 'bg-blue-50' : ''}`}
-          >
-            <TreeChildren
-              parentId={null}
-              activeItem={activeItem}
-              overId={overId}
-              activeId={activeId}
-              selectedFileIds={selectedFileIds}
-              onFileSelect={onFileSelect}
-              onFolderSelect={onFolderSelect}
-              dropPreview={dropPreview}
-            />
-          </div>
-        )}
+        <div
+          ref={setRootDropRef}
+          className={`min-h-[16px] ${isRootOver ? 'bg-blue-50' : ''}`}
+        >
+          <TreeChildren
+            parentId={null}
+            activeItem={activeItem}
+            overId={overId}
+            activeId={activeId}
+            selectedFileIds={selectedFileIds}
+            onFileSelect={onFileSelect}
+            onFolderSelect={onFolderSelect}
+            dropPreview={dropPreview}
+          />
+        </div>
 
         <DragOverlay>
           {activeId && activeItem ? (

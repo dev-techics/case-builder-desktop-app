@@ -1,4 +1,4 @@
-import type { LicenseCache, LicenseStatus } from './secure-store/types.js';
+import type { LicenseCache, LicenseStatus } from '../secure-store/types.js';
 
 type NormalizedLicense = Omit<LicenseCache, 'lastChecked'>;
 
@@ -63,6 +63,7 @@ export function extractNormalizedLicense(
   };
 }
 
+//
 function getPrimaryRecord(value: unknown): Record<string, unknown> {
   if (!isRecord(value)) {
     return {};
@@ -111,6 +112,11 @@ function readLicenseStatus(
   const trialExpiresAt = readFirstString(value, TRIAL_EXPIRY_KEYS);
   if (trialExpiresAt && isFutureDate(trialExpiresAt)) {
     return 'trialing';
+  }
+
+  const expiresAt = readFirstString(value, EXPIRY_KEYS);
+  if (expiresAt && isPastDate(expiresAt)) {
+    return 'expired';
   }
 
   return null;
@@ -165,6 +171,11 @@ function calculateDaysLeft(expiresAt?: string | null): number | null {
 function isFutureDate(value: string): boolean {
   const time = Date.parse(value);
   return !Number.isNaN(time) && time > Date.now();
+}
+
+function isPastDate(value: string): boolean {
+  const time = Date.parse(value);
+  return !Number.isNaN(time) && time <= Date.now();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

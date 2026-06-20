@@ -25,14 +25,9 @@ const FileTree: React.FC = () => {
   });
 
   return (
-    <div className="h-screen w-full bg-white text-gray-800">
-      <div className="border-gray-300 border-b p-4">
-        <h2 className="font-semibold text-gray-800 text-xs uppercase tracking-wider">
-          Explorer
-        </h2>
-      </div>
+    <div className="h-full w-full bg-white text-gray-800">
       <div className="py-1 overflow-y-auto">
-        <FilesTree level={0} />
+        <FilesTree />
       </div>
     </div>
   );

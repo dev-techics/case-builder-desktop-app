@@ -28,6 +28,26 @@ export class LocalDocumentStorage implements DocumentStorage {
     };
   }
 
+  async writeBytes(input: {
+    bundleId: string;
+    documentId: string;
+    fileName: string;
+    bytes: Uint8Array;
+  }) {
+    const bundleDirectory = path.join(this.storageRoot, input.bundleId);
+    await fs.mkdir(bundleDirectory, { recursive: true });
+
+    const extension = path.extname(input.fileName).toLowerCase() || '.pdf';
+    const fileName = `${input.documentId}${extension}`;
+    const destinationPath = path.join(bundleDirectory, fileName);
+
+    await fs.writeFile(destinationPath, Buffer.from(input.bytes));
+
+    return {
+      storagePath: path.posix.join(input.bundleId, fileName),
+    };
+  }
+
   async deleteByStoragePath(storagePath: string): Promise<void> {
     const absolutePath = path.join(this.storageRoot, storagePath);
     await fs.rm(absolutePath, { force: true });

@@ -1,13 +1,9 @@
+import { toIpcError } from '@/utils';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 
 const getDesktopApi = () =>
   typeof window !== 'undefined' && window.api?.isDesktop ? window.api : undefined;
-
-const toIpcError = (error: unknown): FetchBaseQueryError => ({
-  status: 'CUSTOM_ERROR',
-  error: error instanceof Error ? error.message : 'IPC request failed',
-});
 
 type RotateDocumentPageResponse = {
   documentId: string;

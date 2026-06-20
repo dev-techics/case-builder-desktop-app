@@ -2,6 +2,7 @@
   {
     "id": "free",
     "name": "Free Trial",
+    "type": "free",
     "monthlyPrice": "$0",
     "yearlyPrice": "$0",
     "tagline": "14-day access",
@@ -33,6 +34,7 @@
   {
     "id": "pro",
     "name": "Pro Plan",
+    "type": "paid",
     "monthlyPrice": "$29",
     "yearlyPrice": "$290",
     "tagline": null,

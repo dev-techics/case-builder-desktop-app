@@ -68,6 +68,16 @@ export const documentsApi = {
     rotation: number;
   }) => ipcRenderer.invoke('document:rotate', input),
 
+  /* -----------------------
+            Merge Documents
+      --------------------------*/
+  mergeDocuments: (input: {
+    bundleId: string | number;
+    documentIds: Array<string | number>;
+    name: string;
+    parentId: string | null;
+  }) => ipcRenderer.invoke('document:merge', input),
+
   /*-------------------------
     Get imported file path
   ---------------------------*/

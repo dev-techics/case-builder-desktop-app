@@ -1,6 +1,6 @@
 import { ipcMain, app } from 'electron';
 import { authService } from '../services/auth/index.js';
-import { licenseService } from '../services/licenseService.js';
+import { licenseService } from '../services/license/licenseService.js';
 
 export function registerAuthIpc() {
   ipcMain.handle('auth:getSession', () => authService.getSession());
@@ -29,7 +29,8 @@ export function registerAuthIpc() {
     return result;
   });
   ipcMain.handle('license:check', () => licenseService.checkLicense());
-  ipcMain.handle('subscription:openCheckout', () =>
-    licenseService.openCheckout()
+  ipcMain.handle('subscription:startTrial', () => licenseService.startTrial());
+  ipcMain.handle('subscription:openCheckout', (_, input) =>
+    licenseService.openCheckout(input)
   );
 }

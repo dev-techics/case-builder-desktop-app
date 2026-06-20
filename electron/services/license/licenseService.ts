@@ -5,9 +5,9 @@ import {
   getServiceErrorMessage,
   isNetworkError,
   requestApi,
-} from './authApiClient.js';
-import { secureStore } from './secure-store/index.js';
-import type { LicenseCache } from './secure-store/types.js';
+} from '../authApiClient.js';
+import { secureStore } from '../secure-store/index.js';
+import type { LicenseCache } from '../secure-store/types.js';
 import { extractNormalizedLicense } from './licenseResponse.js';
 
 const OFFLINE_GRACE_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
@@ -17,6 +17,19 @@ const EMPTY_LICENSE_STATE: Omit<LicenseCache, 'lastChecked'> = {
 const EMPTY_LICENSE: LicenseCache = {
   ...EMPTY_LICENSE_STATE,
   lastChecked: 0,
+};
+
+type BillingInterval = 'monthly' | 'yearly';
+
+type CheckoutInput = {
+  planId?: string;
+  billingInterval?: BillingInterval;
+};
+
+type StartTrialResponse = {
+  message: string;
+  license?: Omit<LicenseCache, 'lastChecked'> | null;
+  status?: string;
 };
 
 export const licenseService = {
@@ -30,7 +43,7 @@ export const licenseService = {
       const response = await requestApi<unknown>(authApiRoutes.license, {
         accessToken,
       });
-
+      console.log('License check response:', response);
       const normalizedLicense = normalizeLicenseResponse(response);
       await secureStore.setLicenseCache(normalizedLicense);
 
@@ -67,6 +80,14 @@ export const licenseService = {
       return EMPTY_LICENSE;
     }
 
+    if (isExpiredByDate(cachedLicense.expiresAt)) {
+      return {
+        ...cachedLicense,
+        status: 'expired',
+        daysLeft: 0,
+      };
+    }
+
     const isEligibleForGracePeriod =
       cachedLicense.status === 'active' || cachedLicense.status === 'trialing';
     const isWithinGracePeriod =
@@ -93,7 +114,49 @@ export const licenseService = {
     return cachedLicense;
   },
 
-  async openCheckout() {
+  async startTrial() {
+    const accessToken = await secureStore.getAccessToken();
+    if (!accessToken) {
+      return {
+        success: false,
+        error: 'Please sign in before starting your trial.',
+      };
+    }
+
+    try {
+      const response = await requestApi<StartTrialResponse>(
+        authApiRoutes.startTrial,
+        {
+          method: 'POST',
+          accessToken,
+          body: { source: 'desktop' },
+        }
+      );
+      console.log('Start trial response:', response.status);
+      const normalizedLicense = normalizeLicenseResponse(response);
+      await secureStore.setLicenseCache(normalizedLicense);
+
+      return {
+        success: true,
+        status: response.status,
+        license: {
+          ...normalizedLicense,
+          lastChecked: Date.now(),
+        },
+        message: response?.message ?? undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: getServiceErrorMessage(
+          error,
+          'Unable to start the free trial right now.'
+        ),
+      };
+    }
+  },
+
+  async openCheckout(input: CheckoutInput = {}) {
     const accessToken = await secureStore.getAccessToken();
     if (!accessToken) {
       return {
@@ -106,7 +169,11 @@ export const licenseService = {
       const response = await requestApi<unknown>(authApiRoutes.checkout, {
         method: 'POST',
         accessToken,
-        body: { source: 'desktop' },
+        body: {
+          source: 'desktop',
+          planId: input.planId ?? 'pro',
+          billingInterval: input.billingInterval ?? 'monthly',
+        },
       });
 
       const checkoutUrl = extractCheckoutUrl(response);
@@ -194,6 +261,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function isExpiredByDate(value: string | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+
+  const expiresAtMs = Date.parse(value);
+  return !Number.isNaN(expiresAtMs) && expiresAtMs <= Date.now();
 }
 
 function isUnauthorizedError(error: unknown): error is ApiError {

@@ -5,7 +5,6 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import UploadFile from './components/UploadFile';
-import { getDocumentStreamUrl } from '@/api/axiosInstance';
 import { useParams } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import Fallback from '@/components/Fallback';
@@ -92,8 +91,7 @@ const PDFViewer = () => {
       visibleFiles.map(file => ({
         ...file,
         url:
-          file.url ??
-          `${getDocumentStreamUrl(file.id)}?original=true&cb=${streamSessionKey}`,
+          file.url,
       })),
     [streamSessionKey, visibleFiles]
   );

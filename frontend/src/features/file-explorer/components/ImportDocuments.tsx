@@ -4,17 +4,19 @@ import { FileImportIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, X, AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, CirclePlus, X } from 'lucide-react';
 import { useImportDocumentsUpload } from '../hooks';
 
 interface ImportDocumentsProps {
   bundleId: string;
   parentId?: string | null;
+  variant?: 'icon' | 'header';
 }
 
 const ImportDocuments: React.FC<ImportDocumentsProps> = ({
   bundleId,
   parentId = null,
+  variant = 'icon',
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
@@ -38,6 +40,30 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
   };
 
   const ALL_SUPPORTED_FORMATS = Object.values(SUPPORTED_FORMATS).join(',');
+  const buttonCursorClass = isUploading
+    ? 'cursor-not-allowed opacity-50'
+    : 'cursor-pointer';
+
+  let buttonContent: React.ReactNode;
+
+  if (variant === 'header') {
+    buttonContent = (
+      <>
+        <CirclePlus className="h-5 w-5" />
+        File
+      </>
+    );
+  } else if (parentId) {
+    buttonContent = (
+      <HugeiconsIcon
+        icon={PlusSignIcon}
+        className="mr-2 h-4 w-4 flex-shrink-0 text-slate-900"
+      />
+    );
+  } else {
+    buttonContent = <HugeiconsIcon icon={FileImportIcon} size={18} />;
+  }
+
   const getConversionStatusClasses = (
     status: (typeof conversionStatuses)[number]['status']
   ) => {
@@ -55,8 +81,11 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
     <>
       <button
         type="button"
-        className={`block rounded-lg p-2 text-sm hover:bg-gray-200 ${isUploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-          }`}
+        className={
+          variant === 'header'
+            ? `flex h-11 items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50/20 px-3 font-medium text-indigo-700 text-sm shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 ${buttonCursorClass}`
+            : `block rounded-lg p-2 text-sm hover:bg-gray-200 ${buttonCursorClass}`
+        }
         onClick={e => {
           e.stopPropagation();
           if (!isUploading) {
@@ -67,14 +96,7 @@ const ImportDocuments: React.FC<ImportDocumentsProps> = ({
         aria-label="Import Document"
         disabled={isUploading}
       >
-        {parentId ? (
-          <HugeiconsIcon
-            icon={PlusSignIcon}
-            className="mr-2 h-4 w-4 flex-shrink-0 text-slate-900"
-          />
-        ) : (
-          <HugeiconsIcon icon={FileImportIcon} size={18} />
-        )}
+        {buttonContent}
       </button>
 
       <input
