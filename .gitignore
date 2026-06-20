@@ -19,7 +19,7 @@ pnpm-debug.log*
 # Environment (keep .env.development/.env.production if you commit them)
 .env.local
 .env.*.local
-.env
+.env.*
 
 # Electron packaging outputs (common)
 out/

@@ -1,6 +1,7 @@
 import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react";
 import { toIpcError } from "@/utils";
 import type { LicenseCache } from "@/types/desktop/license.types";
+import type { Plan } from "../types";
 const BaseQuery = import.meta.env.VITE_BASE_URL;
 
 type TrialResponse = {
@@ -18,6 +19,15 @@ const subscriptionApi = createApi({
         baseUrl: BaseQuery,
     }),
     endpoints: (builder) => ({
+        /*---------------------------------
+            Get plans from server
+        -----------------------------------*/
+        getPlans: builder.query<Plan[], void>({
+            query: ()=> '/api/subscriptions/plans',
+        }),
+        /*---------------------------
+            Check license
+        -----------------------------*/
         checkLicense: builder.query<LicenseCache | null, void>({
             async queryFn(_args, _api, _extraOptions): Promise<any> {
                 if (desktopApi) {
@@ -39,7 +49,9 @@ const subscriptionApi = createApi({
                 };
             }
         }),
-        // Define your endpoints here
+        /*--------------------------
+            Start a free trial
+        ----------------------------*/
         startFreeTrial: builder.mutation<TrialResponse, void>({
             async queryFn(_args, _api, _extraOptions): Promise<any> {
                 if (desktopApi) {
@@ -70,6 +82,7 @@ const subscriptionApi = createApi({
 });
 
 export const {
+    useGetPlansQuery,
     useStartFreeTrialMutation,
     useCheckLicenseQuery,
     useLazyCheckLicenseQuery,
