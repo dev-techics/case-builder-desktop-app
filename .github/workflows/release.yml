@@ -177,7 +177,19 @@ jobs:
         if: matrix.platform == 'mac'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npm run dist:mac -- --${{ matrix.arch }} --publish always
+        shell: bash
+        run: |
+          set -e
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt of 3"
+            if npm run dist:mac -- --${{ matrix.arch }} --publish always; then
+              exit 0
+            fi
+            echo "Build failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "All attempts failed."
+          exit 1
 
       # Build Linux
       - name: Build & publish (Linux)
