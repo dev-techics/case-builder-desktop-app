@@ -21,12 +21,19 @@ jobs:
           - os: windows-latest
             platform: win
             runtimePlatform: win32
-          - os: macos-latest
+            arch: x64
+          - os: macos-13 # Intel runner — native x64 build
             platform: mac
             runtimePlatform: darwin
+            arch: x64
+          - os: macos-14 # Apple Silicon runner — native arm64 build
+            platform: mac
+            runtimePlatform: darwin
+            arch: arm64
           - os: ubuntu-latest
             platform: linux
             runtimePlatform: linux
+            arch: x64
 
     runs-on: ${{ matrix.os }}
 
@@ -72,7 +79,7 @@ jobs:
           $downloadUrl = "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/$env:GHOSTSCRIPT_TAG/$env:GHOSTSCRIPT_WINDOWS_INSTALLER"
           $installerPath = Join-Path $env:RUNNER_TEMP $env:GHOSTSCRIPT_WINDOWS_INSTALLER
           $extractRoot = Join-Path $env:RUNNER_TEMP 'ghostscript-win32'
-          $destination = Join-Path $PWD 'build/ghostscript/win32'
+          $destination = Join-Path $PWD "build/ghostscript/win-$env:ARCH"
 
           Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath
           $actualHash = (Get-FileHash $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -99,6 +106,8 @@ jobs:
           Copy-Item -LiteralPath $runtimeRoot -Destination $destination -Recurse
 
           & (Join-Path $destination 'bin/gswin64c.exe') --version
+        env:
+          ARCH: ${{ matrix.arch }}
 
       - name: Build bundled Ghostscript (macOS/Linux)
         if: matrix.platform != 'win'
@@ -108,7 +117,7 @@ jobs:
 
           archive="$RUNNER_TEMP/ghostscript-${GHOSTSCRIPT_VERSION}.tar.xz"
           source_dir="$RUNNER_TEMP/ghostscript-${GHOSTSCRIPT_VERSION}"
-          destination="$PWD/build/ghostscript/${{ matrix.runtimePlatform }}"
+          destination="$PWD/build/ghostscript/${{ matrix.platform }}-${{ matrix.arch }}"
           download_url="https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/${GHOSTSCRIPT_TAG}/ghostscript-${GHOSTSCRIPT_VERSION}.tar.xz"
 
           curl -fsSL "$download_url" -o "$archive"
@@ -122,11 +131,8 @@ jobs:
           mkdir -p "$destination"
           tar -xJf "$archive" -C "$RUNNER_TEMP"
 
-          if [[ "${{ matrix.runtimePlatform }}" == "darwin" ]]; then
-            export CFLAGS="-arch x86_64 -arch arm64"
-            export LDFLAGS="-arch x86_64 -arch arm64"
-          fi
-
+          # Native build only — each matrix job runs on a runner whose
+          # native arch matches matrix.arch, so no cross-arch CFLAGS needed.
           jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu)"
           (
             cd "$source_dir"
@@ -166,12 +172,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run dist:win -- --publish always
 
-      # Build macOS (no signing)
+      # Build macOS (no signing) — one arch per job, matches the native runner
       - name: Build & publish (macOS)
         if: matrix.platform == 'mac'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npm run dist:mac -- --publish always
+        run: npm run dist:mac -- --${{ matrix.arch }} --publish always
 
       # Build Linux
       - name: Build & publish (Linux)
@@ -184,6 +190,6 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.platform }}
+          name: release-${{ matrix.platform }}-${{ matrix.arch }}
           path: release/
           retention-days: 5

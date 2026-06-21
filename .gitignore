@@ -37,3 +37,6 @@ frontend/.git/
 Thumbs.db
 
 !window-api.d.ts
+
+build/ghostscript/*
+!build/ghostscript/README.md
