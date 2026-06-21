@@ -13,9 +13,10 @@ import {
   extractMessage,
   extractUser,
 } from './response.js';
-import type { AuthResult, LoginInput, RegisterInput } from './types.js';
+import type { AuthResult, LoginInput, LoginResponse, RegisterInput } from './types.js';
 
 const CURRENT_USER_ROUTE = '/api/me';
+
 
 export const authService = {
   async getSession(): Promise<{ user: StoredUser } | null> {
@@ -48,7 +49,7 @@ export const authService = {
 
   async login(input: LoginInput): Promise<AuthResult> {
     try {
-      const response = await requestApi<unknown>(authApiRoutes.login, {
+      const response = await requestApi<LoginResponse>(authApiRoutes.login, {
         method: 'POST',
         body: input,
       });
