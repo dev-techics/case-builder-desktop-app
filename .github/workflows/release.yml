@@ -22,11 +22,11 @@ jobs:
             platform: win
             runtimePlatform: win32
             arch: x64
-          - os: macos-13 # Intel runner — native x64 build
+          - os: macos-15-intel # native x64 build — replaces deprecated macos-13
             platform: mac
             runtimePlatform: darwin
             arch: x64
-          - os: macos-14 # Apple Silicon runner — native arm64 build
+          - os: macos-14 # native Apple Silicon build
             platform: mac
             runtimePlatform: darwin
             arch: arm64
