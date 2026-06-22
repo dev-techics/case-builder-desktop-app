@@ -74,7 +74,7 @@ const authApi = createApi({
             if (!result.success) {
               return {
                 error: toIpcError(
-                  new Error(result.error ?? 'Unable to sign in.'),
+                  new Error(result.error?.message ?? 'Unable to sign in.'),
                   'Unable to sign in.'
                 ),
               };
@@ -156,7 +156,7 @@ const authApi = createApi({
             if (!result.success) {
               return {
                 error: toIpcError(
-                  new Error(result.error ?? 'Unable to create your account.'),
+                  new Error(result.error?.message ?? 'Unable to create your account.'),
                   'Unable to create your account.'
                 ),
               };

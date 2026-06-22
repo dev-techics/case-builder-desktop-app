@@ -1,13 +1,6 @@
-import type { LicenseCache, StoredUser } from '../secure-store/types.js';
+import type { LicenseCache } from '../secure-store/types.js';
 import { extractNormalizedLicense } from '../license/licenseResponse.js';
-import { isRecord, readIdentifier, readString } from './readers.js';
-
-export function extractAccessToken(value: unknown): string | null {
-  const record = getPrimaryRecord(value);
-  const accessToken = readToken(record, 'accessToken', 'access_token');
-
-  return accessToken ?? null;
-}
+import { isRecord, readString } from './readers.js';
 
 export function extractLicenseFromResponse(
   value: unknown
@@ -20,33 +13,6 @@ export function extractLicenseFromResponse(
   return {
     ...normalizedLicense,
     lastChecked: Date.now(),
-  };
-}
-
-export function extractUser(value: unknown): StoredUser | null {
-  const record = getPrimaryRecord(value);
-  const source = isRecord(record.user)
-    ? record.user
-    : isRecord(record.profile)
-      ? record.profile
-      : null;
-
-  if (!source) {
-    return null;
-  }
-
-  const name = readString(source.name);
-  const email = readString(source.email);
-  const id = readIdentifier(source.id ?? source.userId ?? source.user_id);
-
-  if (!name || !email || id === null) {
-    return null;
-  }
-
-  return {
-    id,
-    name,
-    email,
   };
 }
 

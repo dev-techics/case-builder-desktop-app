@@ -22,20 +22,16 @@ export type AuthResult = {
 };
 
 
-/**---------------------
- * Api V2 response shape
- -----------------------*/
+/**-----------------------------
+ * Api V2 Login response shapes
+ -------------------------------*/
 type LoginErrorResponse = {
   code: string;
   message: string;
   details: {} | null;
 };
 type LoginSuccessResponse = {
-  user: {
-    id: number;
-    name: string;
-    email: string;
-  };
+  user: User;
   access_token: string;
   token_type: string;
   license: {
@@ -48,5 +44,31 @@ export type LoginResponse = {
   success: boolean;
   error?: LoginErrorResponse;
   data?: LoginSuccessResponse;
+  message: string;
+};
+
+/*----------------------------
+  Registration response shapes
+------------------------------*/
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RegisterResponse = {
+  success: boolean;
+  data?: {
+    user: User;
+    access_token: string;
+    token_type: string;
+  };
+  error?:{
+    code: string;
+    message: string;
+    details: Record<string, any> | null;
+  }
   message: string;
 };

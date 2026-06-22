@@ -9,7 +9,7 @@ const API_BASE_URL = stripTrailingSlash(
 
 export const authApiRoutes = {
   login: '/api/v2/login',
-  register: '/api/register',
+  register: '/api/v2/register',
   logout: '/api/logout',
   license: '/api/license/validate',
   startTrial: '/api/license/start-trial',
@@ -114,8 +114,8 @@ function extractErrorMessage(data: unknown, fallback: string): string {
   }
 
   const message =
+    readString(isRecord(data.error) ? data.error.message : undefined) ?? // check nested error.message FIRST
     readString(data.message) ??
-    readString(data.error) ??
     readValidationError(data.errors);
 
   return message ?? fallback ?? 'Request failed.';

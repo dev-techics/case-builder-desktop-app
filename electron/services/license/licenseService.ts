@@ -43,7 +43,7 @@ export const licenseService = {
       const response = await requestApi<unknown>(authApiRoutes.license, {
         accessToken,
       });
-      console.log('License check response:', response);
+      
       const normalizedLicense = normalizeLicenseResponse(response);
       await secureStore.setLicenseCache(normalizedLicense);
 

@@ -18,7 +18,11 @@ export type DesktopAuthResult = {
   user?: DesktopAuthUser;
   license?: LicenseCache;
   message?: string;
-  error?: string;
+  error?: {
+    code: string;
+    message: string;
+    details: Record<string, any>;
+  };
 };
 
 export type DesktopLoginInput = {

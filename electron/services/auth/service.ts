@@ -1,4 +1,5 @@
 import {
+  ApiError,
   authApiRoutes,
   getServiceErrorMessage,
   isNetworkError,
@@ -7,16 +8,17 @@ import {
 import { licenseService } from '../license/licenseService.js';
 import { secureStore } from '../secure-store/index.js';
 import { type StoredUser } from '../secure-store/types.js';
-import {
-  extractAccessToken,
-  extractLicenseFromResponse,
-  extractMessage,
-  extractUser,
-} from './response.js';
-import type { AuthResult, LoginInput, LoginResponse, RegisterInput } from './types.js';
+import { isRecord } from './readers.js';
+import { extractLicenseFromResponse, extractMessage } from './response.js';
+import type {
+  AuthResult,
+  LoginInput,
+  LoginResponse,
+  RegisterInput,
+  RegisterResponse,
+} from './types.js';
 
 const CURRENT_USER_ROUTE = '/api/me';
-
 
 export const authService = {
   async getSession(): Promise<{ user: StoredUser } | null> {
@@ -54,12 +56,14 @@ export const authService = {
         body: input,
       });
 
-      const accessToken = extractAccessToken(response);
+      const accessToken = response.data?.access_token;
+
       if (!accessToken) {
         throw new Error('Login response did not include an access token.');
       }
 
-      const user = extractUser(response) ?? (await getCurrentUser(accessToken));
+      const user = response.data?.user;
+
       if (!user) {
         throw new Error('Login response did not include a valid user profile.');
       }
@@ -71,15 +75,21 @@ export const authService = {
       // Persist the desktop token and profile so the session can be restored.
       await secureStore.setSession(session);
 
+      const licenseFromLoginResponse = extractLicenseFromResponse(response);
+
       const license =
         extractLicenseFromResponse(response) ??
         (await licenseService.checkLicense());
 
-      if (license) {
+      const newLicense = response.data?.license;
+      console.log(license);
+      console.log(newLicense);
+
+      if (licenseFromLoginResponse) {
         await secureStore.setLicenseCache({
-          status: license.status,
-          expiresAt: license.expiresAt,
-          daysLeft: license.daysLeft,
+          status: licenseFromLoginResponse.status,
+          expiresAt: licenseFromLoginResponse.expiresAt,
+          daysLeft: licenseFromLoginResponse.daysLeft,
         });
       }
 
@@ -97,29 +107,59 @@ export const authService = {
     }
   },
 
-  async register(input: RegisterInput): Promise<AuthResult> {
+  /**
+   * Registers a new user account through the authentication API.
+   *
+   * Sends the user's registration details to the backend and returns the
+   * standardized registration response. If the API returns a structured
+   * error response, it is passed through unchanged. Unexpected errors
+   * (network issues, malformed responses, etc.) are converted into a
+   * fallback error response.
+   *
+   * @param input - User registration information.
+   * @param input.name - The user's full name.
+   * @param input.email - The user's email address.
+   * @param input.password - The user's password.
+   * @param input.passwordConfirmation - Optional password confirmation. If omitted, the password value is used.
+   *
+   * @returns A promise that resolves to a {@link RegisterResponse}
+   * containing either the registration result or error details.
+   */
+  async register(input: RegisterInput): Promise<RegisterResponse> {
     try {
-      const response = await requestApi<unknown>(authApiRoutes.register, {
-        method: 'POST',
-        body: {
-          name: input.name,
-          email: input.email,
-          password: input.password,
-          password_confirmation: input.passwordConfirmation ?? input.password,
-        },
-      });
+      const response = await requestApi<RegisterResponse>(
+        authApiRoutes.register,
+        {
+          method: 'POST',
+          body: {
+            name: input.name,
+            email: input.email,
+            password: input.password,
+            password_confirmation: input.passwordConfirmation ?? input.password,
+          },
+        }
+      );
+      console.log(response);
+      return response;
+    } catch (error: any) {
+      if (
+        error instanceof ApiError &&
+        isRecord(error.data) &&
+        isRecord(error.data.error)
+      ) {
+        // Server already sent our exact shape — no need to rebuild it.
+        return error.data as RegisterResponse;
+      }
 
-      return {
-        success: true,
-        user: extractUser(response) ?? undefined,
-        message:
-          extractMessage(response) ??
-          'Account created successfully. Please sign in.',
-      };
-    } catch (error) {
+      // Fallback: server sent something else entirely (raw Laravel errors, HTML, network failure, etc.)
       return {
         success: false,
-        error: getServiceErrorMessage(error, 'Unable to create your account.'),
+        error: {
+          code: 'UNKNOWN_ERROR',
+          message: getServiceErrorMessage(error, 'Unable to register.'),
+          details: null,
+        },
+        message: 'Registration failed',
       };
     }
   },
@@ -145,11 +185,11 @@ export const authService = {
 };
 
 async function getCurrentUser(accessToken: string): Promise<StoredUser | null> {
-  const response = await requestApi<unknown>(CURRENT_USER_ROUTE, {
+  const response = await requestApi<StoredUser>(CURRENT_USER_ROUTE, {
     accessToken,
   });
 
-  return extractUser(response);
+  return response;
 }
 
 function isSameUser(left: StoredUser, right: StoredUser): boolean {
