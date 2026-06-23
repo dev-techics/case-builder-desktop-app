@@ -36,10 +36,24 @@ import { setupAutoUpdater } from './autoUpdater.js';
 import { ElectronDocumentToPdfConverter } from './services/documentToPdfConverter.js';
 import { registerAuthIpc } from './ipc/auth.controller.js';
 import { secureStore } from './services/secure-store/index.js';
+import {
+  bindProtocolWindow,
+  findProtocolUrl,
+  handleProtocolUrl,
+  registerAppProtocol,
+} from './app.protocol.js';
 
 const DEV_RENDERER_URL =
   process.env.ELECTRON_RENDERER_URL ?? 'http://localhost:3000';
 const appDir = path.dirname(fileURLToPath(import.meta.url));
+const initialProtocolUrl = findProtocolUrl(process.argv);
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  app.quit();
+} else {
+  registerAppProtocol();
+}
 
 const configureBundledGhostscript = () => {
   if (process.env.CASE_BUILDER_GHOSTSCRIPT_BINARY_PATH) {
@@ -52,7 +66,13 @@ const configureBundledGhostscript = () => {
 /*----------------------
   Register IPC Handlers
 ------------------------*/
+let dataIpcRegistered = false;
+
 const registerIpc = async () => {
+  if (dataIpcRegistered) {
+    return;
+  }
+
   configureBundledGhostscript();
 
   const databasePath = await getDatabasePath();
@@ -121,6 +141,7 @@ const registerIpc = async () => {
     documentRepository,
     documentsStorageRoot: documentsStoragePath,
   });
+  dataIpcRegistered = true;
   // registerAuthIpc();
 };
 
@@ -139,6 +160,7 @@ const createWindow = () => {
       sandbox: false,
     },
   });
+  bindProtocolWindow(win);
 
   if (app.isPackaged) {
     win.loadFile(path.join(appDir, '../../dist-react/index.html'));
@@ -150,12 +172,30 @@ const createWindow = () => {
   win.webContents.on('did-finish-load', () => {
     setupAutoUpdater(win);
   });
+
+  return win;
+};
+
+const openProtocolUrl = (url: string | undefined) => {
+  if (!url) {
+    return;
+  }
+
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+
+  handleProtocolUrl(url);
 };
 
 // App Lifecycle
 app.whenReady().then(async () => {
   // Auth IPC must ALWAYS be registered — even before login
-  registerAuthIpc();
+  if (!hasSingleInstanceLock) {
+    return;
+  }
+
+  registerAuthIpc({ onAuthenticated: registerIpc });
 
   // Only register data IPC if a user session exists
   const session = await secureStore.getSession();
@@ -164,6 +204,16 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+  openProtocolUrl(initialProtocolUrl);
+});
+
+app.on('second-instance', (_event, argv) => {
+  openProtocolUrl(findProtocolUrl(argv));
+});
+
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  openProtocolUrl(url);
 });
 
 /*-------------------------------------------------------------------------

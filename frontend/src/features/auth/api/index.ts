@@ -70,7 +70,7 @@ const authApi = createApi({
         if (desktopApi?.login) {
           try {
             const result = await desktopApi.login(credentials);
-
+            console.log(result);
             if (!result.success) {
               return {
                 error: toIpcError(

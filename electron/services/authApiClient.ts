@@ -13,7 +13,8 @@ export const authApiRoutes = {
   logout: '/api/logout',
   license: '/api/license/validate',
   startTrial: '/api/license/start-trial',
-  checkout: '/api/subscription/checkout',
+  createSubscriptionPayment: '/api/subscriptions/create-payment',
+  subscriptionStatus: '/api/subscriptions/status',
 } as const;
 
 type RequestApiOptions = {

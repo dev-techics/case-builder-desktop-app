@@ -1,7 +1,4 @@
-// frontend/src/types/window-api.d.ts
-
 import type {
-  DesktopAuthUser,
   DesktopAuthSession,
   DesktopAuthResult,
   DesktopLoginInput,
@@ -55,12 +52,17 @@ import type { UpdaterEventCallback } from './desktop/updater.types';
 
 export {};
 
+type DesktopProtocolPayload = {
+  url: string;
+  host: string;
+  path: string;
+  params: Record<string, string>;
+};
+
 declare global {
   interface Window {
     api?: {
       isDesktop?: true;
-
-      // ─── Bundles ─────────────────────────────────────────────────
       createBundle: (input: DesktopCreateBundleInput) => Promise<unknown>;
       getBundles: () => Promise<unknown[]>;
       deleteBundle: (id: string | number) => Promise<void>;
@@ -71,8 +73,6 @@ declare global {
         metadata: DesktopBundleMetadata;
       }) => Promise<DesktopBundleMetadata>;
       exportBundle: (input: DesktopExportBundleInput) => Promise<DesktopExportBundleResponse>;
-
-      // ─── Documents ───────────────────────────────────────────────
       getDocumentsTree: (bundleId: string | number) => Promise<FileTree>;
       createFolder: (input: DesktopCreateFolderInput) => Promise<DesktopCreateFolderResponse>;
       reorderDocuments: (input: DesktopReorderDocumentsInput) => Promise<FileTree>;
@@ -83,43 +83,67 @@ declare global {
       mergeDocuments: (input: DesktopMergeDocumentsInput) => Promise<DesktopMergeDocumentsResponse>;
       importDocuments: (input: DesktopImportDocumentsInput) => Promise<DesktopImportDocumentsResponse>;
       getPathForFile: (file: File) => string;
-
-      // ─── Highlights ──────────────────────────────────────────────
       getHighlights: (bundleId: string | number) => Promise<DesktopHighlightRecord[]>;
       createHighlight: (input: DesktopCreateHighlightInput) => Promise<DesktopHighlightRecord>;
       deleteHighlight: (input: DesktopDeleteHighlightInput) => Promise<{ id: string }>;
-
-      // ─── Comments ────────────────────────────────────────────────
       getComments: (bundleId: string | number) => Promise<DesktopCommentRecord[]>;
       createComment: (input: DesktopCreateCommentInput) => Promise<DesktopCommentRecord>;
       deleteComment: (input: DesktopDeleteCommentInput) => Promise<{ id: string }>;
-
-      // ─── Redactions ──────────────────────────────────────────────
       getRedactions: (bundleId: string | number) => Promise<DesktopRedactionRecord[]>;
       createRedaction: (input: DesktopCreateRedactionInput) => Promise<DesktopRedactionRecord>;
       deleteRedaction: (input: DesktopDeleteRedactionInput) => Promise<{ id: string }>;
-
-      // ─── Cover Pages ─────────────────────────────────────────────
       listCoverPages: () => Promise<DesktopCoverPageRecord[]>;
       getCoverPageById: (id: string) => Promise<DesktopCoverPageRecord>;
       createCoverPage: (payload: CreateCoverPageRequest) => Promise<DesktopCoverPageRecord>;
       updateCoverPage: (id: string, data: UpdateCoverPageRequest) => Promise<void>;
       deleteCoverPage: (id: string) => Promise<{ id: string }>;
-
-      // ─── Auth ────────────────────────────────────────────────────
       getSession: () => Promise<DesktopAuthSession>;
       login: (input: DesktopLoginInput) => Promise<DesktopAuthResult>;
       register: (input: DesktopRegisterInput) => Promise<DesktopAuthResult>;
       logout: () => Promise<{ success: boolean }>;
-
-      // ─── License ─────────────────────────────────────────────────
       checkLicense: () => Promise<LicenseCache>;
-
-      // ─── Subscription ────────────────────────────────────────────
-      openCheckout: () => Promise<{ success: boolean; url?: string; error?: string }>;
-      startTrial: () => Promise<{ success: boolean; status?: string; message: string; license?: LicenseCache | null; error?: string }>;
-
-      // ─── Auto Updater ────────────────────────────────────────────
+      openCheckout: (input?: {
+        planId?: string;
+        billingInterval?: 'monthly' | 'yearly';
+      }) => Promise<{
+        success: boolean;
+        checkoutUrl?: string;
+        approvalUrl?: string;
+        paypalSubscriptionId?: string;
+        subscriptionId?: string | number;
+        status?: string;
+        url?: string;
+        error?: string;
+      }>;
+      getSubscriptionStatus: () => Promise<{
+        success: boolean;
+        status?: string;
+        is_active?: boolean;
+        days_left?: number;
+        expires_at?: string | null;
+        next_billing_at?: string | null;
+        subscription?: {
+          id: string | number;
+          status: string;
+          plan: string | null;
+          plan_name: string | null;
+          paypal_subscription_id: string | null;
+          amount: string | null;
+          currency: string | null;
+        } | null;
+        license?: LicenseCache | null;
+        error?: string;
+      }>;
+      startTrial: () => Promise<{
+        success: boolean;
+        status?: string;
+        message: string;
+        license?: LicenseCache | null;
+        error?: string;
+      }>;
+      onProtocolUrl: (
+        cb: (payload: DesktopProtocolPayload) => void
+      ) => () => void;
       onUpdateAvailable: (cb: UpdaterEventCallback) => void;
       onUpdateDownloaded: (cb: UpdaterEventCallback) => void;
       installUpdate: () => void;

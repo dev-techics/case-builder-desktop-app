@@ -6,6 +6,12 @@
     "output": "release",
     "buildResources": "build"
   },
+  "protocols": [
+    {
+      "name": "CaseBuilder Payment Return",
+      "schemes": ["casebuilder"]
+    }
+  ],
   "files": ["dist-electron/**/*", "dist-react/**/*", "package.json"],
   "extraResources": [
     {
