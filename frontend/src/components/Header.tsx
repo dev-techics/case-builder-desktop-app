@@ -9,14 +9,22 @@ interface HeaderProps {
   onNotify?: (message: string) => void;
 }
 
-export default function Header({ onNotify = () => { } }: Readonly<HeaderProps>) {
+export default function Header({ onNotify = () => {} }: Readonly<HeaderProps>) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const navItems = ['Documents', 'Cases', 'Templates', 'Archive'];
+  const navItems = [
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Bundles', path: '/bundles' },
+    { label: 'Pricing', path: '/pricing' },
+    { label: 'FAQ', path: '/faq' },
+  ];
 
-  const handleNavClick = (e: React.MouseEvent, _item: string) => {
+  const handleNavClick = (
+    e: React.MouseEvent,
+    item: { label: string; path: string }
+  ) => {
     e.preventDefault();
-    navigate('/dashboard');
+    navigate(item.path);
   };
 
   return (
@@ -25,20 +33,23 @@ export default function Header({ onNotify = () => { } }: Readonly<HeaderProps>) 
       <div className="flex items-center gap-6">
         <a
           href="#"
-          onClick={(e) => { e.preventDefault(); onNotify('Welcome to Case Builder!'); }}
+          onClick={e => {
+            e.preventDefault();
+            onNotify('Welcome to Case Builder!');
+          }}
           className="font-sans text-2xl font-black text-primary tracking-tight select-none focus:outline-none"
         >
           Case Builder
         </a>
         <div className="hidden md:flex gap-6 ml-8">
-          {navItems.map((item) => (
+          {navItems.map(item => (
             <a
-              key={item}
-              href="#"
-              onClick={(e) => handleNavClick(e, item)}
+              key={item.path}
+              href={item.path}
+              onClick={e => handleNavClick(e, item)}
               className="text-on-surface-variant hover:text-primary transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 rounded px-1"
             >
-              {item}
+              {item.label}
             </a>
           ))}
         </div>
@@ -48,7 +59,11 @@ export default function Header({ onNotify = () => { } }: Readonly<HeaderProps>) 
       <div className="flex items-center gap-3">
         {/* Support tool */}
         <button
-          onClick={() => onNotify('Help Doc: Quick Tour of Pricing and Plan options is loading...')}
+          onClick={() =>
+            onNotify(
+              'Help Doc: Quick Tour of Pricing and Plan options is loading...'
+            )
+          }
           className="p-2 text-on-surface-variant hover:text-primary rounded-full hover:bg-surface-container transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
           aria-label="Help System"
         >
@@ -103,17 +118,17 @@ export default function Header({ onNotify = () => { } }: Readonly<HeaderProps>) 
             exit={{ opacity: 0, height: 0 }}
             className="absolute top-16 left-0 right-0 bg-surface border-b border-outline-variant/80 px-6 py-4 flex flex-col gap-3 md:hidden shadow-lg z-40 overflow-hidden"
           >
-            {navItems.map((item) => (
+            {navItems.map(item => (
               <a
-                key={item}
-                href="#"
-                onClick={(e) => {
+                key={item.path}
+                href={item.path}
+                onClick={e => {
                   handleNavClick(e, item);
                   setIsMobileMenuOpen(false);
                 }}
                 className="text-on-surface-variant hover:text-primary py-2 text-base font-semibold border-b border-outline-variant/20 last:border-0"
               >
-                {item}
+                {item.label}
               </a>
             ))}
           </motion.div>

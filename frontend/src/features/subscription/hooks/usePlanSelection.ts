@@ -255,7 +255,7 @@ export function usePlanSelection() {
           planId: plan.id,
           billingInterval: interval,
         }).unwrap();
-
+        console.log('PayPal checkout result:', result);
         if (!result.success) {
           setErrorMessage(
             normalizePaymentErrorMessage(

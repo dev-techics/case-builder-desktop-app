@@ -23,16 +23,26 @@ const PricingSection = () => {
 
   return (
     <div className="w-full flex flex-col items-center mt-12">
+      {/*----------------------- 
+          Pricing Page Header 
+        -------------------------*/}
       <PricingHeader />
-
+        {/*----------------------------------
+          Billing Switcher (monthly/yearly)
+        -------------------------------------*/}
       <BillingSwitcher value={billingInterval} onChange={setBillingInterval} />
-
+        {/*--------------------------------------------------- 
+          Error message for plan selection or fetching plans
+        ------------------------------------------------------*/}
       {errorMessage && (
-        <div className="mb-6 w-full max-w-4xl rounded-xl border border-[var(--color-error-container)] bg-[var(--color-error-container)] px-4 py-3 text-sm font-medium text-[var(--color-on-error-container)]">
+        <div className="mb-6 w-full max-w-6xl rounded-xl border border-(--color-error-container) bg-(--color-error-container) px-4 py-3 text-sm font-medium text-(--color-on-error-container)">
           {errorMessage}
         </div>
       )}
-
+      
+      {/*----------------------------------------------------------------------- 
+        Plans Loading State: Show skeleton loaders while plans are being fetched
+      --------------------------------------------------------------------------*/}
       {isPlansLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto items-stretch px-4">
           {Array.from({ length: 2 }).map((_, index) => (
@@ -57,6 +67,9 @@ const PricingSection = () => {
         </div>
       )}
 
+      {/*------------------------------------------------------ 
+        Error State: Show error message if plans failed to load
+      ---------------------------------------------------------*/}
       {!isPlansLoading && isPlansError && (
         <div className="w-full max-w-4xl rounded-xl border border-[var(--color-error-container)] bg-[var(--color-error-container)] px-4 py-4 text-sm font-medium text-[var(--color-on-error-container)]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -79,8 +92,11 @@ const PricingSection = () => {
         </div>
       )}
 
+      {/*------------------------------ 
+        Render the pricing plans cards
+      ---------------------------------*/}
       {!isPlansLoading && !isPlansError && plans.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto items-stretch px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl mx-auto items-stretch px-4">
           {plans.map(plan => (
             <PricingCard
               key={plan.id}
@@ -94,8 +110,14 @@ const PricingSection = () => {
         </div>
       )}
 
+      {/*--------------------------- 
+        Frequently Asked Questions
+      ------------------------------*/}
       <Faq faqs={faqsData} />
 
+      {/*-------------------------------------------------------------------------------------- 
+        Trust Section: Showcasing trust badges, testimonials, or other trust-building elements
+      -----------------------------------------------------------------------------------------*/}
       <TrustSection />
     </div>
   );

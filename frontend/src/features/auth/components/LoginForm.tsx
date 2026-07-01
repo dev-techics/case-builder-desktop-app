@@ -33,7 +33,7 @@ const LoginForm = () => {
 
   useEffect(() => {
     if (location.state?.fromRegister) {
-      toast.success('Registration successful! Please log in.');
+      toast.success('Account Created Successfully! Please log in.');
     }
   }, [location.state]);
 
